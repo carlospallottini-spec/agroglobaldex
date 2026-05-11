@@ -1,0 +1,33 @@
+# ---- Dependencias y artefactos de build ----
+node_modules/
+agrochain-electron/dist/
+agrochain-electron/out/
+
+# .exe finales copiados al root (se publican via GitHub Releases)
+AgroChain-Portable.exe
+AgroChain-Setup.exe
+
+# ---- Documentos de negocio / estrategia (NO subir al repo publico) ----
+AgroChain_Equipo_Inversores y iniciadores del proyecto.html
+AgroChain_Partners_Estrategia para incroporarlos al market.html
+Empresas_Tokenizacion_Agro_Espana.html
+guia-estrategica-agrochain.md
+
+# ---- Sistema / editor ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+*.log
+npm-debug.log*
+
+# ---- Env / secretos ----
+.env
+.env.local
+.env.*.local
+
+# ---- Sesiones de herramientas ----
+.claude/

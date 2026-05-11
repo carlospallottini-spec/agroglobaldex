@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contacto — AgroChain</title>
+<meta name="description" content="Contacta con AgroChain. Productores, inversores, prensa.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+.contact-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:48px;margin-top:30px}
+.c-info{display:flex;flex-direction:column;gap:12px}
+.c-item{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);transition:all .25s}
+.c-item:hover{border-color:var(--bd2);transform:translateX(3px)}
+.c-ico{width:44px;height:44px;border-radius:var(--r);background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.c-item h4{font-size:14px;font-weight:600;margin-bottom:3px}
+.c-item p,.c-item a{color:var(--t2);font-size:13px;line-height:1.6}
+.c-item a{color:var(--neon)}
+.c-item a:hover{text-decoration:underline}
+
+.c-form-wrap{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:36px}
+.c-form h3{font-family:var(--fd);font-size:24px;font-weight:400;margin-bottom:8px;letter-spacing:-.02em}
+.c-form > p{color:var(--t2);font-size:13px;margin-bottom:22px;line-height:1.7}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);padding:11px 14px;color:var(--txt);font-family:var(--fb);font-size:13px;outline:none;transition:border-color .2s;resize:vertical}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--nm)}
+.fg textarea{min-height:120px}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--t3)}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.social-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;max-width:820px;margin:32px auto 0}
+.sc{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r2);padding:26px 14px;text-align:center;transition:all .3s;display:block}
+.sc:hover{border-color:var(--nm);transform:translateY(-3px)}
+.sc-ico{width:52px;height:52px;border-radius:50%;background:var(--nd);color:var(--neon);border:1px solid var(--nm);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;margin:0 auto 12px;transition:all .3s}
+.sc:hover .sc-ico{background:var(--neon);color:#000}
+.sc h5{font-size:13px;font-weight:600;margin-bottom:3px;color:var(--txt)}
+.sc span{font-size:10.5px;color:var(--t3)}
+
+.faq-list{display:flex;flex-direction:column;gap:8px;margin-top:28px;max-width:780px;margin-left:auto;margin-right:auto}
+.faq{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:18px 22px;cursor:pointer;transition:all .25s}
+.faq:hover{border-color:var(--bd2)}
+.faq summary{font-size:14px;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center;color:var(--txt)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';font-size:20px;color:var(--neon);transition:transform .25s;font-weight:300}
+.faq[open] summary::after{transform:rotate(45deg)}
+.faq p{color:var(--t2);font-size:13px;line-height:1.75;margin-top:14px}
+.faq a{color:var(--neon)}
+
+@media(max-width:900px){.contact-grid{grid-template-columns:1fr;gap:24px}.c-form-wrap{padding:24px}.social-grid{grid-template-columns:repeat(2,1fr)}.fg-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
+
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">Agro<span>Chain</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+    <a href="marketplace.html" class="nbtn-p">Empezar</a>
+  </div>
+  <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-overlay" id="mob-overlay"></div>
+<div class="mobile-menu" id="mob-menu">
+  <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
+  <button class="nwb wallet-btn" style="margin-top:16px"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+</div>
+
+<section class="page-hero">
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="page-tag"><div class="dot"></div>Contacto</div>
+    <h1 class="page-title">Hablemos del <em>futuro</em> del agro</h1>
+    <p class="page-subtitle">¿Eres productor, inversor, prensa o quieres sumarte al equipo? Nos encantaría escucharte. Respondemos en menos de 24h hábiles.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="contact-grid">
+      <div class="c-info rv">
+        <div class="c-item"><div class="c-ico">✉</div><div><h4>Email General</h4><a href="mailto:hello@agrochain.io">hello@agrochain.io</a></div></div>
+        <div class="c-item"><div class="c-ico">◎</div><div><h4>Sede Central</h4><p>Madrid, España<br>Hub de Innovación Agrícola</p></div></div>
+        <div class="c-item"><div class="c-ico">◈</div><div><h4>Inversores</h4><a href="mailto:invest@agrochain.io">invest@agrochain.io</a></div></div>
+        <div class="c-item"><div class="c-ico">⬡</div><div><h4>Prensa & Media</h4><a href="mailto:press@agrochain.io">press@agrochain.io</a></div></div>
+        <div class="c-item"><div class="c-ico">◉</div><div><h4>Productores & Partners</h4><a href="mailto:partners@agrochain.io">partners@agrochain.io</a></div></div>
+        <div class="c-item"><div class="c-ico">⊞</div><div><h4>Soporte Técnico</h4><a href="mailto:support@agrochain.io">support@agrochain.io</a></div></div>
+      </div>
+
+      <div class="c-form-wrap rv rv-d1">
+        <form class="c-form" id="contactForm">
+          <h3>Envíanos un mensaje</h3>
+          <p>Rellena el formulario y nos pondremos en contacto contigo lo antes posible.</p>
+          <div class="fg-row">
+            <div class="fg"><label>Nombre *</label><input type="text" name="name" required placeholder="Tu nombre"></div>
+            <div class="fg"><label>Email *</label><input type="email" name="email" required placeholder="tu@email.com"></div>
+          </div>
+          <div class="fg-row">
+            <div class="fg"><label>Empresa</label><input type="text" name="company" placeholder="Tu empresa"></div>
+            <div class="fg"><label>Tipo *</label><select name="type" required>
+              <option value="">Selecciona...</option>
+              <option value="producer">Soy productor</option>
+              <option value="investor">Inversor</option>
+              <option value="press">Prensa</option>
+              <option value="partner">Partnership</option>
+              <option value="support">Soporte</option>
+              <option value="other">Otro</option>
+            </select></div>
+          </div>
+          <div class="fg"><label>Asunto *</label><input type="text" name="subject" required placeholder="¿De qué quieres hablar?"></div>
+          <div class="fg"><label>Mensaje *</label><textarea name="message" required placeholder="Cuéntanos más..."></textarea></div>
+          <button type="submit" class="btn-p" style="width:100%;justify-content:center">Enviar Mensaje →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--bg2);text-align:center">
+  <div class="container">
+    <div class="s-tag" style="display:inline-flex"><div class="ldot"></div>Comunidad</div>
+    <h2 class="s-h rv" style="max-width:600px;margin:0 auto">Síguenos en <em>redes sociales</em></h2>
+    <p class="s-sub rv rv-d1" style="margin:16px auto 0">Únete a nuestra comunidad global y mantente al día.</p>
+
+    <div class="social-grid">
+      <a href="https://twitter.com/agrochain" target="_blank" rel="noopener" class="sc rv rv-d1"><div class="sc-ico">𝕏</div><h5>Twitter</h5><span>@agrochain</span></a>
+      <a href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" class="sc rv rv-d2"><div class="sc-ico">in</div><h5>LinkedIn</h5><span>AgroChain</span></a>
+      <a href="https://discord.gg/agrochain" target="_blank" rel="noopener" class="sc rv rv-d3"><div class="sc-ico">◉</div><h5>Discord</h5><span>12k miembros</span></a>
+      <a href="https://t.me/agrochain" target="_blank" rel="noopener" class="sc rv rv-d4"><div class="sc-ico">✈</div><h5>Telegram</h5><span>Canal oficial</span></a>
+      <a href="https://github.com/agrochain" target="_blank" rel="noopener" class="sc rv rv-d5"><div class="sc-ico">◆</div><h5>GitHub</h5><span>Open source</span></a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div style="text-align:center">
+      <div class="s-tag" style="display:inline-flex"><div class="ldot"></div>FAQ</div>
+      <h2 class="s-h rv" style="max-width:600px;margin:0 auto">Preguntas <em>frecuentes</em></h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq rv rv-d1"><summary>¿Cómo puedo empezar a tokenizar mis productos agrícolas?</summary><p>Contacta con nuestro equipo en <a href="mailto:partners@agrochain.io">partners@agrochain.io</a>. Tras un proceso de verificación KYC, podrás crear tu perfil de productor y comenzar a tokenizar tus commodities.</p></details>
+      <details class="faq rv rv-d2"><summary>¿Qué monedas se aceptan en la plataforma?</summary><p>Aceptamos <strong>BTC, ETH, SOL, USDC</strong> y transferencias <strong>EUR fiat vía SEPA</strong>. No tenemos token propietario — usamos solo activos digitales establecidos y moneda fiat para garantizar liquidez institucional.</p></details>
+      <details class="faq rv rv-d3"><summary>¿Qué wallets son compatibles?</summary><p>Soportamos <strong>MetaMask, Phantom, Coinbase Wallet y WalletConnect</strong>. Conecta tu wallet desde el botón "Conectar Wallet" en cualquier página.</p></details>
+      <details class="faq rv rv-d4"><summary>¿Cuáles son las comisiones?</summary><p>Nuestras comisiones están por debajo del <strong>0.5%</strong> por transacción. Liquidación en aproximadamente 5 segundos gracias a la infraestructura blockchain.</p></details>
+      <details class="faq rv rv-d5"><summary>¿Cómo invertir en AgroChain?</summary><p>Para oportunidades de inversión escríbenos a <a href="mailto:invest@agrochain.io">invest@agrochain.io</a>. Actualmente estamos en ronda seed con ticket mínimo de 25.000€.</p></details>
+      <details class="faq rv rv-d6"><summary>¿Está regulada la plataforma?</summary><p>Sí, operamos bajo <strong>MiCA (UE)</strong> y cumplimos con AML/KYC aplicables. Trabajamos con asesores legales en cada jurisdicción.</p></details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fg3">
+    <div>
+      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
+      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <div class="fsocs">
+        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+      </div>
+    </div>
+    <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html#currencies">Monedas</a><a href="marketplace.html">Empresas</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Ayuda</a><a href="#">Docs</a><a href="#">Sistema</a></div>
+    <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
+  </div>
+  <div class="fb2">
+    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+document.getElementById('contactForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const d=new FormData(this);
+  const body=`Nombre: ${d.get('name')}\nEmail: ${d.get('email')}\nEmpresa: ${d.get('company')||'-'}\nTipo: ${d.get('type')}\nAsunto: ${d.get('subject')}\n\n${d.get('message')}`;
+  window.location.href=`mailto:hello@agrochain.io?subject=${encodeURIComponent('['+d.get('type')+'] '+d.get('subject'))}&body=${encodeURIComponent(body)}`;
+  showToast('Abriendo cliente de email...','success');
+  setTimeout(()=>this.reset(),500);
+});
+</script>
+</body>
+</html>

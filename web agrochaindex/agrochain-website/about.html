@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nosotros — AgroChain</title>
+<meta name="description" content="Quiénes somos. AgroChain construye el puente entre la agricultura tradicional y la economía digital.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-bottom:60px}
+.about-img{position:relative;border-radius:var(--r3);overflow:hidden;aspect-ratio:4/3;background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.about-img-ico{font-size:64px;opacity:.5}
+.about-img-txt{font-family:var(--fd);font-size:22px;color:var(--neon);opacity:.8}
+.about-content h3{font-family:var(--fd);font-size:30px;font-weight:400;margin-bottom:18px;line-height:1.25;letter-spacing:-.02em}
+.about-content p{color:var(--t2);font-size:15px;line-height:1.8;margin-bottom:14px}
+.about-content strong{color:var(--txt);font-weight:600}
+
+.mv-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
+.mv-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:44px;position:relative;overflow:hidden;transition:all .3s}
+.mv-card:hover{border-color:var(--bd2);transform:translateY(-3px)}
+.mv-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--neon);opacity:0;transition:opacity .3s}
+.mv-card:hover::before{opacity:1}
+.mv-ico{width:56px;height:56px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;margin-bottom:22px;font-size:24px;background:var(--nd);border:1px solid var(--nm);color:var(--neon)}
+.mv-ico.w{background:var(--gd);border-color:var(--gm);color:var(--gold)}
+.mv-card h3{font-family:var(--fd);font-size:24px;font-weight:400;margin-bottom:14px;letter-spacing:-.02em}
+.mv-card p{color:var(--t2);font-size:14.5px;line-height:1.8}
+
+.vals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.val{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:28px 22px;transition:all .3s}
+.val:hover{border-color:var(--nm);transform:translateY(-2px)}
+.val-ico{width:44px;height:44px;border-radius:var(--r);background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:16px}
+.val h4{font-family:var(--fd);font-size:18px;font-weight:400;margin-bottom:8px;letter-spacing:-.01em}
+.val p{color:var(--t2);font-size:13px;line-height:1.7}
+
+@media(max-width:900px){.about-grid{grid-template-columns:1fr;gap:32px}.mv-grid{grid-template-columns:1fr}.vals-grid{grid-template-columns:1fr}.mv-card{padding:28px}}
+</style>
+</head>
+<body>
+
+<div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
+
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">Agro<span>Chain</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="about.html">Nosotros</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="team.html">Equipo</a>
+    <a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+    <a href="marketplace.html" class="nbtn-p">Empezar</a>
+  </div>
+  <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-overlay" id="mob-overlay"></div>
+<div class="mobile-menu" id="mob-menu">
+  <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
+  <button class="nwb wallet-btn" style="margin-top:16px"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+</div>
+
+<section class="page-hero">
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="page-tag"><div class="dot"></div>Quiénes Somos</div>
+    <h1 class="page-title">Construimos el puente entre la <em>agricultura</em> y la <em>economía digital</em></h1>
+    <p class="page-subtitle">Somos un equipo con raíces en el agribusiness, fintech y blockchain, comprometidos a democratizar el comercio agrícola global mediante tecnología descentralizada.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-img rv"><div class="about-img-ico">🌾</div><div class="about-img-txt">Desde el campo al mundo</div></div>
+      <div class="about-content rv rv-d1">
+        <h3>Nuestra historia</h3>
+        <p><strong>AgroChain</strong> nace de la convicción de que los productores merecen acceso directo a mercados globales, sin intermediarios costosos ni procesos burocráticos que erosionan sus márgenes.</p>
+        <p>Nuestra plataforma permite que un agricultor en Extremadura venda directamente a un comprador en Róterdam, con liquidación instantánea y total transparencia.</p>
+        <p>Operamos sobre blockchain con soporte para <strong>BTC, ETH, SOL, USDC y EUR</strong>. Sin tokens propietarios — usamos solo activos digitales establecidos y moneda fiat para garantizar liquidez y confianza institucional.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--bg2)">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:30px">
+      <div class="s-tag" style="display:inline-flex"><div class="ldot"></div>Propósito</div>
+      <h2 class="s-h rv" style="max-width:600px;margin:0 auto">Lo que nos <em>impulsa</em></h2>
+    </div>
+    <div class="mv-grid">
+      <div class="mv-card rv rv-d1">
+        <div class="mv-ico">◉</div>
+        <h3>Nuestra Misión</h3>
+        <p>Democratizar el acceso a los mercados agrícolas globales mediante tokenización, eliminando barreras geográficas y financieras. Empoderar a cada productor con herramientas antes solo al alcance de grandes corporaciones, asegurando un precio justo por su trabajo.</p>
+      </div>
+      <div class="mv-card rv rv-d2">
+        <div class="mv-ico w">◈</div>
+        <h3>Nuestra Visión</h3>
+        <p>Ser la infraestructura de referencia mundial para el comercio agrícola on-chain. Un mundo donde cada commodity — del aceite español al café colombiano — esté trazado y accesible para cualquier persona con conexión a internet, con pago en la moneda que elija.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="s-tag"><div class="ldot"></div>Valores</div>
+    <h2 class="s-h rv">Principios que nos <em>definen</em></h2>
+    <p class="s-sub rv rv-d1">Seis pilares guían cada decisión que tomamos como empresa.</p>
+
+    <div class="vals-grid">
+      <div class="val rv rv-d1"><div class="val-ico">⬡</div><h4>Transparencia</h4><p>Cada transacción queda registrada on-chain de forma inmutable. Nada ocurre a puerta cerrada.</p></div>
+      <div class="val rv rv-d2"><div class="val-ico">◈</div><h4>Eficiencia</h4><p>Liquidación en 5 segundos y comisiones por debajo del 0.5%. Sin intermediarios innecesarios.</p></div>
+      <div class="val rv rv-d3"><div class="val-ico">◉</div><h4>Inclusión</h4><p>Acceso para productores de cualquier tamaño, desde cooperativas hasta grandes exportadores.</p></div>
+      <div class="val rv rv-d4"><div class="val-ico">⊞</div><h4>Sostenibilidad</h4><p>Priorizamos prácticas agrícolas responsables con trazabilidad verificable on-chain.</p></div>
+      <div class="val rv rv-d5"><div class="val-ico">◫</div><h4>Innovación</h4><p>Aplicamos tecnología blockchain para resolver problemas reales del sector agrícola.</p></div>
+      <div class="val rv rv-d6"><div class="val-ico">⬢</div><h4>Comunidad</h4><p>Construimos con los productores, no solo para ellos. Feedback constante, mejora continua.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="text-align:center;background:var(--bg2)">
+  <div class="container">
+    <h2 class="s-h rv" style="max-width:600px;margin:0 auto 16px">¿Quieres formar parte?</h2>
+    <p class="s-sub rv rv-d1" style="margin:0 auto 28px">Conecta con nosotros y descubre cómo ser parte del futuro del comercio agrícola.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="rv rv-d2">
+      <a href="contact.html" class="btn-p">Contáctanos →</a>
+      <a href="team.html" class="btn-s">Conoce al Equipo</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fg3">
+    <div>
+      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
+      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <div class="fsocs">
+        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+      </div>
+    </div>
+    <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html">Países</a><a href="marketplace.html">Empresas</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Ayuda</a><a href="#">Docs</a><a href="#">Sistema</a></div>
+    <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
+  </div>
+  <div class="fb2">
+    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

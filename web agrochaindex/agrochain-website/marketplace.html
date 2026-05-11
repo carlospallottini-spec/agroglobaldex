@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketplace Global — AgroChain</title>
+<meta name="description" content="Marketplace global de commodities agrícolas tokenizadas. Paga con BTC, ETH, SOL, USDC o EUR.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+.mp-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px}
+.mp-pill{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--bd);border-radius:50px;padding:7px 14px;font-size:12px}
+.mp-pill .live{width:6px;height:6px;border-radius:50%;background:var(--neon);animation:pd 1.5s infinite}
+.mp-pill span{color:var(--t2)}
+.mp-pill strong{color:var(--neon);font-weight:700}
+
+.mp-layout{display:grid;grid-template-columns:1fr 400px;gap:20px}
+.mp-map-box{border:1px solid var(--bd);border-radius:var(--r3);overflow:hidden;height:520px;background:var(--bg2)}
+#map{width:100%;height:100%;z-index:1}
+.leaflet-tile-pane{filter:saturate(.15) brightness(.35) contrast(1.1) hue-rotate(80deg)}
+.leaflet-control-zoom a{background:rgba(5,8,10,.9)!important;color:var(--neon)!important;border:1px solid var(--bd2)!important;width:30px!important;height:30px!important;line-height:30px!important;border-radius:6px!important}
+.leaflet-control-attribution{display:none!important}
+.mk{position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.mk-dot{width:10px;height:10px;border-radius:50%;background:var(--neon);box-shadow:0 0 12px rgba(0,255,106,.5);position:relative;z-index:2}
+.mk-dot.gold{background:var(--gold);box-shadow:0 0 12px rgba(200,168,75,.5)}
+.mk-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--neon);opacity:.4;animation:mpulse 2.5s infinite}
+.mk-ring.gold{border-color:var(--gold)}
+@keyframes mpulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
+.leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid var(--bd2)!important;border-radius:var(--r2)!important;color:var(--txt)!important}
+.leaflet-popup-tip{background:var(--bg2)!important}
+.leaflet-popup-close-button{color:var(--t2)!important}
+.pop-t{font-family:var(--fd);font-size:15px;color:var(--neon);margin-bottom:4px}
+.pop-i{font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:4px}
+.pop-v{font-size:12px;color:var(--gold);font-weight:700}
+
+.mp-filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.mp-f{background:var(--bg2);border:1px solid var(--bd);border-radius:50px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:var(--fb)}
+.mp-f:hover{border-color:var(--bd2);color:var(--txt)}
+.mp-f.active{background:var(--nd);border-color:var(--nm);color:var(--neon)}
+.mp-f .cnt{background:var(--bg3);border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--neon)}
+
+.mp-sidebar{display:flex;flex-direction:column;gap:14px}
+.mp-feed{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:18px;max-height:240px;overflow:hidden}
+.mp-feed-hd{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.mp-feed-hd .live{width:6px;height:6px;border-radius:50%;background:var(--neon);animation:pd 1.5s infinite}
+.mp-fi{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);font-size:12px;margin-bottom:5px;animation:fi-in .4s ease}
+@keyframes fi-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+.mp-cards{display:flex;flex-direction:column;gap:8px;max-height:460px;overflow-y:auto;padding-right:4px}
+.mp-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:14px;cursor:pointer;transition:all .25s}
+.mp-card:hover{border-color:var(--bd2);transform:translateX(3px)}
+
+.mp-bottom{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px}
+.mp-bs{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:22px;text-align:center;transition:all .3s}
+.mp-bs:hover{border-color:var(--nm)}
+.mp-bs-n{font-family:var(--fd);font-size:32px;font-weight:400;color:var(--neon);line-height:1}
+.mp-bs-n em{color:var(--gold);font-style:normal}
+.mp-bs-l{font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-top:6px;font-weight:600}
+
+/* CURRENCIES SECTION */
+.cur-section{background:var(--bg2)}
+.cur-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:32px}
+.cur-card{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r2);padding:22px;transition:all .3s;text-align:center}
+.cur-card:hover{border-color:var(--nm);transform:translateY(-3px)}
+.cur-ico{width:52px;height:52px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;font-family:var(--fd)}
+.cur-sym{font-family:var(--fd);font-size:20px;font-weight:400;margin-bottom:4px}
+.cur-name{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:10px}
+.cur-px{font-size:14px;color:var(--txt);font-weight:600}
+.cur-ch{font-size:11px;font-weight:700;margin-top:4px}
+.cur-ch.up{color:var(--neon)}
+.cur-ch.dn{color:var(--red)}
+
+/* FEATURES */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+.feat{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:28px;transition:all .3s;position:relative;overflow:hidden}
+.feat:hover{border-color:var(--bd2);transform:translateY(-3px)}
+.feat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--neon);opacity:0;transition:opacity .3s}
+.feat:hover::after{opacity:1}
+.feat-ico{width:46px;height:46px;border-radius:var(--r2);background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:18px}
+.feat-ico.w{background:var(--gd);border-color:var(--gm);color:var(--gold)}
+.feat h3{font-family:var(--fd);font-size:20px;font-weight:400;margin-bottom:10px;letter-spacing:-.01em}
+.feat p{color:var(--t2);font-size:13.5px;line-height:1.7}
+
+@media(max-width:1100px){.mp-layout{grid-template-columns:1fr}.cur-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.mp-map-box{height:360px}.mp-bottom{grid-template-columns:repeat(2,1fr)}.feat-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.mp-bottom{grid-template-columns:1fr}.cur-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
+
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">Agro<span>Chain</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+    <a href="#marketplace" class="nbtn-p">Explorar</a>
+  </div>
+  <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-overlay" id="mob-overlay"></div>
+<div class="mobile-menu" id="mob-menu">
+  <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
+  <button class="nwb wallet-btn" style="margin-top:16px"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+</div>
+
+<section class="page-hero">
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="page-tag"><div class="dot"></div>Marketplace Global · En vivo</div>
+    <h1 class="page-title">Tokenización en <em>tiempo real</em><br>desde productores de <em>todo el mundo</em></h1>
+    <p class="page-subtitle">Explora las empresas agrícolas y ganaderas que tokenizan sus commodities ahora mismo. Paga con BTC, ETH, SOL, USDC o EUR fiat.</p>
+  </div>
+</section>
+
+<!-- ACCEPTED CURRENCIES -->
+<section class="cur-section" id="currencies">
+  <div class="container">
+    <div class="s-tag"><div class="ldot"></div>Monedas aceptadas</div>
+    <h2 class="s-h rv">Paga con <em>activos reales</em></h2>
+    <p class="s-sub rv rv-d1">Aceptamos las principales criptomonedas y EUR fiat. Sin tokens propietarios — solo activos establecidos con liquidez global.</p>
+
+    <div class="cur-grid">
+      <div class="cur-card rv rv-d1">
+        <div class="cur-ico" style="background:#F7931A15;color:#F7931A;border:1px solid #F7931A30">₿</div>
+        <div class="cur-sym">BTC</div>
+        <div class="cur-name">Bitcoin</div>
+        <div class="cur-px" id="px-btc">$68,420</div>
+        <div class="cur-ch up">+1.4% 24h</div>
+      </div>
+      <div class="cur-card rv rv-d2">
+        <div class="cur-ico" style="background:#627EEA15;color:#627EEA;border:1px solid #627EEA30">Ξ</div>
+        <div class="cur-sym">ETH</div>
+        <div class="cur-name">Ethereum</div>
+        <div class="cur-px" id="px-eth">$3,842</div>
+        <div class="cur-ch up">+1.2% 24h</div>
+      </div>
+      <div class="cur-card rv rv-d3">
+        <div class="cur-ico" style="background:#9945FF15;color:#9945FF;border:1px solid #9945FF30">◎</div>
+        <div class="cur-sym">SOL</div>
+        <div class="cur-name">Solana</div>
+        <div class="cur-px" id="px-sol">$187.32</div>
+        <div class="cur-ch up">+3.8% 24h</div>
+      </div>
+      <div class="cur-card rv rv-d4">
+        <div class="cur-ico" style="background:#2775CA15;color:#2775CA;border:1px solid #2775CA30">◈</div>
+        <div class="cur-sym">USDC</div>
+        <div class="cur-name">USD Coin</div>
+        <div class="cur-px" id="px-usdc">$1.00</div>
+        <div class="cur-ch up">Stable</div>
+      </div>
+      <div class="cur-card rv rv-d5">
+        <div class="cur-ico" style="background:var(--nd);color:var(--neon);border:1px solid var(--nm)">€</div>
+        <div class="cur-sym">EUR</div>
+        <div class="cur-name">Fiat (SEPA)</div>
+        <div class="cur-px">Fiat</div>
+        <div class="cur-ch up">Transferencia</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARKETPLACE -->
+<section id="marketplace">
+  <div class="container">
+    <div class="mp-stats rv">
+      <div class="mp-pill"><div class="live"></div><span>Marketplace</span><strong>EN VIVO</strong></div>
+      <div class="mp-pill"><span>Empresas:</span><strong>63</strong></div>
+      <div class="mp-pill"><span>Vol 24h:</span><strong>$2.4M</strong></div>
+      <div class="mp-pill"><span>Tx hoy:</span><strong>418</strong></div>
+    </div>
+
+    <div class="mp-layout rv rv-d1">
+      <div>
+        <div class="mp-map-box"><div id="map"></div></div>
+        <div class="mp-filters" id="filters"></div>
+      </div>
+      <div class="mp-sidebar">
+        <div class="mp-feed">
+          <div class="mp-feed-hd"><div class="live"></div>Transacciones en vivo</div>
+          <div id="feed"></div>
+        </div>
+        <div class="mp-cards" id="cards"></div>
+      </div>
+    </div>
+
+    <div class="mp-bottom rv rv-d2">
+      <div class="mp-bs"><div class="mp-bs-n">14<em>+</em></div><div class="mp-bs-l">Países Activos</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">63<em>+</em></div><div class="mp-bs-l">Empresas</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">$24<em>M</em></div><div class="mp-bs-l">Volumen Total</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">6.8K<em>+</em></div><div class="mp-bs-l">Tokens Emitidos</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" style="background:var(--bg2)">
+  <div class="container">
+    <div class="s-tag"><div class="ldot"></div>Plataforma</div>
+    <h2 class="s-h rv">Infraestructura <em>completa</em> para el comercio agrícola digital</h2>
+    <p class="s-sub rv rv-d1">Todo lo que necesitas para tokenizar, comerciar y financiar commodities en una sola plataforma.</p>
+
+    <div class="feat-grid">
+      <div class="feat rv rv-d1"><div class="feat-ico">⬡</div><h3>Tokenización</h3><p>Convierte granos, café, cacao y más en tokens digitales respaldados por activos reales con datos verificados de origen.</p></div>
+      <div class="feat rv rv-d2"><div class="feat-ico w">◈</div><h3>Liquidación Instantánea</h3><p>Transacciones en ~5 segundos. Smart contracts automáticos eliminan intermediarios bancarios.</p></div>
+      <div class="feat rv rv-d3"><div class="feat-ico">◉</div><h3>Trazabilidad</h3><p>NFTs registran origen, transporte, almacenamiento y propiedad de la finca al consumidor final.</p></div>
+      <div class="feat rv rv-d4"><div class="feat-ico w">⊞</div><h3>Multi-Divisa</h3><p>Paga con BTC, ETH, SOL, USDC o EUR fiat vía SEPA. On/off ramps integrados.</p></div>
+      <div class="feat rv rv-d5"><div class="feat-ico">◫</div><h3>Financiamiento</h3><p>Financia cosechas futuras usando tokens como colateral. Capital sin burocracia bancaria.</p></div>
+      <div class="feat rv rv-d6"><div class="feat-ico w">⬢</div><h3>Compliance MiCA</h3><p>Plataforma regulada bajo MiCA UE. KYC/AML integrado. Custodia auditada.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fg3">
+    <div>
+      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
+      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <div class="fsocs">
+        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+      </div>
+    </div>
+    <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html#currencies">Monedas</a><a href="marketplace.html">Empresas</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Ayuda</a><a href="#">Docs</a><a href="#">Sistema</a></div>
+    <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
+  </div>
+  <div class="fb2">
+    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+const COUNTRIES=[
+  {code:"ES",name:"España",flag:"🇪🇸",lat:40.4,lng:-3.7,comp:12,prod:"Aceite, vino, cereales",vol:"$420K",g:0},
+  {code:"FR",name:"Francia",flag:"🇫🇷",lat:46.6,lng:2.2,comp:9,prod:"Vino, queso, trigo",vol:"$380K",g:0},
+  {code:"IT",name:"Italia",flag:"🇮🇹",lat:42.5,lng:12.5,comp:8,prod:"EVOO, pasta, vino",vol:"$350K",g:1},
+  {code:"DE",name:"Alemania",flag:"🇩🇪",lat:51.2,lng:10.4,comp:7,prod:"Cereales, lácteos",vol:"$310K",g:0},
+  {code:"NL",name:"P. Bajos",flag:"🇳🇱",lat:52.1,lng:5.3,comp:3,prod:"Flores, lácteos",vol:"$180K",g:1},
+  {code:"GR",name:"Grecia",flag:"🇬🇷",lat:38.3,lng:23.7,comp:3,prod:"Aceitunas",vol:"$95K",g:1},
+  {code:"PT",name:"Portugal",flag:"🇵🇹",lat:39.4,lng:-8.2,comp:2,prod:"Corcho, vino Porto",vol:"$48K",g:1},
+  {code:"PL",name:"Polonia",flag:"🇵🇱",lat:51.9,lng:19.1,comp:4,prod:"Cereales, manzanas",vol:"$120K",g:0},
+  {code:"TR",name:"Turquía",flag:"🇹🇷",lat:39.9,lng:32.9,comp:3,prod:"Avellanas",vol:"$110K",g:0},
+  {code:"MA",name:"Marruecos",flag:"🇲🇦",lat:31.8,lng:-7.1,comp:2,prod:"Cítricos, argán",vol:"$65K",g:1},
+  {code:"CO",name:"Colombia",flag:"🇨🇴",lat:4.6,lng:-74.1,comp:3,prod:"Café, cacao",vol:"$190K",g:1},
+  {code:"BR",name:"Brasil",flag:"🇧🇷",lat:-14.2,lng:-51.9,comp:4,prod:"Soja, café",vol:"$280K",g:0},
+  {code:"KE",name:"Kenia",flag:"🇰🇪",lat:-1.3,lng:36.8,comp:2,prod:"Té, flores",vol:"$85K",g:0},
+  {code:"UK",name:"R. Unido",flag:"🇬🇧",lat:53.5,lng:-1.5,comp:3,prod:"Cordero",vol:"$140K",g:0},
+];
+const COMPS=[
+  {name:"Olivares del Sur",ctr:"ES",flag:"🇪🇸",sector:"Aceite EVOO",prog:87,vol:"$42K",av:"OS"},
+  {name:"Bodegas Rioja",ctr:"ES",flag:"🇪🇸",sector:"Vino Reserva",prog:94,vol:"$68K",av:"BR"},
+  {name:"Ganadería Extremadura",ctr:"ES",flag:"🇪🇸",sector:"Ibérico",prog:45,vol:"$28K",av:"GE"},
+  {name:"Dehesa Manchega",ctr:"ES",flag:"🇪🇸",sector:"Queso Manchego",prog:72,vol:"$31K",av:"DM"},
+  {name:"Domaine Loire",ctr:"FR",flag:"🇫🇷",sector:"Vino Blanc",prog:78,vol:"$55K",av:"DL"},
+  {name:"Fromagerie Alpes",ctr:"FR",flag:"🇫🇷",sector:"Queso Artesanal",prog:91,vol:"$38K",av:"FA"},
+  {name:"Fattoria Toscana",ctr:"IT",flag:"🇮🇹",sector:"EVOO Premium",prog:96,vol:"$72K",av:"FT"},
+  {name:"Vigneti Piemonte",ctr:"IT",flag:"🇮🇹",sector:"Barolo",prog:70,vol:"$48K",av:"VP"},
+  {name:"Bayern Milch AG",ctr:"DE",flag:"🇩🇪",sector:"Lácteos Bio",prog:88,vol:"$62K",av:"BM"},
+  {name:"Schwäbisch Rind",ctr:"DE",flag:"🇩🇪",sector:"Ternera",prog:73,vol:"$41K",av:"SR"},
+  {name:"Dutch Bloom",ctr:"NL",flag:"🇳🇱",sector:"Tulipanes",prog:95,vol:"$88K",av:"DB"},
+  {name:"Kalamata Olives",ctr:"GR",flag:"🇬🇷",sector:"Aceitunas",prog:82,vol:"$36K",av:"KO"},
+  {name:"Café Sierra Nevada",ctr:"CO",flag:"🇨🇴",sector:"Café Especial",prog:81,vol:"$63K",av:"CS"},
+  {name:"Nairobi Tea",ctr:"KE",flag:"🇰🇪",sector:"Té Premium",prog:67,vol:"$34K",av:"NT"},
+  {name:"Quinta do Douro",ctr:"PT",flag:"🇵🇹",sector:"Vino Porto",prog:84,vol:"$52K",av:"QD"},
+  {name:"Fazenda São Paulo",ctr:"BR",flag:"🇧🇷",sector:"Soja Orgánica",prog:63,vol:"$45K",av:"FS"},
+];
+const FEED=[
+  {u:"Olivares del Sur",f:"🇪🇸",a:"tokenizó 12T Aceite EVOO",amt:"$42K"},
+  {u:"Fattoria Toscana",f:"🇮🇹",a:"vendió 580u EVOO",amt:"$487"},
+  {u:"Domaine Loire",f:"🇫🇷",a:"compró 1,200u VINO",amt:"$1.8K"},
+  {u:"Bayern Milch",f:"🇩🇪",a:"listó Lácteos Bio Q2",amt:"$62K"},
+  {u:"Café Sierra Nevada",f:"🇨🇴",a:"tokenizó 8T Café",amt:"$63K"},
+];
+
+let activeF="ALL";const markers={};
+const map=L.map('map',{center:[25,0],zoom:2,zoomControl:true,scrollWheelZoom:true,attributionControl:false,minZoom:2,maxZoom:6});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(map);
+COUNTRIES.forEach(c=>{
+  const icon=L.divIcon({className:'',html:`<div class="mk"><div class="mk-ring ${c.g?'gold':''}"></div><div class="mk-dot ${c.g?'gold':''}"></div></div>`,iconSize:[28,28],iconAnchor:[14,14]});
+  const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
+  m.bindPopup(`<div class="pop-t">${c.flag} ${c.name}</div><div class="pop-i">${c.prod}</div><div class="pop-v">${c.comp} empresas · ${c.vol}</div>`);
+  m.on('click',()=>{const btn=document.querySelector(`.mp-f[data-f="${c.code}"]`);if(btn)btn.click()});
+  markers[c.code]=m;
+});
+
+const fEl=document.getElementById('filters');
+const total=COMPS.length;
+fEl.innerHTML=`<div class="mp-f active" data-f="ALL">🌍 Todos<span class="cnt">${total}</span></div>`+COUNTRIES.map(c=>{
+  const n=COMPS.filter(x=>x.ctr===c.code).length;
+  return `<div class="mp-f" data-f="${c.code}">${c.flag} ${c.name}<span class="cnt">${n}</span></div>`;
+}).join('');
+fEl.addEventListener('click',e=>{
+  const b=e.target.closest('.mp-f');if(!b)return;
+  document.querySelectorAll('.mp-f').forEach(f=>f.classList.remove('active'));
+  b.classList.add('active');activeF=b.dataset.f;
+  renderCards();
+  if(activeF!=='ALL'&&markers[activeF]){map.flyTo(markers[activeF].getLatLng(),5,{duration:1.2});markers[activeF].openPopup()}
+  else{map.flyTo([25,0],2,{duration:1})}
+});
+
+function renderCards(){
+  const list=activeF==='ALL'?COMPS:COMPS.filter(c=>c.ctr===activeF);
+  document.getElementById('cards').innerHTML=list.map(c=>`
+    <div class="mp-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:var(--r);background:var(--nd);border:1px solid var(--nm);display:flex;align-items:center;justify-content:center;color:var(--neon);font-weight:700;font-size:12px">${c.av}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--txt)">${c.name}</div><div style="font-size:10.5px;color:var(--t3)">${c.flag} ${c.sector}</div></div>
+        <div style="font-size:12px;font-weight:700;color:var(--neon)">${c.vol}</div>
+      </div>
+      <div style="height:3px;background:var(--bg4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${c.prog}%;background:var(--neon)"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9.5px;color:var(--t3)"><span>Tokenización</span><span>${c.prog}%</span></div>
+    </div>
+  `).join('');
+}
+renderCards();
+
+function rFeed(){document.getElementById('feed').innerHTML=FEED.map(f=>`
+  <div class="mp-fi"><span style="font-size:1rem">${f.f}</span>
+    <div style="flex:1;min-width:0"><div style="font-size:11.5px;color:var(--txt);font-weight:600">${f.u}</div><div style="font-size:10px;color:var(--t3)">${f.a}</div></div>
+    <div style="font-size:11.5px;color:var(--neon);font-weight:700">${f.amt}</div>
+  </div>`).join('')}
+rFeed();
+setInterval(()=>{FEED.unshift(FEED.pop());rFeed()},4500);
+
+// Fetch LIVE crypto prices from CoinGecko (free API, no key needed)
+fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,usd-coin&vs_currencies=usd&include_24hr_change=true')
+  .then(r=>r.json()).then(d=>{
+    if(d.bitcoin){document.getElementById('px-btc').textContent='$'+d.bitcoin.usd.toLocaleString('en',{maximumFractionDigits:0})}
+    if(d.ethereum){document.getElementById('px-eth').textContent='$'+d.ethereum.usd.toLocaleString('en',{maximumFractionDigits:0})}
+    if(d.solana){document.getElementById('px-sol').textContent='$'+d.solana.usd.toLocaleString('en',{maximumFractionDigits:2})}
+    if(d['usd-coin']){document.getElementById('px-usdc').textContent='$'+d['usd-coin'].usd.toFixed(2)}
+  }).catch(()=>{});
+</script>
+</body>
+</html>

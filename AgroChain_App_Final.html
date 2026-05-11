@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroChain — Web3 App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#020504;font-family:'DM Sans',sans-serif;overflow-x:hidden;display:flex;align-items:center;justify-content:center;min-height:100vh}
+@keyframes fsu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+*{scrollbar-width:none}*::-webkit-scrollbar{display:none}
+input,button{font-family:'DM Sans',sans-serif;-webkit-appearance:none;appearance:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+/* ── SUPABASE (opcional) ──
+   Crea proyecto gratis en supabase.com → Settings → API
+   y reemplaza estas dos líneas: */
+const SB_URL='https://TU_PROYECTO.supabase.co';
+const SB_KEY='TU_ANON_KEY_AQUI';
+const SB_OK=!SB_URL.includes('TU_PROYECTO');
+let _sb=null;
+if(SB_OK&&window.supabase) _sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+/* ══════════════════════════════════
+   TOKENS REALES — CoinGecko gratuito
+══════════════════════════════════ */
+const TOKEN_CFG=[
+  {sym:'BTC', name:'Bitcoin',        icon:'₿',  color:'#F7931A', cgId:'bitcoin',     bal:0.085},
+  {sym:'ETH', name:'Ethereum',       icon:'⟠',  color:'#627EEA', cgId:'ethereum',    bal:1.8},
+  {sym:'SOL', name:'Solana',         icon:'◎',  color:'#9945FF', cgId:'solana',      bal:24.5},
+  {sym:'USDC',name:'USD Coin',       icon:'◈',  color:'#2775CA', cgId:'usd-coin',    bal:3200},
+  {sym:'USDT',name:'Tether',         icon:'₮',  color:'#26A17B', cgId:'tether',      bal:1850},
+  {sym:'DAI', name:'DAI',            icon:'◆',  color:'#F5AC37', cgId:'dai',         bal:980},
+  {sym:'BNB', name:'BNB',            icon:'⬡',  color:'#F0B90B', cgId:'binancecoin', bal:8.2},
+  {sym:'MATIC',name:'Polygon',       icon:'⬢',  color:'#8247E5', cgId:'matic-network',bal:4200},
+  {sym:'EUR', name:'Euro (Fiat)',     icon:'€',  color:'#3B82F6', cgId:null,          bal:2400},
+];
+const FALLBACK={
+  BTC:{price:67800,change:2.1}, ETH:{price:3420,change:1.4},
+  SOL:{price:187,change:3.8},   USDC:{price:1,change:0.01},
+  USDT:{price:1,change:0.02},   DAI:{price:1,change:0.01},
+  BNB:{price:412,change:1.9},   MATIC:{price:0.89,change:4.2},
+  EUR:{price:1.08,change:-0.12},
+};
+function mkHistory(price,change){
+  const base=price/(1+change/100);
+  return Array.from({length:12},(_,i)=>{
+    const t=i/11,n=(Math.random()-.5)*.006;
+    return parseFloat((base+(price-base)*t+base*n).toFixed(price>100?2:6));
+  });
+}
+function initTokens(){
+  return TOKEN_CFG.map(t=>({
+    ...t,
+    price:FALLBACK[t.sym].price,
+    change:FALLBACK[t.sym].change,
+    h:mkHistory(FALLBACK[t.sym].price,FALLBACK[t.sym].change),
+  }));
+}
+
+/* ══════ PAÍSES ══════ */
+const COUNTRIES=[
+  {code:'ES',name:'España',   flag:'🇪🇸',cx:150,cy:55,companies:12,products:'Aceite, vino, ibérico',vol:'$420K',g:1},
+  {code:'FR',name:'Francia',  flag:'🇫🇷',cx:158,cy:44,companies:9, products:'Vino, queso, trigo',  vol:'$380K',g:0},
+  {code:'IT',name:'Italia',   flag:'🇮🇹',cx:166,cy:54,companies:8, products:'EVOO, pasta, vino',   vol:'$350K',g:1},
+  {code:'DE',name:'Alemania', flag:'🇩🇪',cx:163,cy:38,companies:7, products:'Cereales, lácteos',   vol:'$310K',g:0},
+  {code:'PL',name:'Polonia',  flag:'🇵🇱',cx:172,cy:34,companies:4, products:'Cereales, manzanas',  vol:'$120K',g:0},
+  {code:'GR',name:'Grecia',   flag:'🇬🇷',cx:172,cy:58,companies:3, products:'Aceitunas, AOVE',     vol:'$95K', g:1},
+  {code:'NL',name:'P.Bajos',  flag:'🇳🇱',cx:157,cy:34,companies:3, products:'Flores, lácteos',     vol:'$180K',g:1},
+  {code:'PT',name:'Portugal', flag:'🇵🇹',cx:144,cy:54,companies:2, products:'Vino Porto, corcho',  vol:'$48K', g:1},
+  {code:'TR',name:'Turquía',  flag:'🇹🇷',cx:192,cy:50,companies:3, products:'Avellanas, higos',    vol:'$110K',g:0},
+  {code:'MA',name:'Marruecos',flag:'🇲🇦',cx:152,cy:74,companies:2, products:'Cítricos, argán',     vol:'$65K', g:1},
+  {code:'CO',name:'Colombia', flag:'🇨🇴',cx:74, cy:110,companies:3,products:'Café, cacao',          vol:'$190K',g:1},
+  {code:'KE',name:'Kenia',    flag:'🇰🇪',cx:184,cy:118,companies:2,products:'Té, flores, café',    vol:'$85K', g:0},
+  {code:'BR',name:'Brasil',   flag:'🇧🇷',cx:86, cy:130,companies:4,products:'Soja, café, azúcar',  vol:'$280K',g:0},
+  {code:'UK',name:'R.Unido',  flag:'🇬🇧',cx:150,cy:36,companies:3, products:'Cordero, cerveza',    vol:'$140K',g:0},
+  {code:'US',name:'EE.UU.',   flag:'🇺🇸',cx:55, cy:52, companies:5,products:'Maíz, soja, carne',   vol:'$510K',g:0},
+  {code:'IN',name:'India',    flag:'🇮🇳',cx:236,cy:82, companies:4,products:'Arroz, té, especias', vol:'$210K',g:1},
+  {code:'CN',name:'China',    flag:'🇨🇳',cx:264,cy:56, companies:6,products:'Arroz, trigo, soja',  vol:'$380K',g:0},
+  {code:'AU',name:'Australia',flag:'🇦🇺',cx:294,cy:144,companies:3,products:'Carne, trigo, lana',  vol:'$165K',g:1},
+];
+const COMPANIES=[
+  {name:'Olivares del Sur',country:'ES',flag:'🇪🇸',sector:'Aceite EVOO',type:'Agricultor',progress:87,status:'a',vol:'$42K',tokens:320,av:'OS',ph:'Tokenización',time:'2d 4h'},
+  {name:'Bodegas Rioja Token',country:'ES',flag:'🇪🇸',sector:'Vino Reserva',type:'Bodega',progress:94,status:'a',vol:'$68K',tokens:510,av:'BR',ph:'Liquidación',time:'4h 12m'},
+  {name:'Ganadería Extremadura',country:'ES',flag:'🇪🇸',sector:'Ibérico',type:'Ganadero',progress:45,status:'p',vol:'$28K',tokens:95,av:'GE',ph:'Verificación',time:'5d 8h'},
+  {name:'Domaine Loire Valley',country:'FR',flag:'🇫🇷',sector:'Vino Blanc',type:'Viñedo',progress:78,status:'a',vol:'$55K',tokens:420,av:'DL',ph:'Comercio',time:'12h 30m'},
+  {name:'Fromagerie Alpes',country:'FR',flag:'🇫🇷',sector:'Queso Artesanal',type:'Productor',progress:91,status:'a',vol:'$38K',tokens:290,av:'FA',ph:'Liquidación',time:'2h 45m'},
+  {name:'Fattoria Toscana',country:'IT',flag:'🇮🇹',sector:'Aceite EVOO',type:'Agricultor',progress:96,status:'a',vol:'$72K',tokens:580,av:'FT',ph:'Completado',time:'Listo'},
+  {name:'Bayern Milch AG',country:'DE',flag:'🇩🇪',sector:'Lácteos Bio',type:'Cooperativa',progress:88,status:'a',vol:'$62K',tokens:440,av:'BM',ph:'Comercio',time:'8h 15m'},
+  {name:'Dutch Bloom Export',country:'NL',flag:'🇳🇱',sector:'Tulipanes',type:'Exportador',progress:95,status:'a',vol:'$88K',tokens:620,av:'DB',ph:'Liquidación',time:'1h 20m'},
+  {name:'Kalamata Olives Co',country:'GR',flag:'🇬🇷',sector:'Aceitunas',type:'Productor',progress:82,status:'a',vol:'$36K',tokens:260,av:'KO',ph:'Comercio',time:'14h 5m'},
+  {name:'Café Sierra Nevada',country:'CO',flag:'🇨🇴',sector:'Café Especial',type:'Cooperativa',progress:81,status:'a',vol:'$63K',tokens:450,av:'CS',ph:'Comercio',time:'6h 40m'},
+  {name:'Fazenda São Paulo',country:'BR',flag:'🇧🇷',sector:'Soja Org.',type:'Agricultor',progress:63,status:'a',vol:'$45K',tokens:310,av:'FS',ph:'Tokenización',time:'3d 12h'},
+  {name:'Yorkshire Lamb Co',country:'UK',flag:'🇬🇧',sector:'Cordero',type:'Ganadero',progress:76,status:'a',vol:'$44K',tokens:280,av:'YL',ph:'Comercio',time:'1d 8h'},
+];
+const FEED=[
+  {user:'Olivares del Sur',flag:'🇪🇸',action:'tokenizó',what:'12T Aceite EVOO',amt:'$42K',time:'2m',type:'mint'},
+  {user:'Fattoria Toscana',flag:'🇮🇹',action:'vendió',what:'580 SOL',amt:'$108K',time:'5m',type:'sell'},
+  {user:'Domaine Loire',flag:'🇫🇷',action:'compró',what:'1.2 ETH',amt:'$4.1K',time:'8m',type:'buy'},
+  {user:'Bayern Milch AG',flag:'🇩🇪',action:'listó',what:'Lácteos Bio Q2',amt:'$62K',time:'11m',type:'list'},
+  {user:'Café Sierra Nevada',flag:'🇨🇴',action:'tokenizó',what:'8T Café',amt:'$63K',time:'14m',type:'mint'},
+  {user:'Dutch Bloom',flag:'🇳🇱',action:'vendió',what:'1,200 USDC',amt:'$1.2K',time:'18m',type:'sell'},
+  {user:'Kalamata Olives',flag:'🇬🇷',action:'compró',what:'0.02 BTC',amt:'$1.3K',time:'22m',type:'buy'},
+  {user:'Bodegas Rioja',flag:'🇪🇸',action:'liquidó',what:'500 MATIC',amt:'$445',time:'25m',type:'sell'},
+];
+const NFTS=[
+  {id:'AGR-0847',name:'Aceite EVOO Jaén',origin:'🇪🇸 Jaén, España',wt:'12,000 kg',cert:'DOP Sierra Mágina',status:'Verified',cl:'#22C55E'},
+  {id:'AGR-1203',name:'Barolo Riserva 2022',origin:'🇮🇹 Piemonte',wt:'4,800 L',cert:'DOCG Barolo',status:'In Transit',cl:'#F59E0B'},
+  {id:'AGR-0519',name:'Café Especial Huila',origin:'🇨🇴 Huila',wt:'8,000 kg',cert:'Fair Trade Organic',status:'Verified',cl:'#22C55E'},
+];
+const PHASES=['Registro','Verificación','Tokenización','Comercio','Liquidación','Completado'];
+const P={bg:'#050a07',card:'rgba(34,197,94,.03)',border:'rgba(34,197,94,.06)',t1:'#fff',t2:'rgba(255,255,255,.6)',t3:'rgba(255,255,255,.3)',t4:'rgba(255,255,255,.15)',green:'#22C55E',gold:'#E5AD30',red:'#EF4444'};
+
+/* ══════ CHART ══════ */
+function Chart({data,color,w=100,h=36}){
+  if(!data||data.length<2)return null;
+  const mn=Math.min(...data),mx=Math.max(...data),r=mx-mn||1;
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*w},${h-((v-mn)/r)*h*.85-h*.05}`).join(' ');
+  const uid='c'+color.replace('#','')+w+h;
+  return(
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{overflow:'visible'}}>
+      <defs><linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={color} stopOpacity=".18"/>
+        <stop offset="100%" stopColor={color} stopOpacity="0"/>
+      </linearGradient></defs>
+      <polygon points={`0,${h} ${pts} ${w},${h}`} fill={`url(#${uid})`}/>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx={w} cy={parseFloat(pts.split(' ').pop().split(',')[1])} r="2.5" fill={color}/>
+    </svg>
+  );
+}
+function BigChart({data,color}){
+  const w=320,h=150;
+  if(!data||data.length<2)return null;
+  const mn=Math.min(...data)*.98,mx=Math.max(...data)*1.02,r=mx-mn||1;
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*w},${h-((v-mn)/r)*h*.88-h*.04}`).join(' ');
+  return(
+    <div style={{padding:'0 0 20px'}}>
+      <svg width="100%" viewBox={`0 0 ${w} ${h+4}`} style={{overflow:'visible'}}>
+        <defs><linearGradient id="bG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity=".18"/>
+          <stop offset="100%" stopColor={color} stopOpacity="0"/>
+        </linearGradient></defs>
+        {[.25,.5,.75].map(p=><line key={p} x1="0" y1={h*p} x2={w} y2={h*p} stroke="rgba(255,255,255,.03)" strokeWidth=".5"/>)}
+        <polygon points={`0,${h} ${pts} ${w},${h}`} fill="url(#bG)"/>
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx={w} cy={parseFloat(pts.split(' ').pop().split(',')[1])} r="4" fill={color}>
+          <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+      <div style={{display:'flex',justifyContent:'space-between',marginTop:4}}>
+        {['12h','8h','4h','Ahora'].map(l=><span key={l} style={{fontSize:9,color:'rgba(255,255,255,.2)'}}>{l}</span>)}
+      </div>
+    </div>
+  );
+}
+function ProgressPhase({progress,phase}){
+  const idx=PHASES.indexOf(phase);
+  return(
+    <div style={{marginTop:8}}>
+      <div style={{display:'flex',gap:2,marginBottom:4}}>
+        {PHASES.map((p,i)=><div key={p} style={{flex:1,height:3,borderRadius:2,background:i<=idx?P.green:'rgba(255,255,255,.04)'}}/>)}
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between'}}>
+        <span style={{fontSize:9,color:P.t4}}>{phase}</span>
+        <span style={{fontSize:9,color:P.green,fontWeight:600}}>{progress}%</span>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ WORLD MAP ══════ */
+function WorldMap({countries,selected,onSelect}){
+  return(
+    <div style={{position:'relative',width:'100%',background:'rgba(34,197,94,.015)',borderRadius:16,border:'1px solid rgba(34,197,94,.08)',overflow:'hidden'}}>
+      <svg width="100%" viewBox="0 0 360 200" style={{display:'block'}}>
+        <defs>
+          <radialGradient id="og" cx="50%" cy="45%" r="70%">
+            <stop offset="0%" stopColor="rgba(34,197,94,.05)"/>
+            <stop offset="100%" stopColor="rgba(34,197,94,.01)"/>
+          </radialGradient>
+        </defs>
+        <rect width="360" height="200" fill="url(#og)"/>
+        {[40,80,100,120,160].map(y=><line key={y} x1="0" y1={y} x2="360" y2={y} stroke="rgba(34,197,94,.04)" strokeWidth=".4"/>)}
+        {[60,120,180,240,300].map(x=><line key={x} x1={x} y1="0" x2={x} y2="200" stroke="rgba(34,197,94,.04)" strokeWidth=".4"/>)}
+        <line x1="0" y1="100" x2="360" y2="100" stroke="rgba(34,197,94,.1)" strokeWidth=".5" strokeDasharray="4,3"/>
+        {/* Norteamérica */}
+        <path d="M28,16 L58,12 L78,18 L88,28 L92,42 L88,56 L80,64 L72,72 L62,80 L54,86 L48,82 L42,74 L36,64 L30,52 L24,42 L22,30 Z" fill="rgba(34,197,94,.09)" stroke="rgba(34,197,94,.2)" strokeWidth=".7"/>
+        {/* Groenlandia */}
+        <path d="M82,6 L104,4 L112,10 L108,20 L96,24 L84,20 L80,12 Z" fill="rgba(34,197,94,.05)" stroke="rgba(34,197,94,.1)" strokeWidth=".4"/>
+        {/* México/Centroam. */}
+        <path d="M48,86 L62,88 L68,96 L62,104 L54,108 L46,104 L44,94 Z" fill="rgba(34,197,94,.07)" stroke="rgba(34,197,94,.14)" strokeWidth=".5"/>
+        {/* Suramérica */}
+        <path d="M66,108 L80,104 L94,110 L102,124 L104,140 L100,154 L90,164 L78,168 L66,162 L58,150 L56,136 L58,122 L64,112 Z" fill="rgba(34,197,94,.09)" stroke="rgba(34,197,94,.2)" strokeWidth=".7"/>
+        {/* Europa */}
+        <path d="M144,28 L164,24 L178,28 L184,36 L182,48 L172,56 L160,58 L148,54 L142,44 L142,34 Z" fill="rgba(34,197,94,.11)" stroke="rgba(34,197,94,.22)" strokeWidth=".7"/>
+        {/* Escandinavia */}
+        <path d="M156,14 L170,12 L176,18 L174,26 L164,28 L156,26 L154,18 Z" fill="rgba(34,197,94,.07)" stroke="rgba(34,197,94,.14)" strokeWidth=".4"/>
+        {/* Península Ibérica */}
+        <path d="M142,48 L154,52 L156,62 L148,66 L140,62 L138,52 Z" fill="rgba(34,197,94,.1)" stroke="rgba(34,197,94,.2)" strokeWidth=".5"/>
+        {/* Italia */}
+        <path d="M162,50 L168,56 L166,66 L160,70 L158,64 L160,56 Z" fill="rgba(34,197,94,.08)" stroke="rgba(34,197,94,.16)" strokeWidth=".4"/>
+        {/* UK */}
+        <path d="M146,28 L154,26 L158,32 L154,38 L148,36 Z" fill="rgba(34,197,94,.07)" stroke="rgba(34,197,94,.14)" strokeWidth=".4"/>
+        {/* Africa */}
+        <path d="M148,68 L170,64 L188,68 L196,80 L200,96 L198,114 L190,130 L178,140 L164,144 L150,140 L142,128 L138,112 L138,96 L142,82 Z" fill="rgba(34,197,94,.08)" stroke="rgba(34,197,94,.18)" strokeWidth=".7"/>
+        {/* Madagascar */}
+        <path d="M196,116 L202,112 L206,120 L204,132 L198,134 L194,126 Z" fill="rgba(34,197,94,.05)" stroke="rgba(34,197,94,.1)" strokeWidth=".3"/>
+        {/* Asia */}
+        <path d="M178,26 L218,20 L258,18 L288,26 L300,38 L302,54 L294,68 L274,74 L250,72 L228,68 L208,64 L192,56 L184,46 L180,38 Z" fill="rgba(34,197,94,.08)" stroke="rgba(34,197,94,.16)" strokeWidth=".7"/>
+        {/* Arabia */}
+        <path d="M194,68 L212,66 L218,78 L214,90 L204,94 L194,88 L192,76 Z" fill="rgba(34,197,94,.07)" stroke="rgba(34,197,94,.14)" strokeWidth=".4"/>
+        {/* India */}
+        <path d="M228,68 L246,66 L250,80 L246,96 L234,102 L224,96 L222,82 Z" fill="rgba(34,197,94,.07)" stroke="rgba(34,197,94,.14)" strokeWidth=".5"/>
+        {/* SEAsia */}
+        <path d="M274,76 L290,72 L296,82 L290,92 L278,94 L270,86 Z" fill="rgba(34,197,94,.06)" stroke="rgba(34,197,94,.12)" strokeWidth=".4"/>
+        {/* Japón */}
+        <path d="M294,42 L302,38 L308,44 L304,54 L298,52 Z" fill="rgba(34,197,94,.06)" stroke="rgba(34,197,94,.12)" strokeWidth=".4"/>
+        {/* Oceanía */}
+        <path d="M276,128 L306,122 L320,130 L322,146 L312,156 L290,158 L276,150 L272,140 Z" fill="rgba(34,197,94,.07)" stroke="rgba(34,197,94,.14)" strokeWidth=".6"/>
+        {/* Dots animados */}
+        {countries.map(c=>{
+          const act=selected===c.code;
+          const col=c.g?'#E5AD30':'#22C55E';
+          return(
+            <g key={c.code} onClick={()=>onSelect(act?null:c.code)} style={{cursor:'pointer'}}>
+              <circle cx={c.cx} cy={c.cy} r="6" fill={col} opacity="0">
+                <animate attributeName="r" values="3;9;3" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values=".12;0;.12" dur="3s" repeatCount="indefinite"/>
+              </circle>
+              {act&&<circle cx={c.cx} cy={c.cy} r="7" fill="none" stroke={col} strokeWidth="1" opacity=".5"/>}
+              <circle cx={c.cx} cy={c.cy} r={act?4:2.8} fill={col} opacity={act?1:.85}/>
+              <circle cx={c.cx-.8} cy={c.cy-.8} r={act?1.6:1} fill="rgba(255,255,255,.45)"/>
+              {act&&<text x={c.cx} y={c.cy-8} textAnchor="middle" fontSize="7" fill={col} fontWeight="700">{c.flag}</text>}
+            </g>
+          );
+        })}
+        {/* Leyenda */}
+        <circle cx="14" cy="192" r="3" fill="#22C55E" opacity=".8"/>
+        <text x="20" y="195" fontSize="6" fill="rgba(255,255,255,.35)">Productor</text>
+        <circle cx="72" cy="192" r="3" fill="#E5AD30" opacity=".8"/>
+        <text x="78" y="195" fontSize="6" fill="rgba(255,255,255,.35)">Inversor</text>
+      </svg>
+    </div>
+  );
+}
+
+/* ══════ AUTH ══════ */
+function AuthScreen({onSuccess}){
+  const [view,setView]=useState('landing'); // landing|email|register|wallet|apple
+  const [email,setEmail]=useState('');
+  const [pass,setPass]=useState('');
+  const [pass2,setPass2]=useState('');
+  const [name,setName]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [err,setErr]=useState('');
+  const [info,setInfo]=useState('');
+  const [walletConnecting,setWalletConnecting]=useState('');
+
+  const loginDemo=()=>{
+    const u={id:'demo-1',email:'demo@agrochaindex.io',user_metadata:{full_name:'Usuario Demo'},demo:true};
+    localStorage.setItem('agro_user',JSON.stringify(u));
+    onSuccess(u,null);
+  };
+  const loginApple=()=>{
+    const u={id:'apple-'+Math.random().toString(36).slice(2,8),email:Math.random().toString(36).slice(2,8)+'@privaterelay.appleid.com',user_metadata:{full_name:'Usuario Apple',provider:'apple'},demo:true};
+    localStorage.setItem('agro_user',JSON.stringify(u));
+    onSuccess(u,null);
+  };
+  const submitEmail=async(isReg)=>{
+    setErr('');setInfo('');
+    if(!email||!email.includes('@'))return setErr('Email no válido');
+    if(pass.length<6)return setErr('Mínimo 6 caracteres');
+    if(isReg&&pass!==pass2)return setErr('Las contraseñas no coinciden');
+    setLoading(true);
+    if(SB_OK&&_sb){
+      try{
+        let res;
+        if(isReg){
+          res=await _sb.auth.signUp({email,password:pass,options:{data:{full_name:name||email.split('@')[0]}}});
+          if(res.error)throw res.error;
+          if(res.data.user&&!res.data.session){setLoading(false);return setInfo('Revisa tu email para confirmar la cuenta');}
+        }else{
+          res=await _sb.auth.signInWithPassword({email,password:pass});
+          if(res.error)throw res.error;
+        }
+        onSuccess(res.data.user,null);
+      }catch(e){
+        setLoading(false);
+        const m=e.message||'';
+        if(m.includes('Invalid login'))return setErr('Email o contraseña incorrectos');
+        if(m.includes('already registered'))return setErr('Email ya registrado');
+        setErr(m||'Error de conexión');
+      }
+    }else{
+      setTimeout(()=>{
+        const u={id:'email-'+Date.now(),email,user_metadata:{full_name:name||email.split('@')[0]},demo:true};
+        localStorage.setItem('agro_user',JSON.stringify(u));
+        onSuccess(u,null);
+      },700);
+    }
+  };
+  const connectPhantom=async()=>{
+    if(!window.solana?.isPhantom){window.open('https://phantom.app','_blank');return;}
+    setWalletConnecting('phantom');
+    try{
+      const r=await window.solana.connect();
+      const addr=r.publicKey.toString();
+      const u={id:'ph-'+addr.slice(0,8),email:addr.slice(0,6)+'@phantom',user_metadata:{full_name:'Phantom '+addr.slice(0,6),provider:'phantom',wallet:addr},wallet:addr,demo:true};
+      localStorage.setItem('agro_user',JSON.stringify(u));
+      onSuccess(u,addr);
+    }catch(e){setWalletConnecting('');}
+  };
+  const connectMM=async()=>{
+    if(!window.ethereum){window.open('https://metamask.io','_blank');return;}
+    setWalletConnecting('metamask');
+    try{
+      const accs=await window.ethereum.request({method:'eth_requestAccounts'});
+      const addr=accs[0];
+      const u={id:'mm-'+addr.slice(0,8),email:addr.slice(0,6)+'@metamask',user_metadata:{full_name:'MetaMask '+addr.slice(0,6),provider:'metamask',wallet:addr},wallet:addr,demo:true};
+      localStorage.setItem('agro_user',JSON.stringify(u));
+      onSuccess(u,addr);
+    }catch(e){setWalletConnecting('');}
+  };
+  const connectDemoWallet=()=>{
+    const addr='DemoWallet'+Math.random().toString(36).slice(2,10).toUpperCase()+'Sol1';
+    const u={id:'dw-1',email:'wallet@demo.agro',user_metadata:{full_name:'Wallet Demo',provider:'demo',wallet:addr},wallet:addr,demo:true};
+    localStorage.setItem('agro_user',JSON.stringify(u));
+    onSuccess(u,addr);
+  };
+
+  const Btn=({children,onClick,style={}})=>(
+    <button onClick={onClick} style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'13px 14px',borderRadius:14,border:'1px solid rgba(255,255,255,.08)',background:'rgba(255,255,255,.03)',cursor:'pointer',marginBottom:9,transition:'all .15s',...style}}
+      onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,.06)';e.currentTarget.style.borderColor='rgba(255,255,255,.14)';}}
+      onMouseLeave={e=>{e.currentTarget.style.background=(style.background||'rgba(255,255,255,.03)');e.currentTarget.style.borderColor=(style.borderColor||'rgba(255,255,255,.08)');}}>
+      {children}
+    </button>
+  );
+  const Input=({label,type,value,onChange,placeholder,autoComplete})=>(
+    <div style={{marginBottom:13}}>
+      <label style={{display:'block',fontSize:10,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:5}}>{label}</label>
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} autoComplete={autoComplete}
+        style={{width:'100%',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:'12px 14px',color:P.t1,fontSize:14,outline:'none'}}
+        onFocus={e=>{e.target.style.borderColor='rgba(34,197,94,.4)';e.target.style.background='rgba(34,197,94,.03)';}}
+        onBlur={e=>{e.target.style.borderColor='rgba(255,255,255,.08)';e.target.style.background='rgba(255,255,255,.04)';}}/>
+    </div>
+  );
+
+  // Fondo gradiente
+  const bg=(
+    <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 80% 50% at 50% -10%,rgba(34,197,94,.08) 0%,transparent 70%)',pointerEvents:'none'}}/>
+  );
+
+  if(view==='landing') return(
+    <div style={{flex:1,overflowY:'auto',padding:'0 24px 24px',position:'relative'}}>
+      {bg}
+      <div style={{padding:'28px 0 20px',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{width:36,height:36,borderRadius:11,background:'rgba(34,197,94,.12)',border:'1px solid rgba(34,197,94,.2)',display:'flex',alignItems:'center',justifyContent:'center',color:P.green,fontSize:17}}>⬡</div>
+        <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:P.t1}}>AgroChain<span style={{color:P.green}}>Dex</span></span>
+      </div>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:28,color:P.t1,lineHeight:1.1,letterSpacing:'-.03em',marginBottom:8}}>El campo global<br/><em style={{color:P.green,fontStyle:'italic'}}>en tus manos</em></h1>
+      <p style={{fontSize:13,color:P.t3,lineHeight:1.65,marginBottom:26}}>Invierte en producción agropecuaria real desde €100 · Blockchain verificado · MiCA</p>
+      <p style={{fontSize:10,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:'1px',marginBottom:10}}>Web3</p>
+      <Btn onClick={connectPhantom} style={{background:window.solana?.isPhantom?'rgba(153,69,255,.08)':'rgba(255,255,255,.03)',borderColor:window.solana?.isPhantom?'rgba(153,69,255,.25)':'rgba(255,255,255,.08)'}}>
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(153,69,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>
+          {walletConnecting==='phantom'?<span style={{width:16,height:16,border:'2px solid rgba(153,69,255,.3)',borderTopColor:'#9945FF',borderRadius:'50%',animation:'spin .6s linear infinite',display:'inline-block'}}/>:'👻'}
+        </div>
+        <div style={{flex:1,textAlign:'left'}}>
+          <div style={{fontSize:14,fontWeight:600,color:P.t1}}>Phantom</div>
+          <div style={{fontSize:11,color:P.t4}}>{window.solana?.isPhantom?'Detectada · Conectar':'Instalar Phantom'}</div>
+        </div>
+        {window.solana?.isPhantom&&<span style={{fontSize:9,fontWeight:700,background:'rgba(34,197,94,.1)',color:P.green,border:'1px solid rgba(34,197,94,.2)',borderRadius:20,padding:'2px 8px'}}>Disponible</span>}
+      </Btn>
+      <Btn onClick={connectMM} style={{background:window.ethereum?'rgba(246,133,27,.06)':'rgba(255,255,255,.03)',borderColor:window.ethereum?'rgba(246,133,27,.2)':'rgba(255,255,255,.08)'}}>
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(246,133,27,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>
+          {walletConnecting==='metamask'?<span style={{width:16,height:16,border:'2px solid rgba(246,133,27,.3)',borderTopColor:'#F6851B',borderRadius:'50%',animation:'spin .6s linear infinite',display:'inline-block'}}/>:'🦊'}
+        </div>
+        <div style={{flex:1,textAlign:'left'}}>
+          <div style={{fontSize:14,fontWeight:600,color:P.t1}}>MetaMask</div>
+          <div style={{fontSize:11,color:P.t4}}>{window.ethereum?'Detectada · Conectar':'Instalar MetaMask'}</div>
+        </div>
+        {window.ethereum&&<span style={{fontSize:9,fontWeight:700,background:'rgba(34,197,94,.1)',color:P.green,border:'1px solid rgba(34,197,94,.2)',borderRadius:20,padding:'2px 8px'}}>Disponible</span>}
+      </Btn>
+      <div style={{display:'flex',alignItems:'center',gap:10,margin:'4px 0 12px'}}>
+        <div style={{flex:1,height:1,background:'rgba(255,255,255,.07)'}}/><span style={{fontSize:10,color:P.t4,letterSpacing:'.07em',textTransform:'uppercase'}}>o continúa con</span><div style={{flex:1,height:1,background:'rgba(255,255,255,.07)'}}/>
+      </div>
+      <Btn onClick={()=>setView('email')}>
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(59,130,246,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0,color:'#3B82F6'}}>✉</div>
+        <div style={{flex:1,textAlign:'left'}}><div style={{fontSize:14,fontWeight:600,color:P.t1}}>Iniciar sesión</div><div style={{fontSize:11,color:P.t4}}>Email y contraseña</div></div>
+        <span style={{color:P.t4}}>›</span>
+      </Btn>
+      <Btn onClick={()=>setView('register')}>
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(34,197,94,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0,color:P.green}}>+</div>
+        <div style={{flex:1,textAlign:'left'}}><div style={{fontSize:14,fontWeight:600,color:P.t1}}>Crear cuenta</div><div style={{fontSize:11,color:P.t4}}>Gratis · MiCA compliant</div></div>
+        <span style={{color:P.t4}}>›</span>
+      </Btn>
+      <Btn onClick={loginApple}>
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.07)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0}}></div>
+        <div style={{flex:1,textAlign:'left'}}><div style={{fontSize:14,fontWeight:600,color:P.t1}}>Continuar con Apple</div><div style={{fontSize:11,color:P.t4}}>Face ID · Touch ID</div></div>
+        <span style={{color:P.t4}}>›</span>
+      </Btn>
+      <div style={{display:'flex',alignItems:'center',gap:10,margin:'4px 0 12px'}}>
+        <div style={{flex:1,height:1,background:'rgba(255,255,255,.05)'}}/><span style={{fontSize:9,color:P.t4,letterSpacing:'.07em',textTransform:'uppercase'}}>demo</span><div style={{flex:1,height:1,background:'rgba(255,255,255,.05)'}}/>
+      </div>
+      <Btn onClick={connectDemoWallet}>
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(34,197,94,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0,color:P.green}}>⚡</div>
+        <div style={{flex:1,textAlign:'left'}}><div style={{fontSize:14,fontWeight:600,color:P.t1}}>Wallet demo</div><div style={{fontSize:11,color:P.t4}}>Explorar sin cuenta real</div></div>
+      </Btn>
+      <Btn onClick={loginDemo}>
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(229,173,48,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0,color:P.gold}}>◉</div>
+        <div style={{flex:1,textAlign:'left'}}><div style={{fontSize:14,fontWeight:600,color:P.t1}}>Modo demo</div><div style={{fontSize:11,color:P.t4}}>Sin ningún registro</div></div>
+      </Btn>
+      <p style={{textAlign:'center',fontSize:10,color:'rgba(255,255,255,.15)',marginTop:14,lineHeight:1.6}}>Una cuenta · funciona en app y en agrochaindex.io</p>
+    </div>
+  );
+
+  const isReg=view==='register';
+  if(view==='email'||view==='register') return(
+    <div style={{flex:1,overflowY:'auto',padding:'0 24px 24px',position:'relative'}}>
+      {bg}
+      <button onClick={()=>setView('landing')} style={{background:'none',border:'none',color:P.t3,fontSize:13,cursor:'pointer',padding:'22px 0 16px',display:'flex',alignItems:'center',gap:5}}>← Volver</button>
+      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:24,color:P.t1,marginBottom:6,letterSpacing:'-.02em'}}>{isReg?'Crear cuenta':'Bienvenido de vuelta'}</h2>
+      <p style={{fontSize:12,color:P.t3,marginBottom:22}}>{isReg?'Una cuenta · app y web unificadas':'Accede a tu portfolio'}</p>
+      {err&&<div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.2)',borderRadius:11,padding:'9px 13px',fontSize:12,color:'#ef4444',marginBottom:12}}>{err}</div>}
+      {info&&<div style={{background:'rgba(34,197,94,.08)',border:'1px solid rgba(34,197,94,.18)',borderRadius:11,padding:'9px 13px',fontSize:12,color:P.green,marginBottom:12}}>{info}</div>}
+      {isReg&&<Input label="Nombre" type="text" value={name} onChange={setName} placeholder="Tu nombre" autoComplete="name"/>}
+      <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="tu@email.com" autoComplete="email"/>
+      <Input label="Contraseña" type="password" value={pass} onChange={setPass} placeholder={isReg?'Mínimo 6 caracteres':'••••••••'} autoComplete={isReg?'new-password':'current-password'}/>
+      {isReg&&<Input label="Confirmar contraseña" type="password" value={pass2} onChange={setPass2} placeholder="Repite la contraseña" autoComplete="new-password"/>}
+      <button onClick={()=>submitEmail(isReg)} disabled={loading}
+        style={{width:'100%',padding:'14px',borderRadius:14,background:loading?'rgba(34,197,94,.4)':'linear-gradient(135deg,#22C55E,#16a34a)',border:'none',color:'#000',fontSize:14,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+        {loading&&<span style={{width:14,height:14,border:'2px solid rgba(0,0,0,.3)',borderTopColor:'#000',borderRadius:'50%',animation:'spin .6s linear infinite',display:'inline-block'}}/>}
+        {loading?'Conectando…':isReg?'Crear cuenta':'Iniciar sesión'}
+      </button>
+      <p style={{textAlign:'center',fontSize:13,color:P.t3,marginTop:16}}>
+        {isReg?<span>¿Tienes cuenta? <span onClick={()=>setView('email')} style={{color:P.green,cursor:'pointer',fontWeight:600}}>Inicia sesión</span></span>
+               :<span>¿Sin cuenta? <span onClick={()=>setView('register')} style={{color:P.green,cursor:'pointer',fontWeight:600}}>Regístrate gratis</span></span>}
+      </p>
+      {!SB_OK&&<p style={{textAlign:'center',fontSize:10,color:P.t4,marginTop:12}}>⚡ Modo demo · configura Supabase para auth real</p>}
+    </div>
+  );
+
+  return null;
+}
+
+/* ══════ PROFILE SUBSCREENS ══════ */
+function EditProfile({user,setUser,onBack,showToast}){
+  const [name,setName]=useState(user?.user_metadata?.full_name||'');
+  const [bio,setBio]=useState('');
+  const [country,setCountry]=useState('España');
+  const [saving,setSaving]=useState(false);
+  const save=async()=>{
+    setSaving(true);
+    if(SB_OK&&_sb){
+      await _sb.auth.updateUser({data:{full_name:name}}).catch(()=>{});
+    }else{
+      const u={...user,user_metadata:{...user.user_metadata,full_name:name}};
+      localStorage.setItem('agro_user',JSON.stringify(u));
+      setUser(u);
+    }
+    setTimeout(()=>{setSaving(false);showToast('Perfil actualizado ✓');onBack();},500);
+  };
+  const initials=(user?.email||'AC').slice(0,2).toUpperCase();
+  const FI=({label,value,onChange,type='text',placeholder})=>(
+    <div style={{marginBottom:14}}>
+      <label style={{display:'block',fontSize:10,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:5}}>{label}</label>
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+        style={{width:'100%',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:'11px 14px',color:P.t1,fontSize:14,outline:'none'}}
+        onFocus={e=>{e.target.style.borderColor='rgba(34,197,94,.35)';}} onBlur={e=>{e.target.style.borderColor='rgba(255,255,255,.08)';}}/>
+    </div>
+  );
+  return(
+    <div style={{flex:1,overflowY:'auto',paddingBottom:90}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 20px 16px',borderBottom:`1px solid ${P.border}`}}>
+        <div onClick={onBack} style={{width:34,height:34,borderRadius:11,background:'rgba(255,255,255,.04)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,color:P.t3}}>←</div>
+        <p style={{flex:1,fontSize:16,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif"}}>Editar perfil</p>
+      </div>
+      <div style={{textAlign:'center',padding:'22px 20px 20px',borderBottom:`1px solid ${P.border}`}}>
+        <div style={{width:68,height:68,borderRadius:20,background:'rgba(34,197,94,.08)',border:'2px solid rgba(34,197,94,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,fontWeight:700,color:P.green,margin:'0 auto 12px',fontFamily:"'Playfair Display',serif"}}>{initials}</div>
+        <button onClick={()=>showToast('Cambio de foto · Próximamente')} style={{background:'rgba(34,197,94,.08)',border:'1px solid rgba(34,197,94,.2)',borderRadius:20,padding:'6px 16px',color:P.green,fontSize:12,fontWeight:600,cursor:'pointer'}}>Cambiar foto</button>
+      </div>
+      <div style={{padding:'20px'}}>
+        <FI label="Nombre completo" value={name} onChange={setName} placeholder="Tu nombre"/>
+        <FI label="Biografía" value={bio} onChange={setBio} placeholder="Inversor agropecuario"/>
+        <FI label="País" value={country} onChange={setCountry} placeholder="España"/>
+        <div style={{marginBottom:14}}>
+          <label style={{display:'block',fontSize:10,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:5}}>Email</label>
+          <div style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.05)',borderRadius:12,padding:'11px 14px',fontSize:14,color:P.t3}}>{user?.email||'—'}</div>
+        </div>
+        <button onClick={save} disabled={saving} style={{width:'100%',padding:'13px',borderRadius:13,background:saving?'rgba(34,197,94,.4)':'linear-gradient(135deg,#22C55E,#16a34a)',border:'none',color:'#000',fontSize:14,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          {saving&&<span style={{width:14,height:14,border:'2px solid rgba(0,0,0,.3)',borderTopColor:'#000',borderRadius:'50%',animation:'spin .6s linear infinite',display:'inline-block'}}/>}
+          {saving?'Guardando…':'Guardar cambios'}
+        </button>
+      </div>
+    </div>
+  );
+}
+function SecurityScreen({user,onBack,showToast}){
+  const [cur,setCur]=useState('');
+  const [nw,setNw]=useState('');
+  const [nw2,setNw2]=useState('');
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState('');
+  const [twoFA,setTwoFA]=useState(false);
+  const [bio,setBio]=useState(false);
+  const changePass=async()=>{
+    setErr('');
+    if(nw.length<6)return setErr('Mínimo 6 caracteres');
+    if(nw!==nw2)return setErr('Las contraseñas no coinciden');
+    setSaving(true);
+    if(SB_OK&&_sb){
+      const{error}=await _sb.auth.updateUser({password:nw}).catch(()=>({error:{message:'Error'}}));
+      setSaving(false);
+      if(error)return setErr(error.message||'Error');
+      showToast('Contraseña actualizada ✓');setCur('');setNw('');setNw2('');
+    }else{
+      setTimeout(()=>{setSaving(false);showToast('Contraseña actualizada ✓ (demo)');setCur('');setNw('');setNw2('');},700);
+    }
+  };
+  const PF=({label,val,set,ph,ac})=>(
+    <div style={{marginBottom:12}}>
+      <label style={{display:'block',fontSize:10,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:5}}>{label}</label>
+      <input type="password" value={val} onChange={e=>set(e.target.value)} placeholder={ph} autoComplete={ac}
+        style={{width:'100%',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:'11px 14px',color:P.t1,fontSize:14,outline:'none'}}
+        onFocus={e=>{e.target.style.borderColor='rgba(34,197,94,.35)';}} onBlur={e=>{e.target.style.borderColor='rgba(255,255,255,.08)';}}/>
+    </div>
+  );
+  const Toggle=({label,sub,val,set})=>(
+    <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 0',borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+      <div style={{flex:1}}><p style={{fontSize:14,fontWeight:500,color:P.t1}}>{label}</p><p style={{fontSize:11,color:P.t4,marginTop:1}}>{sub}</p></div>
+      <div onClick={()=>set(!val)} style={{width:44,height:26,borderRadius:13,background:val?P.green:'rgba(255,255,255,.1)',position:'relative',cursor:'pointer',transition:'background .2s',flexShrink:0}}>
+        <div style={{width:20,height:20,borderRadius:10,background:'#fff',position:'absolute',top:3,left:val?21:3,transition:'left .2s',boxShadow:'0 1px 4px rgba(0,0,0,.3)'}}/>
+      </div>
+    </div>
+  );
+  return(
+    <div style={{flex:1,overflowY:'auto',paddingBottom:90}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 20px 16px',borderBottom:`1px solid ${P.border}`}}>
+        <div onClick={onBack} style={{width:34,height:34,borderRadius:11,background:'rgba(255,255,255,.04)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,color:P.t3}}>←</div>
+        <p style={{flex:1,fontSize:16,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif"}}>Seguridad</p>
+      </div>
+      <div style={{padding:'20px'}}>
+        <p style={{fontSize:10,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:14}}>Cambiar contraseña</p>
+        {err&&<div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.2)',borderRadius:10,padding:'9px 13px',fontSize:12,color:'#ef4444',marginBottom:12}}>{err}</div>}
+        <PF label="Contraseña actual" val={cur} set={setCur} ph="••••••••" ac="current-password"/>
+        <PF label="Nueva contraseña" val={nw} set={setNw} ph="Mínimo 6 caracteres" ac="new-password"/>
+        <PF label="Confirmar nueva" val={nw2} set={setNw2} ph="Repite la nueva" ac="new-password"/>
+        <button onClick={changePass} disabled={saving} style={{width:'100%',padding:'12px',borderRadius:13,background:'linear-gradient(135deg,#22C55E,#16a34a)',border:'none',color:'#000',fontSize:14,fontWeight:700,cursor:'pointer',marginBottom:24,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          {saving&&<span style={{width:14,height:14,border:'2px solid rgba(0,0,0,.3)',borderTopColor:'#000',borderRadius:'50%',animation:'spin .6s linear infinite',display:'inline-block'}}/>}
+          {saving?'Guardando…':'Cambiar contraseña'}
+        </button>
+        <p style={{fontSize:10,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:4}}>Acceso adicional</p>
+        <Toggle label="Autenticación 2FA" sub="Código SMS o app autenticadora" val={twoFA} set={setTwoFA}/>
+        <Toggle label="Biométrico" sub="Face ID o huella dactilar" val={bio} set={setBio}/>
+        <div style={{marginTop:20,background:'rgba(239,68,68,.05)',border:'1px solid rgba(239,68,68,.12)',borderRadius:13,padding:'14px'}}>
+          <p style={{fontSize:13,fontWeight:700,color:'#ef4444',marginBottom:4}}>Zona de peligro</p>
+          <p style={{fontSize:11,color:P.t3,marginBottom:10}}>Esta acción es irreversible</p>
+          <button onClick={()=>showToast('Contacta soporte para eliminar cuenta')} style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.2)',borderRadius:10,padding:'8px 14px',color:'#ef4444',fontSize:12,fontWeight:600,cursor:'pointer'}}>Eliminar cuenta</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function KYCScreen({user,onBack,showToast}){
+  const isDemo=user?.demo;
+  const steps=[
+    {label:'Identidad',sub:'DNI, Pasaporte o NIE',done:!isDemo,icon:'🪪'},
+    {label:'Selfie',sub:'Foto con documento',done:!isDemo,icon:'🤳'},
+    {label:'Domicilio',sub:'Factura o extracto bancario',done:false,icon:'🏠'},
+    {label:'Origen de fondos',sub:'Declaración MiCA UE',done:false,icon:'📋'},
+  ];
+  const done=steps.filter(s=>s.done).length;
+  return(
+    <div style={{flex:1,overflowY:'auto',paddingBottom:90}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 20px 16px',borderBottom:`1px solid ${P.border}`}}>
+        <div onClick={onBack} style={{width:34,height:34,borderRadius:11,background:'rgba(255,255,255,.04)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,color:P.t3}}>←</div>
+        <p style={{flex:1,fontSize:16,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif"}}>Verificación KYC</p>
+      </div>
+      <div style={{padding:'20px'}}>
+        <div style={{background:'rgba(34,197,94,.06)',border:'1px solid rgba(34,197,94,.15)',borderRadius:13,padding:'14px',marginBottom:18}}>
+          <p style={{fontSize:12,fontWeight:700,color:P.green,marginBottom:4}}>✓ Cumplimiento MiCA · Reglamento UE 2023/1114</p>
+          <p style={{fontSize:11,color:P.t3,lineHeight:1.6}}>Verificación obligatoria para inversiones superiores a €1.000.</p>
+        </div>
+        <div style={{display:'flex',gap:3,marginBottom:6}}>
+          {steps.map((s,i)=><div key={i} style={{flex:1,height:3,borderRadius:2,background:s.done?P.green:'rgba(255,255,255,.08)'}}/>)}
+        </div>
+        <p style={{fontSize:10,color:P.t4,marginBottom:16}}>{done} de {steps.length} pasos completados</p>
+        {steps.map((s,i)=>(
+          <div key={i} onClick={()=>showToast(s.done?`${s.label} verificado ✓`:`Iniciar: ${s.label}`)}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'14px',borderRadius:13,border:`1px solid ${s.done?'rgba(34,197,94,.2)':'rgba(255,255,255,.06)'}`,background:s.done?'rgba(34,197,94,.05)':'rgba(255,255,255,.02)',marginBottom:10,cursor:'pointer'}}>
+            <div style={{width:38,height:38,borderRadius:11,background:s.done?'rgba(34,197,94,.12)':'rgba(255,255,255,.05)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{s.icon}</div>
+            <div style={{flex:1}}><p style={{fontSize:14,fontWeight:600,color:P.t1}}>{s.label}</p><p style={{fontSize:11,color:P.t4,marginTop:1}}>{s.sub}</p></div>
+            <span style={{fontSize:16,color:s.done?P.green:'rgba(255,255,255,.2)'}}>{s.done?'✓':'›'}</span>
+          </div>
+        ))}
+        <div style={{marginTop:14,background:'rgba(59,130,246,.06)',border:'1px solid rgba(59,130,246,.15)',borderRadius:12,padding:'12px 14px'}}>
+          <p style={{fontSize:11,color:'#3B82F6',lineHeight:1.6}}>🔒 Datos cifrados · Solo uso regulatorio · Nunca compartidos con terceros.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+function NotifScreen({onBack,showToast}){
+  const [prefs,setPrefs]=useState({cycles:true,returns:true,price:false,news:true,security:true,marketing:false});
+  const T=({label,sub,k})=>(
+    <div style={{display:'flex',alignItems:'center',gap:12,padding:'13px 0',borderBottom:`1px solid rgba(255,255,255,.04)`}}>
+      <div style={{flex:1}}><p style={{fontSize:14,fontWeight:500,color:P.t1}}>{label}</p><p style={{fontSize:11,color:P.t4,marginTop:1}}>{sub}</p></div>
+      <div onClick={()=>setPrefs(p=>({...p,[k]:!p[k]}))} style={{width:44,height:26,borderRadius:13,background:prefs[k]?P.green:'rgba(255,255,255,.1)',position:'relative',cursor:'pointer',transition:'background .2s',flexShrink:0}}>
+        <div style={{width:20,height:20,borderRadius:10,background:'#fff',position:'absolute',top:3,left:prefs[k]?21:3,transition:'left .2s',boxShadow:'0 1px 4px rgba(0,0,0,.3)'}}/>
+      </div>
+    </div>
+  );
+  return(
+    <div style={{flex:1,overflowY:'auto',paddingBottom:90}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 20px 16px',borderBottom:`1px solid ${P.border}`}}>
+        <div onClick={onBack} style={{width:34,height:34,borderRadius:11,background:'rgba(255,255,255,.04)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,color:P.t3}}>←</div>
+        <p style={{flex:1,fontSize:16,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif"}}>Notificaciones</p>
+      </div>
+      <div style={{padding:'20px'}}>
+        <T label="Nuevos ciclos" sub="Cuando abre una producción de tu interés" k="cycles"/>
+        <T label="Rendimientos" sub="Al cobrar dividendos o vencimientos" k="returns"/>
+        <T label="Alertas de precio" sub="Movimientos significativos en cartera" k="price"/>
+        <T label="Noticias del mercado" sub="Actualizaciones del sector agropecuario" k="news"/>
+        <T label="Seguridad" sub="Accesos nuevos y cambios de cuenta" k="security"/>
+        <T label="Marketing" sub="Ofertas y novedades" k="marketing"/>
+        <button onClick={()=>showToast('Preferencias guardadas ✓')} style={{width:'100%',padding:'13px',borderRadius:13,background:'linear-gradient(135deg,#22C55E,#16a34a)',border:'none',color:'#000',fontSize:14,fontWeight:700,cursor:'pointer',marginTop:20}}>Guardar preferencias</button>
+      </div>
+    </div>
+  );
+}
+function NetworkScreen({wallet,onBack,showToast}){
+  const [net,setNet]=useState('sol-main');
+  const nets=[
+    {id:'sol-main',label:'Solana Mainnet',sub:'Red principal · Transacciones reales',col:'#9945FF'},
+    {id:'sol-dev',label:'Solana Devnet',sub:'Red de pruebas · Tokens gratuitos',col:'#22C55E'},
+    {id:'eth',label:'Ethereum Mainnet',sub:'EVM · USDC / DAI / ETH',col:'#627EEA'},
+    {id:'polygon',label:'Polygon',sub:'L2 EVM · Comisiones bajas',col:'#8247E5'},
+  ];
+  return(
+    <div style={{flex:1,overflowY:'auto',paddingBottom:90}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 20px 16px',borderBottom:`1px solid ${P.border}`}}>
+        <div onClick={onBack} style={{width:34,height:34,borderRadius:11,background:'rgba(255,255,255,.04)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,color:P.t3}}>←</div>
+        <p style={{flex:1,fontSize:16,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif"}}>Red blockchain</p>
+      </div>
+      <div style={{padding:'20px'}}>
+        {wallet&&<div style={{background:'rgba(34,197,94,.06)',border:'1px solid rgba(34,197,94,.15)',borderRadius:12,padding:'12px 14px',marginBottom:18}}>
+          <p style={{fontSize:10,fontWeight:700,color:P.green,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:3}}>Wallet conectada</p>
+          <p style={{fontSize:12,color:P.t2,fontFamily:'monospace'}}>{wallet.slice(0,14)}…{wallet.slice(-8)}</p>
+        </div>}
+        {nets.map(n=>(
+          <div key={n.id} onClick={()=>setNet(n.id)}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'14px',borderRadius:13,border:`1px solid ${net===n.id?n.col+'44':'rgba(255,255,255,.06)'}`,background:net===n.id?n.col+'0D':'rgba(255,255,255,.02)',marginBottom:10,cursor:'pointer',transition:'all .2s'}}>
+            <div style={{width:10,height:10,borderRadius:5,background:n.col,flexShrink:0,boxShadow:net===n.id?`0 0 8px ${n.col}`:undefined}}/>
+            <div style={{flex:1}}><p style={{fontSize:14,fontWeight:600,color:P.t1}}>{n.label}</p><p style={{fontSize:11,color:P.t4,marginTop:1}}>{n.sub}</p></div>
+            {net===n.id&&<span style={{fontSize:12,fontWeight:700,color:n.col}}>✓</span>}
+          </div>
+        ))}
+        <div style={{background:'rgba(245,158,11,.06)',border:'1px solid rgba(245,158,11,.15)',borderRadius:12,padding:'12px 14px',marginTop:4}}>
+          <p style={{fontSize:11,color:'#F59E0B',lineHeight:1.6}}>⚠️ Cambiar red afecta todas las transacciones. Asegúrate de tener fondos en la red seleccionada.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ MAIN APP ══════ */
+function App(){
+  const [user,setUser]=useState(null);
+  const [wallet,setWallet]=useState(null);
+  const [loaded,setLoaded]=useState(false);
+  const [authView]=useState('landing');
+  const [tokens,setTokens]=useState(initTokens);
+  const [pricesLoaded,setPricesLoaded]=useState(false);
+  const [tab,setTab]=useState('wallet');
+  const [screen,setScreen]=useState(null);     // null | 'tokenDetail'
+  const [profileSub,setProfileSub]=useState(null); // null|'edit'|'security'|'kyc'|'notif'|'network'
+  const [selToken,setSelToken]=useState(null);
+  const [selCountry,setSelCountry]=useState(null);
+  const [selCompany,setSelCompany]=useState(null);
+  const [walletTab,setWalletTab]=useState('tokens');
+  const [swapFromSym,setSwapFromSym]=useState('ETH');
+  const [swapToSym,setSwapToSym]=useState('USDC');
+  const [swapAmt,setSwapAmt]=useState('100');
+  const [toast,setToast]=useState(null);
+  const [mapFilter,setMapFilter]=useState('ALL');
+  const [period,setPeriod]=useState('24H');
+
+  const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(null),2600);};
+  const totalBal=tokens.reduce((s,t)=>s+t.price*t.bal,0);
+  const filteredCo=mapFilter==='ALL'?COMPANIES:COMPANIES.filter(c=>c.country===mapFilter);
+  const swapFrom=tokens.find(t=>t.sym===swapFromSym)||tokens[1];
+  const swapTo=tokens.find(t=>t.sym===swapToSym)||tokens[3];
+  const initials=(user?.email||'AC').slice(0,2).toUpperCase();
+  const shortW=w=>w?(w.slice(0,6)+'…'+w.slice(-4)):'';
+
+  // Check session
+  useEffect(()=>{
+    (async()=>{
+      const saved=localStorage.getItem('agro_user');
+      if(saved){try{const u=JSON.parse(saved);setUser(u);if(u.wallet)setWallet(u.wallet);}catch(e){}}
+      else if(SB_OK&&_sb){
+        const{data:{session}}=await _sb.auth.getSession().catch(()=>({data:{session:null}}));
+        if(session?.user){setUser(session.user);const w=localStorage.getItem('agro_w_'+session.user.id);if(w)setWallet(w);}
+        _sb.auth.onAuthStateChange((ev,sess)=>{
+          if(ev==='SIGNED_IN'&&sess)setUser(sess.user);
+          else if(ev==='SIGNED_OUT'){setUser(null);setWallet(null);}
+        });
+      }
+      setLoaded(true);
+    })();
+  },[]);
+
+  // Fetch live prices
+  useEffect(()=>{
+    if(!user)return;
+    const ids=TOKEN_CFG.filter(t=>t.cgId).map(t=>t.cgId).join(',');
+    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`)
+      .then(r=>r.json())
+      .then(data=>{
+        setTokens(prev=>prev.map(t=>{
+          if(!t.cgId)return{...t};
+          const d=data[t.cgId];
+          if(!d)return{...t};
+          const price=d.usd||FALLBACK[t.sym].price;
+          const change=parseFloat((d.usd_24h_change||FALLBACK[t.sym].change).toFixed(2));
+          return{...t,price,change,h:mkHistory(price,change)};
+        }));
+        setPricesLoaded(true);
+      })
+      .catch(()=>setPricesLoaded(true));
+  },[user]);
+
+  const handleAuthSuccess=(u,addr)=>{
+    setUser(u);
+    if(addr){setWallet(addr);if(u?.id)localStorage.setItem('agro_w_'+u.id,addr);}
+  };
+  const signOut=async()=>{
+    localStorage.removeItem('agro_user');
+    if(user?.id)localStorage.removeItem('agro_w_'+user.id);
+    if(SB_OK&&_sb)await _sb.auth.signOut().catch(()=>{});
+    setUser(null);setWallet(null);setProfileSub(null);setTab('wallet');
+  };
+
+  // Clock isolado para no re-renderizar todo
+  const Clock=()=>{
+    const [t,setT]=useState(new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    useEffect(()=>{const id=setInterval(()=>setT(new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})),1000);return()=>clearInterval(id);},[]);
+    return <span>{t}</span>;
+  };
+
+  const StatusBar=()=>(
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 22px 2px',fontSize:12,fontWeight:600,color:'#fff',position:'relative',zIndex:10,flexShrink:0}}>
+      <Clock/>
+      <div style={{position:'absolute',left:'50%',transform:'translateX(-50%)',width:126,height:30,background:'#000',borderRadius:'0 0 20px 20px'}}/>
+      <div style={{display:'flex',alignItems:'center',gap:4}}>
+        <svg width="15" height="11" viewBox="0 0 16 12"><path d="M1 9h2v3H1zM5 6h2v6H5zM9 3h2v9H9zM13 0h2v12h-2z" fill="#22C55E"/></svg>
+        <svg width="18" height="11" viewBox="0 0 20 12"><rect x="0" y="1" width="17" height="10" rx="2" stroke="#fff" strokeWidth="1" fill="none"/><rect x="2" y="3" width="11" height="6" rx="1" fill="#22C55E"/></svg>
+      </div>
+    </div>
+  );
+  const Header=({title,onBack:ob})=>(
+    <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 20px 12px',flexShrink:0}}>
+      <div onClick={ob} style={{width:34,height:34,borderRadius:11,background:'rgba(255,255,255,.04)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,color:P.t3}}>←</div>
+      <p style={{flex:1,fontSize:17,fontWeight:700,color:P.t1,textAlign:'center',fontFamily:"'Playfair Display',serif"}}>{title}</p>
+      <div style={{width:34}}/>
+    </div>
+  );
+
+  /* ── LOADING ── */
+  if(!loaded) return(
+    <div style={{color:P.green,display:'flex',alignItems:'center',justifyContent:'center',width:'100vw',height:'100vh'}}>
+      <div style={{width:32,height:32,border:'2px solid rgba(34,197,94,.2)',borderTopColor:P.green,borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
+    </div>
+  );
+
+  /* ── AUTH ── */
+  if(!user) return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px',background:'linear-gradient(180deg,#020504,#050a07)'}}>
+      <div style={{width:390,height:844,background:'#000',borderRadius:48,overflow:'hidden',border:'3px solid #1a1a1a',boxShadow:'0 50px 120px rgba(0,0,0,.9),0 0 80px rgba(34,197,94,.08)',display:'flex',flexDirection:'column',fontFamily:"'DM Sans',sans-serif"}}>
+        <StatusBar/>
+        <div style={{flex:1,display:'flex',flexDirection:'column',background:P.bg,overflow:'hidden'}}>
+          <AuthScreen onSuccess={handleAuthSuccess}/>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── WALLET SCREEN ── */
+  const WalletScreen=()=>(
+    <div style={{flex:1,overflowY:'auto'}}>
+      <div style={{padding:'8px 20px 0'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <div>
+            <p style={{fontSize:10,color:P.t4,fontWeight:600,letterSpacing:1.5,textTransform:'uppercase',marginBottom:2}}>Portfolio total</p>
+            <h1 style={{fontSize:32,fontWeight:700,color:P.t1,letterSpacing:-1.5,fontFamily:"'Playfair Display',serif"}}>${totalBal.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</h1>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:pricesLoaded?P.green:'#F59E0B',animation:'pulse 2s infinite'}}/>
+              <p style={{fontSize:11,color:pricesLoaded?P.green:'#F59E0B',fontWeight:600}}>{pricesLoaded?'Precios en vivo · CoinGecko':'Cargando precios...'}</p>
+            </div>
+          </div>
+          <div onClick={()=>setTab('profile')} style={{width:40,height:40,borderRadius:14,background:'rgba(34,197,94,.08)',border:'1px solid rgba(34,197,94,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:P.green,cursor:'pointer',fontFamily:"'Playfair Display',serif"}}>{initials}</div>
+        </div>
+        {wallet?(
+          <div style={{background:'rgba(34,197,94,.05)',border:'1px solid rgba(34,197,94,.12)',borderRadius:10,padding:'7px 12px',display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+            <div style={{width:7,height:7,borderRadius:'50%',background:P.green,animation:'pulse 2s infinite',flexShrink:0}}/>
+            <span style={{fontSize:11,fontWeight:600,color:P.green,fontFamily:'monospace',flex:1}}>{shortW(wallet)}</span>
+            <span style={{fontSize:9,color:P.t4,fontWeight:600,letterSpacing:'.5px'}}>CONNECTED</span>
+          </div>
+        ):(
+          <div onClick={()=>{setUser(null);}} style={{background:'rgba(255,255,255,.02)',border:'1px dashed rgba(255,255,255,.08)',borderRadius:10,padding:'8px 12px',display:'flex',alignItems:'center',gap:8,marginBottom:14,cursor:'pointer'}}>
+            <span style={{fontSize:16}}>◎</span><span style={{fontSize:12,color:P.t3,flex:1}}>Conectar wallet Web3</span>
+            <span style={{fontSize:11,fontWeight:700,color:P.green}}>+ Añadir</span>
+          </div>
+        )}
+        <div style={{display:'flex',gap:8,marginBottom:16}}>
+          {[{l:'Enviar',i:'↑'},{l:'Recibir',i:'↓'},{l:'Swap',i:'⇄',go:()=>setTab('swap')},{l:'Comprar',i:'+'}].map(a=>(
+            <div key={a.l} onClick={a.go||(()=>showToast(a.l+' · Próximamente'))} style={{flex:1,background:P.card,border:`1px solid ${P.border}`,borderRadius:14,padding:'12px 0',textAlign:'center',cursor:'pointer'}}>
+              <div style={{width:34,height:34,borderRadius:11,background:'rgba(34,197,94,.08)',margin:'0 auto 6px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,color:P.green}}>{a.i}</div>
+              <p style={{fontSize:10,fontWeight:600,color:P.t3}}>{a.l}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{display:'flex',padding:'0 20px',marginBottom:12,borderBottom:`1px solid ${P.border}`}}>
+        {['tokens','nfts','activity'].map(t=>(
+          <div key={t} onClick={()=>setWalletTab(t)} style={{padding:'8px 14px',fontSize:11,fontWeight:600,color:walletTab===t?P.t1:P.t4,borderBottom:walletTab===t?`2px solid ${P.green}`:'2px solid transparent',cursor:'pointer'}}>
+            {t==='nfts'?'NFTs':t==='activity'?'Actividad':'Tokens'}
+          </div>
+        ))}
+      </div>
+      <div style={{padding:'0 20px 90px'}}>
+        {walletTab==='tokens'&&tokens.map((t,i)=>(
+          <div key={t.sym} onClick={()=>{setSelToken(t);setScreen('tokenDetail');}} style={{display:'flex',alignItems:'center',gap:11,padding:'12px 0',borderBottom:'1px solid rgba(255,255,255,.02)',cursor:'pointer',animation:`fsu .3s ${i*.04}s both`}}>
+            <div style={{width:40,height:40,borderRadius:13,background:t.color+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,color:t.color,flexShrink:0,border:`1px solid ${t.color}22`}}>{t.icon}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{fontSize:13,fontWeight:600,color:P.t1}}>{t.sym}</span>
+                <span style={{fontSize:13,fontWeight:600,color:P.t1}}>${(t.price*t.bal).toLocaleString('en',{maximumFractionDigits:0})}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:2}}>
+                <span style={{fontSize:10,color:P.t4}}>${t.price.toLocaleString('en',{minimumFractionDigits:t.price<10?4:2,maximumFractionDigits:t.price<10?4:2})}</span>
+                <span style={{fontSize:10,color:t.change>=0?P.green:P.red,fontWeight:600}}>{t.change>=0?'+':''}{t.change}%</span>
+              </div>
+            </div>
+            <div style={{width:58,flexShrink:0}}><Chart data={t.h} color={t.change>=0?P.green:P.red} w={58} h={26}/></div>
+          </div>
+        ))}
+        {walletTab==='nfts'&&NFTS.map((n,i)=>(
+          <div key={n.id} style={{background:P.card,border:`1px solid ${P.border}`,borderRadius:14,padding:14,marginBottom:10,animation:`fsu .3s ${i*.08}s both`}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+              <span style={{fontSize:9,fontWeight:700,color:P.t4,letterSpacing:1}}>{n.id}</span>
+              <span style={{fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:50,background:n.cl+'18',color:n.cl}}>{n.status}</span>
+            </div>
+            <h4 style={{fontSize:14,fontWeight:600,color:P.t1,marginBottom:8}}>{n.name}</h4>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+              {[['Origen',n.origin],['Cantidad',n.wt],['Cert.',n.cert]].map(([k,v])=>(
+                <div key={k}><p style={{fontSize:8,color:P.t4,textTransform:'uppercase',letterSpacing:.8,marginBottom:1}}>{k}</p><p style={{fontSize:11,color:P.t2}}>{v}</p></div>
+              ))}
+            </div>
+          </div>
+        ))}
+        {walletTab==='activity'&&FEED.map((f,i)=>(
+          <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 0',borderBottom:'1px solid rgba(255,255,255,.02)',animation:`fsu .3s ${i*.04}s both`}}>
+            <div style={{width:34,height:34,borderRadius:10,background:f.type==='buy'?'rgba(34,197,94,.06)':f.type==='sell'?'rgba(239,68,68,.06)':'rgba(245,158,11,.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:f.type==='buy'?P.green:f.type==='sell'?P.red:'#F59E0B',flexShrink:0}}>
+              {f.type==='buy'?'↓':f.type==='sell'?'↑':'◈'}
+            </div>
+            <div style={{flex:1,minWidth:0}}><p style={{fontSize:12,fontWeight:600,color:P.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.flag} {f.user}</p><p style={{fontSize:10,color:P.t4}}>{f.action} {f.what}</p></div>
+            <div style={{textAlign:'right',flexShrink:0}}><p style={{fontSize:12,fontWeight:700,color:P.t1}}>{f.amt}</p><p style={{fontSize:9,color:P.t4}}>{f.time}</p></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  /* ── TOKEN DETAIL ── */
+  const TokenDetail=()=>{
+    const t=selToken;
+    if(!t)return null;
+    return(
+      <div style={{flex:1,overflowY:'auto'}}>
+        <Header title={`${t.sym} / USD`} onBack={()=>{setScreen(null);setSelToken(null);}}/>
+        <div style={{padding:'0 20px',textAlign:'center',marginBottom:16}}>
+          <p style={{fontSize:36,fontWeight:700,color:P.t1,letterSpacing:-1.5,fontFamily:"'Playfair Display',serif"}}>${t.price.toLocaleString('en',{minimumFractionDigits:t.price<10?4:2,maximumFractionDigits:t.price<10?4:2})}</p>
+          <p style={{fontSize:13,color:t.change>=0?P.green:P.red,fontWeight:600,marginTop:3}}>{t.change>=0?'+':''}{t.change}% {t.change>=0?'↑':'↓'}</p>
+          <div style={{display:'flex',justifyContent:'center',marginTop:8}}>
+            <span style={{fontSize:9,fontWeight:700,background:pricesLoaded?'rgba(34,197,94,.1)':'rgba(245,158,11,.1)',color:pricesLoaded?P.green:'#F59E0B',border:`1px solid ${pricesLoaded?'rgba(34,197,94,.2)':'rgba(245,158,11,.2)'}`,borderRadius:20,padding:'2px 10px'}}>
+              {pricesLoaded?'⬤ Precio en vivo · CoinGecko':'⟳ Cargando...'}
+            </span>
+          </div>
+        </div>
+        <div style={{padding:'0 20px'}}><BigChart data={t.h} color={t.change>=0?P.green:P.red}/></div>
+        <div style={{display:'flex',gap:5,padding:'0 20px',marginBottom:20,justifyContent:'center'}}>
+          {['1H','24H','7D','1M','1Y'].map(p=>(
+            <div key={p} onClick={()=>setPeriod(p)} style={{padding:'5px 11px',borderRadius:8,fontSize:10,fontWeight:600,cursor:'pointer',background:period===p?'rgba(34,197,94,.1)':'transparent',color:period===p?P.green:P.t4,border:period===p?'1px solid rgba(34,197,94,.12)':'1px solid transparent'}}>{p}</div>
+          ))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,padding:'0 20px',marginBottom:20}}>
+          {[['Balance',`${t.bal.toLocaleString()} ${t.sym}`],['Valor',`$${(t.price*t.bal).toLocaleString('en',{maximumFractionDigits:0})}`],['Precio',`$${t.price.toLocaleString('en',{minimumFractionDigits:2})}`],['Cambio 24h',`${t.change>=0?'+':''}${t.change}%`]].map(([k,v])=>(
+            <div key={k} style={{background:'rgba(255,255,255,.02)',borderRadius:11,padding:'10px 12px',border:'1px solid rgba(255,255,255,.03)'}}>
+              <p style={{fontSize:9,color:P.t4,textTransform:'uppercase',letterSpacing:.8,marginBottom:3}}>{k}</p>
+              <p style={{fontSize:13,fontWeight:600,color:P.t1}}>{v}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:8,padding:'0 20px 90px'}}>
+          <button onClick={()=>setTab('swap')} style={{flex:1,background:'linear-gradient(135deg,#166534,#22C55E)',border:'none',borderRadius:14,padding:'14px 0',fontSize:14,fontWeight:700,color:'#fff',cursor:'pointer'}}>Comprar</button>
+          <button onClick={()=>showToast('Vender · Conecta wallet')} style={{flex:1,background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.05)',borderRadius:14,padding:'14px 0',fontSize:14,fontWeight:700,color:P.t1,cursor:'pointer'}}>Vender</button>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── MAP / MARKET ── */
+  const MapScreen=()=>{
+    const cd=selCountry?COUNTRIES.find(c=>c.code===selCountry):null;
+    return(
+      <div style={{flex:1,overflowY:'auto'}}>
+        <div style={{padding:'8px 20px 0'}}>
+          <p style={{fontSize:9,color:P.t4,fontWeight:600,letterSpacing:1.5,textTransform:'uppercase',marginBottom:4}}>Marketplace Global</p>
+          <h2 style={{fontSize:20,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif",marginBottom:4}}>Tokenización en vivo</h2>
+          <div style={{display:'flex',gap:10,marginBottom:12}}>
+            <span style={{fontSize:10,color:P.t3,display:'flex',alignItems:'center',gap:4}}><span style={{width:6,height:6,borderRadius:3,background:P.green,animation:'pulse 1.5s infinite'}}/>18 países</span>
+            <span style={{fontSize:10,color:P.gold,fontWeight:600}}>Vol: $3.1M</span>
+          </div>
+        </div>
+        <div style={{padding:'0 16px 12px'}}>
+          <WorldMap countries={COUNTRIES} selected={selCountry} onSelect={c=>{setSelCountry(c);setMapFilter(c||'ALL');}}/>
+        </div>
+        {cd&&(
+          <div style={{margin:'0 20px 12px',background:P.card,border:`1px solid ${P.border}`,borderRadius:14,padding:14,animation:'fsu .3s both'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:20}}>{cd.flag}</span>
+                <div><p style={{fontSize:14,fontWeight:700,color:P.t1}}>{cd.name}</p><p style={{fontSize:10,color:P.t3}}>{cd.companies} empresas activas</p></div>
+              </div>
+              <span style={{fontSize:13,fontWeight:700,color:P.gold}}>{cd.vol}</span>
+            </div>
+            <p style={{fontSize:11,color:P.t3}}>{cd.products}</p>
+          </div>
+        )}
+        <div style={{display:'flex',gap:5,padding:'0 20px',overflowX:'auto',marginBottom:12,WebkitOverflowScrolling:'touch'}}>
+          <div onClick={()=>{setMapFilter('ALL');setSelCountry(null);}} style={{padding:'5px 12px',borderRadius:50,fontSize:10,fontWeight:600,cursor:'pointer',background:mapFilter==='ALL'?'rgba(34,197,94,.1)':'rgba(255,255,255,.03)',color:mapFilter==='ALL'?P.green:P.t4,border:mapFilter==='ALL'?'1px solid rgba(34,197,94,.12)':'1px solid rgba(255,255,255,.04)',flexShrink:0}}>🌍 Todos</div>
+          {COUNTRIES.map(c=>(
+            <div key={c.code} onClick={()=>{setMapFilter(c.code);setSelCountry(c.code);}} style={{padding:'5px 10px',borderRadius:50,fontSize:10,fontWeight:600,cursor:'pointer',background:mapFilter===c.code?'rgba(34,197,94,.1)':'rgba(255,255,255,.03)',color:mapFilter===c.code?P.green:P.t4,border:mapFilter===c.code?'1px solid rgba(34,197,94,.12)':'1px solid rgba(255,255,255,.04)',flexShrink:0,whiteSpace:'nowrap'}}>
+              {c.flag} {c.name}
+            </div>
+          ))}
+        </div>
+        <div style={{padding:'0 20px 4px'}}><p style={{fontSize:9,color:P.t4,fontWeight:600,letterSpacing:1.5,textTransform:'uppercase'}}>{filteredCo.length} empresas</p></div>
+        <div style={{padding:'4px 20px 90px'}}>
+          {filteredCo.map((c,i)=>(
+            <div key={c.name} onClick={()=>setSelCompany(c)} style={{background:P.card,border:`1px solid ${P.border}`,borderRadius:14,padding:14,marginBottom:8,cursor:'pointer',animation:`fsu .3s ${i*.04}s both`}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                <div style={{width:36,height:36,borderRadius:10,background:c.status==='a'?'rgba(34,197,94,.08)':'rgba(245,158,11,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:c.status==='a'?P.green:P.gold,flexShrink:0}}>{c.av}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:13,fontWeight:600,color:P.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name}</p>
+                  <p style={{fontSize:10,color:P.t4}}>{c.flag} {c.sector} · {c.type}</p>
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}><p style={{fontSize:12,fontWeight:700,color:P.t1}}>{c.vol}</p><p style={{fontSize:9,color:P.green}}>{c.tokens} tok.</p></div>
+              </div>
+              <ProgressPhase progress={c.progress} phase={c.ph}/>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:6}}>
+                <span style={{fontSize:9,color:P.t4}}>⏱ {c.time}</span>
+                <span style={{fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:50,background:c.status==='a'?'rgba(34,197,94,.08)':'rgba(245,158,11,.08)',color:c.status==='a'?P.green:P.gold}}>{c.status==='a'?'Activo':'En proceso'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  /* ── COMPANY DETAIL ── */
+  const CompanyDetail=()=>{
+    const c=selCompany;if(!c)return null;
+    const phIdx=PHASES.indexOf(c.ph);
+    return(
+      <div style={{flex:1,overflowY:'auto'}}>
+        <Header title="Detalle" onBack={()=>setSelCompany(null)}/>
+        <div style={{padding:'0 20px 90px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+            <div style={{width:52,height:52,borderRadius:16,background:'rgba(34,197,94,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:P.green}}>{c.av}</div>
+            <div style={{flex:1}}><p style={{fontSize:18,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif"}}>{c.name}</p><p style={{fontSize:12,color:P.t3}}>{c.flag} {c.sector} · {c.type}</p></div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:20}}>
+            {[['Volumen',c.vol],['Tokens',c.tokens],['País',COUNTRIES.find(x=>x.code===c.country)?.name||c.country],['Estado',c.status==='a'?'Activo':'En proceso']].map(([k,v])=>(
+              <div key={k} style={{background:'rgba(255,255,255,.02)',borderRadius:12,padding:'11px 13px'}}>
+                <p style={{fontSize:9,color:P.t4,textTransform:'uppercase',letterSpacing:.8,marginBottom:3}}>{k}</p>
+                <p style={{fontSize:13,fontWeight:600,color:P.t1}}>{v}</p>
+              </div>
+            ))}
+          </div>
+          <p style={{fontSize:10,color:P.t4,textTransform:'uppercase',letterSpacing:1.5,marginBottom:14}}>Proceso de tokenización</p>
+          <div style={{marginBottom:20}}>
+            {PHASES.map((p,i)=>{
+              const done=i<=phIdx,cur=i===phIdx;
+              return(
+                <div key={p} style={{display:'flex',gap:12,position:'relative',paddingBottom:i<PHASES.length-1?20:0}}>
+                  {i<PHASES.length-1&&<div style={{position:'absolute',left:13,top:28,width:1,height:'calc(100% - 14px)',background:done?'rgba(34,197,94,.2)':'rgba(255,255,255,.04)'}}/>}
+                  <div style={{width:28,height:28,borderRadius:9,background:done?'rgba(34,197,94,.12)':'rgba(255,255,255,.03)',border:`1px solid ${done?'rgba(34,197,94,.2)':'rgba(255,255,255,.04)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:done?P.green:P.t4,flexShrink:0,fontWeight:700}}>{done?'✓':i+1}</div>
+                  <div style={{flex:1,paddingTop:4}}><p style={{fontSize:13,fontWeight:600,color:done?P.t1:P.t4}}>{p}</p><p style={{fontSize:10,color:P.t4,marginTop:1}}>{cur?`En curso · ${c.time}`:done?'Completado':'Pendiente'}</p></div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{background:P.card,border:`1px solid ${P.border}`,borderRadius:14,padding:14}}>
+            <p style={{fontSize:9,color:P.t4,textTransform:'uppercase',letterSpacing:1.5,marginBottom:10}}>Blockchain</p>
+            {[['Red','Solana'],['Smart contract','agro…x7fK'],['Fee','< 0.5%'],['Liquidación','~5 segundos']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,.02)'}}><span style={{fontSize:11,color:P.t4}}>{k}</span><span style={{fontSize:11,color:P.t2,fontWeight:600}}>{v}</span></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── SWAP ── */
+  const SwapScreen=()=>{
+    if(!swapFrom||!swapTo)return null;
+    const rate=swapFrom.price/swapTo.price;
+    const recv=(parseFloat(swapAmt||0)*rate).toFixed(swapTo.price>=100?4:2);
+    return(
+      <div style={{flex:1,overflowY:'auto'}}>
+        <div style={{padding:'12px 20px 8px'}}><h2 style={{fontSize:20,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif"}}>Swap</h2></div>
+        <div style={{padding:'0 20px 90px'}}>
+          <div style={{background:P.card,border:`1px solid ${P.border}`,borderRadius:18,padding:16,marginBottom:-6,position:'relative',zIndex:2}}>
+            <p style={{fontSize:10,color:P.t4,textTransform:'uppercase',letterSpacing:1,marginBottom:8}}>Envías</p>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <input value={swapAmt} onChange={e=>setSwapAmt(e.target.value)} style={{flex:1,background:'none',border:'none',outline:'none',fontSize:30,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif",minWidth:0}}/>
+              <div style={{display:'flex',alignItems:'center',gap:6,background:'rgba(255,255,255,.05)',borderRadius:11,padding:'7px 12px',border:'1px solid rgba(255,255,255,.07)',cursor:'pointer',flexShrink:0}} onClick={()=>showToast('Selector · Próximamente')}>
+                <span style={{fontSize:14,color:swapFrom.color}}>{swapFrom.icon}</span>
+                <span style={{fontSize:13,fontWeight:700,color:P.t1}}>{swapFrom.sym}</span>
+                <span style={{fontSize:10,color:P.t4}}>▾</span>
+              </div>
+            </div>
+            <p style={{fontSize:10,color:P.t4,marginTop:6}}>${swapFrom.price.toLocaleString('en',{minimumFractionDigits:2})} / {swapFrom.sym}</p>
+          </div>
+          <div style={{display:'flex',justifyContent:'center',position:'relative',zIndex:3,margin:'-2px 0'}}>
+            <div onClick={()=>{const a=swapFromSym;setSwapFromSym(swapToSym);setSwapToSym(a);}} style={{width:40,height:40,borderRadius:13,background:'#0a1a10',border:'2px solid rgba(34,197,94,.12)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:17,color:P.green}}>⇅</div>
+          </div>
+          <div style={{background:P.card,border:`1px solid ${P.border}`,borderRadius:18,padding:16,marginTop:-6,position:'relative',zIndex:1,marginBottom:16}}>
+            <p style={{fontSize:10,color:P.t4,textTransform:'uppercase',letterSpacing:1,marginBottom:8}}>Recibes</p>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <p style={{flex:1,fontSize:30,fontWeight:700,color:P.t2,fontFamily:"'Playfair Display',serif"}}>{recv}</p>
+              <div style={{display:'flex',alignItems:'center',gap:6,background:'rgba(255,255,255,.05)',borderRadius:11,padding:'7px 12px',border:'1px solid rgba(255,255,255,.07)',cursor:'pointer',flexShrink:0}} onClick={()=>showToast('Selector · Próximamente')}>
+                <span style={{fontSize:14,color:swapTo.color}}>{swapTo.icon}</span>
+                <span style={{fontSize:13,fontWeight:700,color:P.t1}}>{swapTo.sym}</span>
+                <span style={{fontSize:10,color:P.t4}}>▾</span>
+              </div>
+            </div>
+            <p style={{fontSize:10,color:P.t4,marginTop:6}}>${swapTo.price.toLocaleString('en',{minimumFractionDigits:2})} / {swapTo.sym}</p>
+          </div>
+          <div style={{background:'rgba(255,255,255,.02)',borderRadius:13,padding:12,marginBottom:16}}>
+            {[['Tasa',`1 ${swapFrom.sym} = ${rate.toFixed(rate>100?2:5)} ${swapTo.sym}`],['Fee','0.3%'],['Slippage','0.5%'],['Red','Solana']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'5px 0'}}><span style={{fontSize:11,color:P.t4}}>{k}</span><span style={{fontSize:11,color:P.t2,fontWeight:600}}>{v}</span></div>
+            ))}
+          </div>
+          <button onClick={()=>{if(!wallet)showToast('Conecta una wallet para hacer Swap');else showToast('Swap ejecutado en Solana ✓');}}
+            style={{width:'100%',background:'linear-gradient(135deg,#166534,#22C55E)',border:'none',borderRadius:16,padding:'16px 0',fontSize:15,fontWeight:700,color:'#fff',cursor:'pointer'}}>
+            {wallet?'Confirmar Swap →':'Conectar Wallet'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── FEED ── */
+  const FeedScreen=()=>(
+    <div style={{flex:1,overflowY:'auto'}}>
+      <div style={{padding:'8px 20px 0'}}>
+        <p style={{fontSize:9,color:P.t4,fontWeight:600,letterSpacing:1.5,textTransform:'uppercase',marginBottom:4}}>Actividad Global</p>
+        <h2 style={{fontSize:20,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif",marginBottom:4}}>Transacciones en vivo</h2>
+        <p style={{fontSize:11,color:P.t3,marginBottom:14,display:'flex',alignItems:'center',gap:5}}>
+          <span style={{width:6,height:6,borderRadius:3,background:P.green,animation:'pulse 1.5s infinite'}}/>Feed en tiempo real
+        </p>
+      </div>
+      <div style={{display:'flex',gap:8,padding:'0 20px',overflowX:'auto',marginBottom:14,WebkitOverflowScrolling:'touch'}}>
+        {tokens.filter(t=>!['USDC','USDT','DAI','EUR'].includes(t.sym)).map(t=>(
+          <div key={t.sym} onClick={()=>{setSelToken(t);setScreen('tokenDetail');}} style={{minWidth:108,background:P.card,border:`1px solid ${P.border}`,borderRadius:12,padding:'10px 12px',flexShrink:0,cursor:'pointer'}}>
+            <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:6}}><span style={{fontSize:12,color:t.color}}>{t.icon}</span><span style={{fontSize:11,fontWeight:700,color:P.t1}}>{t.sym}</span></div>
+            <p style={{fontSize:13,fontWeight:700,color:P.t1}}>${t.price.toLocaleString('en',{maximumFractionDigits:t.price<10?3:0})}</p>
+            <p style={{fontSize:10,color:t.change>=0?P.green:P.red,fontWeight:600}}>{t.change>=0?'+':''}{t.change}%</p>
+            <div style={{marginTop:6}}><Chart data={t.h} color={t.change>=0?P.green:P.red} w={84} h={22}/></div>
+          </div>
+        ))}
+      </div>
+      <div style={{padding:'0 20px 90px'}}>
+        {FEED.map((f,i)=>(
+          <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 0',borderBottom:'1px solid rgba(255,255,255,.02)',animation:`fsu .3s ${i*.04}s both`}}>
+            <div style={{width:34,height:34,borderRadius:10,background:f.type==='buy'?'rgba(34,197,94,.06)':f.type==='sell'?'rgba(239,68,68,.06)':'rgba(245,158,11,.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:f.type==='buy'?P.green:f.type==='sell'?P.red:'#F59E0B',flexShrink:0}}>
+              {f.type==='buy'?'↓':f.type==='sell'?'↑':'◈'}
+            </div>
+            <div style={{flex:1,minWidth:0}}><p style={{fontSize:12,fontWeight:600,color:P.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.flag} {f.user}</p><p style={{fontSize:10,color:P.t4}}>{f.action} {f.what}</p></div>
+            <div style={{textAlign:'right',flexShrink:0}}><p style={{fontSize:12,fontWeight:700,color:P.t1}}>{f.amt}</p><p style={{fontSize:9,color:P.t4}}>{f.time}</p></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  /* ── PROFILE ── */
+  const ProfileScreen=()=>{
+    if(profileSub==='edit')return <EditProfile user={user} setUser={setUser} onBack={()=>setProfileSub(null)} showToast={showToast}/>;
+    if(profileSub==='security')return <SecurityScreen user={user} onBack={()=>setProfileSub(null)} showToast={showToast}/>;
+    if(profileSub==='kyc')return <KYCScreen user={user} onBack={()=>setProfileSub(null)} showToast={showToast}/>;
+    if(profileSub==='notif')return <NotifScreen onBack={()=>setProfileSub(null)} showToast={showToast}/>;
+    if(profileSub==='network')return <NetworkScreen wallet={wallet} onBack={()=>setProfileSub(null)} showToast={showToast}/>;
+    const name=user?.user_metadata?.full_name||user?.email?.split('@')[0]||'Inversor';
+    const isDemo=user?.demo;
+    const provider=user?.user_metadata?.provider;
+    return(
+      <div style={{flex:1,overflowY:'auto'}}>
+        <div style={{padding:'8px 20px 0'}}><h2 style={{fontSize:20,fontWeight:700,color:P.t1,fontFamily:"'Playfair Display',serif",marginBottom:16}}>Perfil</h2></div>
+        <div style={{padding:'0 20px 18px',display:'flex',alignItems:'center',gap:14,borderBottom:`1px solid ${P.border}`}}>
+          <div style={{width:56,height:56,borderRadius:18,background:'rgba(34,197,94,.08)',border:'1px solid rgba(34,197,94,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:700,color:P.green,fontFamily:"'Playfair Display',serif",flexShrink:0}}>{initials}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontSize:16,fontWeight:700,color:P.t1,marginBottom:2}}>{name}</p>
+            <p style={{fontSize:11,color:P.t4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user?.email}</p>
+            <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
+              {isDemo&&<span style={{fontSize:9,fontWeight:700,background:'rgba(229,173,48,.1)',color:P.gold,border:'1px solid rgba(229,173,48,.2)',borderRadius:20,padding:'2px 8px'}}>⚡ Demo</span>}
+              {provider==='phantom'&&<span style={{fontSize:9,fontWeight:700,background:'rgba(153,69,255,.1)',color:'#9945FF',border:'1px solid rgba(153,69,255,.25)',borderRadius:20,padding:'2px 8px'}}>Phantom</span>}
+              {provider==='metamask'&&<span style={{fontSize:9,fontWeight:700,background:'rgba(246,133,27,.1)',color:'#F6851B',border:'1px solid rgba(246,133,27,.25)',borderRadius:20,padding:'2px 8px'}}>MetaMask</span>}
+              {provider==='apple'&&<span style={{fontSize:9,fontWeight:700,background:'rgba(255,255,255,.07)',color:P.t2,border:'1px solid rgba(255,255,255,.12)',borderRadius:20,padding:'2px 8px'}}> Apple</span>}
+              {!isDemo&&<span style={{fontSize:9,fontWeight:700,background:'rgba(34,197,94,.1)',color:P.green,border:'1px solid rgba(34,197,94,.2)',borderRadius:20,padding:'2px 8px'}}>✓ Verificado</span>}
+            </div>
+          </div>
+        </div>
+        <div style={{padding:'14px 20px 16px',borderBottom:`1px solid ${P.border}`}}>
+          <p style={{fontSize:9,fontWeight:700,color:P.t4,textTransform:'uppercase',letterSpacing:1.2,marginBottom:10}}>Wallet Web3</p>
+          {wallet?(
+            <div style={{background:'rgba(34,197,94,.05)',border:'1px solid rgba(34,197,94,.12)',borderRadius:12,padding:'12px 14px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                <div style={{width:7,height:7,borderRadius:'50%',background:P.green,animation:'pulse 2s infinite'}}/>
+                <span style={{fontSize:10,fontWeight:700,color:P.green,letterSpacing:'.5px'}}>CONECTADA · {(provider||'web3').toUpperCase()}</span>
+              </div>
+              <p style={{fontSize:11,color:P.t2,fontFamily:'monospace',wordBreak:'break-all',lineHeight:1.5}}>{wallet}</p>
+            </div>
+          ):(
+            <div onClick={()=>setUser(null)} style={{background:'rgba(255,255,255,.03)',border:'1px dashed rgba(255,255,255,.1)',borderRadius:12,padding:'14px',textAlign:'center',cursor:'pointer'}}>
+              <p style={{fontSize:20,marginBottom:4}}>◎</p>
+              <p style={{fontSize:13,fontWeight:600,color:P.t3}}>Conectar wallet</p>
+              <p style={{fontSize:11,color:P.t4,marginTop:2}}>Phantom · MetaMask · WalletConnect</p>
+            </div>
+          )}
+        </div>
+        <div style={{paddingBottom:90}}>
+          {[
+            {icon:'⊙',label:'Editar perfil',sub:'Nombre, foto, país',key:'edit'},
+            {icon:'🔒',label:'Seguridad',sub:'Contraseña, 2FA, biométrico',key:'security'},
+            {icon:'📋',label:'Verificación KYC',sub:isDemo?'Pendiente · Requerido >€1.000':'Niveles 1 y 2 completados',val:isDemo?'Pendiente':'✓',valColor:isDemo?P.gold:P.green,key:'kyc'},
+            {icon:'🔔',label:'Notificaciones',sub:'Ciclos, rendimientos, alertas',key:'notif'},
+            {icon:'◈',label:'Red blockchain',sub:'Solana · Ethereum · Polygon',key:'network'},
+          ].map(item=>(
+            <div key={item.key} onClick={()=>setProfileSub(item.key)} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 20px',borderBottom:`1px solid rgba(255,255,255,.03)`,cursor:'pointer'}}>
+              <div style={{width:36,height:36,borderRadius:11,background:'rgba(255,255,255,.04)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>{item.icon}</div>
+              <div style={{flex:1}}><p style={{fontSize:14,fontWeight:500,color:P.t1}}>{item.label}</p><p style={{fontSize:11,color:P.t4,marginTop:1}}>{item.sub}</p></div>
+              {item.val&&<span style={{fontSize:11,fontWeight:700,color:item.valColor}}>{item.val}</span>}
+              <span style={{color:P.t4,fontSize:14}}>›</span>
+            </div>
+          ))}
+          {isDemo&&<div style={{margin:'12px 16px',background:'rgba(229,173,48,.05)',border:'1px solid rgba(229,173,48,.15)',borderRadius:14,padding:14}}>
+            <p style={{fontSize:12,fontWeight:700,color:P.gold,marginBottom:4}}>⚡ Demo · precios reales de CoinGecko</p>
+            <p style={{fontSize:11,color:P.t3,lineHeight:1.6}}>Configura Supabase para cuenta permanente sincronizada con agrochaindex.io.</p>
+          </div>}
+          <div onClick={signOut} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 20px',marginTop:8,cursor:'pointer'}}>
+            <div style={{width:36,height:36,borderRadius:11,background:'rgba(239,68,68,.07)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,flexShrink:0}}>↩</div>
+            <p style={{fontSize:14,fontWeight:600,color:'#ef4444'}}>Cerrar sesión</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── RENDER ── */
+  const renderContent=()=>{
+    if(selCompany)return <CompanyDetail/>;
+    if(screen==='tokenDetail')return <TokenDetail/>;
+    if(tab==='wallet')return <WalletScreen/>;
+    if(tab==='map')return <MapScreen/>;
+    if(tab==='swap')return <SwapScreen/>;
+    if(tab==='feed')return <FeedScreen/>;
+    if(tab==='profile')return <ProfileScreen/>;
+    return <WalletScreen/>;
+  };
+
+  const NAV=[
+    {id:'wallet',label:'Wallet',icon:'◎'},
+    {id:'map',label:'Market',icon:'◈'},
+    {id:'swap',label:'Swap',icon:'⇄'},
+    {id:'feed',label:'Feed',icon:'◉'},
+    {id:'profile',label:'Perfil',icon:'⊙'},
+  ];
+
+  return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'30px 16px',background:'linear-gradient(180deg,#020504,#050a07,#020504)'}}>
+      <div style={{width:390,height:844,background:'#000',borderRadius:48,overflow:'hidden',position:'relative',border:'3px solid #1a1a1a',boxShadow:'0 0 0 1px rgba(255,255,255,.04),0 50px 120px rgba(0,0,0,.85),0 0 80px rgba(34,197,94,.07)'}}>
+        <div style={{height:'100%',display:'flex',flexDirection:'column',background:P.bg}}>
+          <StatusBar/>
+          {renderContent()}
+          {/* Solo muestra nav si no está en profile sub o company detail */}
+          {!selCompany&&(
+            <div style={{display:'flex',justifyContent:'space-around',alignItems:'center',padding:'6px 0 24px',background:'linear-gradient(to top,rgba(5,10,7,1) 70%,rgba(5,10,7,.85))',borderTop:`1px solid ${P.border}`,position:'relative',zIndex:10,flexShrink:0}}>
+              {NAV.map(n=>{
+                const active=tab===n.id&&!screen;
+                return(
+                  <div key={n.id} onClick={()=>{setTab(n.id);setScreen(null);setSelToken(null);setSelCompany(null);setSelCountry(null);setMapFilter('ALL');setProfileSub(null);}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,cursor:'pointer',padding:'4px 10px',opacity:active?1:.35,transition:'all .2s'}}>
+                    <span style={{fontSize:22,color:active?P.green:P.t1,transition:'color .2s'}}>{n.icon}</span>
+                    {active&&<div style={{width:4,height:4,borderRadius:2,background:P.green}}/>}
+                    <span style={{fontSize:9,fontWeight:600,letterSpacing:.4,color:P.t1}}>{n.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {toast&&(
+            <div style={{position:'absolute',bottom:100,left:20,right:20,background:'rgba(34,197,94,.1)',border:'1px solid rgba(34,197,94,.18)',borderRadius:14,padding:'12px 16px',display:'flex',alignItems:'center',gap:10,animation:'fsu .3s ease',backdropFilter:'blur(20px)',zIndex:50}}>
+              <div style={{width:28,height:28,borderRadius:8,background:'rgba(34,197,94,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:P.green}}>✓</div>
+              <p style={{fontSize:12,fontWeight:600,color:P.t1}}>{toast}</p>
+            </div>
+          )}
+          <div style={{position:'absolute',bottom:6,left:'50%',transform:'translateX(-50%)',width:134,height:5,borderRadius:3,background:'rgba(255,255,255,.12)'}}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>,document.getElementById('root'));
+</script>
+</body>
+</html>

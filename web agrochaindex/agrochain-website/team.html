@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equipo — AgroChain</title>
+<meta name="description" content="Conoce al equipo fundador de AgroChain.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+.team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:30px}
+.tc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:32px 20px;text-align:center;transition:all .3s;position:relative;overflow:hidden}
+.tc:hover{border-color:var(--nm);transform:translateY(-4px)}
+.tc::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--neon);opacity:0;transition:opacity .3s}
+.tc:hover::before{opacity:1}
+.tc-av{width:86px;height:86px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:28px;font-weight:400;background:var(--nd);color:var(--neon);border:1px solid var(--nm);transition:transform .3s}
+.tc:hover .tc-av{transform:scale(1.05)}
+.tc-av.w{background:var(--gd);color:var(--gold);border-color:var(--gm)}
+.tc h4{font-family:var(--fd);font-size:19px;font-weight:400;margin-bottom:4px;letter-spacing:-.01em}
+.tc-role{color:var(--neon);font-size:11px;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em}
+.tc p{color:var(--t2);font-size:12.5px;line-height:1.7;margin-bottom:16px}
+.tc-socs{display:flex;justify-content:center;gap:8px}
+.tc-socs a{width:32px;height:32px;border-radius:50%;border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:11px;font-weight:600;transition:all .2s}
+.tc-socs a:hover{background:var(--nd);border-color:var(--nm);color:var(--neon);transform:translateY(-2px)}
+
+.adv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+.adv{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r2);padding:22px;display:flex;gap:14px;align-items:center;transition:all .3s}
+.adv:hover{border-color:var(--bd2)}
+.adv-av{width:52px;height:52px;border-radius:50%;background:var(--nd);color:var(--neon);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:18px;flex-shrink:0;border:1px solid var(--nm)}
+.adv h5{font-family:var(--fd);font-size:16px;font-weight:400;margin-bottom:3px;letter-spacing:-.01em}
+.adv-role{color:var(--gold);font-size:11px;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.adv p{color:var(--t2);font-size:12px;line-height:1.6}
+
+.careers{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:48px;text-align:center;margin-top:40px}
+.careers h3{font-family:var(--fd);font-size:28px;font-weight:400;margin-bottom:12px;letter-spacing:-.02em}
+.careers p{color:var(--t2);margin-bottom:24px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.75;font-size:14.5px}
+
+@media(max-width:1000px){.team-grid{grid-template-columns:repeat(2,1fr)}.adv-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.team-grid{grid-template-columns:1fr}.careers{padding:30px 20px}}
+</style>
+</head>
+<body>
+
+<div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
+
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">Agro<span>Chain</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+    <a href="marketplace.html" class="nbtn-p">Empezar</a>
+  </div>
+  <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-overlay" id="mob-overlay"></div>
+<div class="mobile-menu" id="mob-menu">
+  <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
+  <button class="nwb wallet-btn" style="margin-top:16px"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+</div>
+
+<section class="page-hero">
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-content">
+    <div class="page-tag"><div class="dot"></div>Equipo</div>
+    <h1 class="page-title">Las <em>personas</em> detrás<br>de AgroChain</h1>
+    <p class="page-subtitle">Un equipo multidisciplinario con experiencia en agribusiness, fintech y blockchain, unidos por la misión de transformar el comercio agrícola global.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="s-tag"><div class="ldot"></div>Fundadores</div>
+    <h2 class="s-h rv">Equipo <em>fundador</em></h2>
+    <p class="s-sub rv rv-d1">Cuatro profesionales con perfiles complementarios liderando la visión de AgroChain.</p>
+
+    <div class="team-grid">
+      <div class="tc rv rv-d1">
+        <div class="tc-av">MR</div>
+        <h4>María Rodríguez</h4>
+        <div class="tc-role">CEO & Co-Founder</div>
+        <p>Ex-directora de estrategia en multinacional agroalimentaria. MBA por IE Business School. 12 años en agribusiness internacional.</p>
+        <div class="tc-socs">
+          <a href="https://linkedin.com/in/mariarodriguez" target="_blank" rel="noopener" title="LinkedIn">in</a>
+          <a href="https://twitter.com/mariarodriguez" target="_blank" rel="noopener" title="Twitter">𝕏</a>
+          <a href="mailto:maria@agrochain.io" title="Email">✉</a>
+        </div>
+      </div>
+      <div class="tc rv rv-d2">
+        <div class="tc-av w">JL</div>
+        <h4>Javier López</h4>
+        <div class="tc-role">CTO & Co-Founder</div>
+        <p>Ex-ingeniero senior en Solana Labs. Especialista en smart contracts y sistemas distribuidos. 10 años en blockchain.</p>
+        <div class="tc-socs">
+          <a href="https://linkedin.com/in/javierlopez" target="_blank" rel="noopener" title="LinkedIn">in</a>
+          <a href="https://github.com/javierlopez" target="_blank" rel="noopener" title="GitHub">◆</a>
+          <a href="https://twitter.com/javierlopez" target="_blank" rel="noopener" title="Twitter">𝕏</a>
+        </div>
+      </div>
+      <div class="tc rv rv-d3">
+        <div class="tc-av">SG</div>
+        <h4>Sofia García</h4>
+        <div class="tc-role">CPO & Co-Founder</div>
+        <p>Ex-product lead en fintech unicornio. Experiencia diseñando productos para mercados emergentes. UX mobile-first.</p>
+        <div class="tc-socs">
+          <a href="https://linkedin.com/in/sofiagarcia" target="_blank" rel="noopener" title="LinkedIn">in</a>
+          <a href="https://twitter.com/sofiagarcia" target="_blank" rel="noopener" title="Twitter">𝕏</a>
+          <a href="mailto:sofia@agrochain.io" title="Email">✉</a>
+        </div>
+      </div>
+      <div class="tc rv rv-d4">
+        <div class="tc-av w">AK</div>
+        <h4>Ahmed Khalil</h4>
+        <div class="tc-role">Head of BD</div>
+        <p>15 años en commodity trading. Red de contactos en cooperativas agrícolas de Europa, África del Norte y Oriente Medio.</p>
+        <div class="tc-socs">
+          <a href="https://linkedin.com/in/ahmedkhalil" target="_blank" rel="noopener" title="LinkedIn">in</a>
+          <a href="https://twitter.com/ahmedkhalil" target="_blank" rel="noopener" title="Twitter">𝕏</a>
+          <a href="mailto:ahmed@agrochain.io" title="Email">✉</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--bg2)">
+  <div class="container">
+    <div class="s-tag gld"><div style="width:6px;height:6px;background:var(--gold);border-radius:50%"></div>Advisors</div>
+    <h2 class="s-h rv">Nuestros <em>asesores</em></h2>
+    <p class="s-sub rv rv-d1">Expertos que aportan conocimiento y red de contactos al proyecto.</p>
+
+    <div class="adv-grid">
+      <div class="adv rv rv-d1">
+        <div class="adv-av">HD</div>
+        <div><h5>Henry Duckworth</h5><div class="adv-role">Blockchain Agri Expert</div><p>Pionero en tokenización agrícola. Asesor Solana Foundation.</p></div>
+      </div>
+      <div class="adv rv rv-d2">
+        <div class="adv-av">EV</div>
+        <div><h5>Elena Vázquez</h5><div class="adv-role">Ex-Citadel · Trading</div><p>20 años en commodity trading. Infraestructura financiera global.</p></div>
+      </div>
+      <div class="adv rv rv-d3">
+        <div class="adv-av">RK</div>
+        <div><h5>Ravi Kumar</h5><div class="adv-role">Ex-Goldman · Web3</div><p>Partner VC RWA. Inversor en 40+ startups blockchain.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="careers rv">
+      <h3>¿Quieres unirte al equipo?</h3>
+      <p>Estamos contratando talento en ingeniería blockchain, business development, producto y diseño. Si te apasiona transformar la agricultura con tecnología, queremos conocerte.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="mailto:careers@agrochain.io" class="btn-p">Ver Vacantes →</a>
+        <a href="contact.html" class="btn-s">Contáctanos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fg3">
+    <div>
+      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
+      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <div class="fsocs">
+        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+      </div>
+    </div>
+    <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html#currencies">Monedas</a><a href="marketplace.html">Empresas</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Ayuda</a><a href="#">Docs</a><a href="#">Sistema</a></div>
+    <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
+  </div>
+  <div class="fb2">
+    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

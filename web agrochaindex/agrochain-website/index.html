@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroChain — Marketplace Agrícola On-Chain</title>
+<meta name="description" content="Tokenizamos el mercado agrícola global. Marketplace descentralizado con liquidación instantánea y trazabilidad completa.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+.hero{min-height:88vh;display:flex;align-items:center;padding:60px 40px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 62% 38%,#00FF6A09 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 18% 80%,#00FF6A05 0%,transparent 60%);pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--bd) 1px,transparent 1px),linear-gradient(90deg,var(--bd) 1px,transparent 1px);background-size:56px 56px;opacity:.3;pointer-events:none}
+.hero-glow{position:absolute;top:18%;right:8%;width:440px;height:440px;background:radial-gradient(circle,#00FF6A07 0%,transparent 70%);border-radius:50%;pointer-events:none;animation:hglow 6s ease-in-out infinite}
+@keyframes hglow{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.2);opacity:1}}
+.hero-content{max-width:660px;position:relative;z-index:2}
+.h-badge{display:inline-flex;align-items:center;gap:8px;background:var(--nd);border:1px solid var(--nm);border-radius:24px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--neon);margin-bottom:28px;letter-spacing:.05em}
+.ldot{width:6px;height:6px;background:var(--neon);border-radius:50%;animation:pd 2s infinite}
+.hero h1{font-family:var(--fd);font-size:clamp(38px,5.5vw,74px);line-height:1.04;letter-spacing:-.03em;margin-bottom:22px;font-weight:400}
+.hero h1 em{color:var(--neon);font-style:italic}
+.hero h1 .dm{color:var(--t3)}
+.h-sub{font-size:17px;color:var(--t2);line-height:1.75;max-width:510px;margin-bottom:36px}
+.h-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:52px}
+.h-stats{display:flex;gap:36px;flex-wrap:wrap}
+.hstat{padding-left:16px;border-left:2px solid var(--nm)}
+.hstat-v{font-family:var(--fd);font-size:29px;color:var(--neon);line-height:1}
+.hstat-l{font-size:10.5px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.h-float{position:absolute;right:48px;top:50%;transform:translateY(-50%);width:316px;z-index:3;display:flex;flex-direction:column;gap:10px}
+.hfc{background:rgba(10,15,12,.9);backdrop-filter:blur(18px);border:1px solid var(--bd2);border-radius:var(--r3);padding:18px;transition:border-color .3s,transform .3s}
+.hfc:hover{border-color:var(--bd3);transform:translateY(-2px)}
+.hfc-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px}
+.hfc-row{display:flex;justify-content:space-between;align-items:center;padding:7px 6px;border-bottom:1px solid var(--bd);border-radius:6px;margin:0 -6px}
+.hfc-row:last-child{border-bottom:none}
+.hfc-row:hover{background:var(--bg3)}
+.hfc-n{font-size:12.5px;font-weight:600;color:var(--txt)}
+.hfc-sb{font-size:10px;color:var(--t3);margin-top:1px}
+.hfc-r{font-size:12.5px;font-weight:700;color:var(--neon)}
+
+/* STATS BAND */
+.stats-band{background:var(--bg2);border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);position:relative;z-index:2}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);max-width:1200px;margin:0 auto}
+.stat-c{padding:32px 24px;text-align:center;border-right:1px solid var(--bd);transition:background .3s}
+.stat-c:last-child{border-right:none}
+.stat-c:hover{background:var(--bg3)}
+.sv{font-family:var(--fd);font-size:44px;color:var(--neon);line-height:1;letter-spacing:-.02em}
+.sl{font-size:10.5px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-top:6px}
+
+/* MARKETPLACE PREVIEW */
+.mp-preview{background:var(--bg)}
+.mp-layout{display:grid;grid-template-columns:1fr 380px;gap:24px;max-width:1200px;margin:0 auto;margin-top:40px}
+.mp-map-box{border:1px solid var(--bd);border-radius:var(--r3);overflow:hidden;height:440px;position:relative;background:var(--bg2)}
+#map{width:100%;height:100%;z-index:1}
+.leaflet-tile-pane{filter:saturate(.15) brightness(.35) contrast(1.1) hue-rotate(80deg)}
+.leaflet-control-zoom a{background:rgba(5,8,10,.9)!important;color:var(--neon)!important;border:1px solid var(--bd2)!important;width:30px!important;height:30px!important;line-height:30px!important;border-radius:6px!important;font-family:var(--fb)!important}
+.leaflet-control-attribution{display:none!important}
+.mk{position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.mk-dot{width:10px;height:10px;border-radius:50%;background:var(--neon);position:relative;z-index:2;box-shadow:0 0 12px rgba(0,255,106,.5)}
+.mk-dot.gold{background:var(--gold);box-shadow:0 0 12px rgba(200,168,75,.5)}
+.mk-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--neon);opacity:.4;animation:mpulse 2.5s infinite}
+.mk-ring.gold{border-color:var(--gold)}
+@keyframes mpulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
+.leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid var(--bd2)!important;border-radius:var(--r2)!important;color:var(--txt)!important}
+.leaflet-popup-tip{background:var(--bg2)!important}
+.leaflet-popup-close-button{color:var(--t2)!important}
+.pop-t{font-family:var(--fd);font-size:15px;color:var(--neon);margin-bottom:4px}
+.pop-i{font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:4px}
+.pop-v{font-size:12px;color:var(--gold);font-weight:700}
+
+.mp-feed{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:18px;max-height:210px;overflow:hidden}
+.mp-feed-hd{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.mp-feed-hd .live{width:6px;height:6px;border-radius:50%;background:var(--neon);animation:pd 1.5s infinite}
+.mp-fi{display:flex;align-items:center;gap:9px;padding:7px 9px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);font-size:12px;margin-bottom:5px;animation:fi-in .4s ease}
+@keyframes fi-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+.mp-cards{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;padding-right:4px}
+.mp-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:13px;cursor:pointer;transition:all .25s}
+.mp-card:hover{border-color:var(--bd2);transform:translateX(2px)}
+
+.mp-bottom{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px;max-width:1200px;margin-left:auto;margin-right:auto}
+.mp-bs{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:22px;text-align:center;transition:all .3s}
+.mp-bs:hover{border-color:var(--bd2)}
+.mp-bs-n{font-family:var(--fd);font-size:32px;font-weight:400;color:var(--neon);line-height:1}
+.mp-bs-n em{color:var(--gold);font-style:normal}
+.mp-bs-l{font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-top:6px;font-weight:600}
+
+/* CTA */
+.cta{text-align:center;padding:80px 40px;position:relative;overflow:hidden;background:var(--bg)}
+.cta-box{max-width:760px;margin:0 auto;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r4);padding:56px 44px;position:relative;overflow:hidden;transition:border-color .3s}
+.cta-box::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:320px;height:320px;background:radial-gradient(circle,#00FF6A07 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.cta-box:hover{border-color:var(--bd2)}
+.cta-box h2{font-family:var(--fd);font-size:clamp(28px,3.5vw,46px);line-height:1.08;letter-spacing:-.03em;margin-bottom:16px;position:relative;z-index:1;font-weight:400}
+.cta-box h2 em{color:var(--neon);font-style:italic}
+.cta-box p{font-size:15px;color:var(--t2);max-width:480px;margin:0 auto 28px;line-height:1.75;position:relative;z-index:1}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+
+@media(max-width:1100px){.h-float{display:none}.mp-layout{grid-template-columns:1fr}}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}.mp-bottom{grid-template-columns:repeat(2,1fr)}.mp-map-box{height:340px}.cta{padding:50px 20px}.cta-box{padding:40px 24px}}
+@media(max-width:600px){.stats-row{grid-template-columns:1fr}.mp-bottom{grid-template-columns:1fr}.h-btns,.h-stats{gap:12px}}
+</style>
+</head>
+<body>
+
+<!-- LIVE TICKER -->
+<div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
+
+<!-- NAV -->
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">Agro<span>Chain</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="about.html">Nosotros</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="team.html">Equipo</a>
+    <a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb">
+      <div class="wdot"></div>
+      <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      <span>Conectar Wallet</span>
+    </button>
+    <a href="marketplace.html" class="nbtn-p">Empezar</a>
+  </div>
+  <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-overlay" id="mob-overlay"></div>
+<div class="mobile-menu" id="mob-menu">
+  <a href="index.html">Inicio</a>
+  <a href="about.html">Nosotros</a>
+  <a href="marketplace.html">Marketplace</a>
+  <a href="team.html">Equipo</a>
+  <a href="contact.html">Contacto</a>
+  <button class="nwb wallet-btn" style="margin-top:16px">
+    <div class="wdot"></div>
+    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    <span>Conectar Wallet</span>
+  </button>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content rv">
+    <div class="h-badge"><div class="ldot"></div>Marketplace en vivo · 14 países activos</div>
+    <h1>El marketplace <em>global</em><br>de activos <span class="dm">agropecuarios</span><br>tokenizados</h1>
+    <p class="h-sub">Invierte en ganado, cosechas y producción real con BTC, ETH, SOL, USDC o EUR. Sin bancos, sin intermediarios — todo on-chain con retornos verificados.</p>
+    <div class="h-btns">
+      <a href="marketplace.html" class="btn-p">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+        Ver producciones
+      </a>
+      <a href="about.html" class="btn-s">Cómo funciona</a>
+    </div>
+    <div class="h-stats">
+      <div class="hstat"><div class="hstat-v">$4.8M</div><div class="hstat-l">Capital activo</div></div>
+      <div class="hstat"><div class="hstat-v">14</div><div class="hstat-l">Producciones</div></div>
+      <div class="hstat"><div class="hstat-v">11.2%</div><div class="hstat-l">Retorno medio</div></div>
+      <div class="hstat"><div class="hstat-v">9</div><div class="hstat-l">Países</div></div>
+    </div>
+  </div>
+  <div class="h-float rv rv-d2">
+    <div class="hfc">
+      <div class="hfc-lbl">Activos en vivo ahora</div>
+      <div class="hfc-row"><div><div class="hfc-n">Leche Asturiana</div><div class="hfc-sb">🇪🇸 ES · 6 meses</div></div><div class="hfc-r">+9.2%</div></div>
+      <div class="hfc-row"><div><div class="hfc-n">Wagyu Irlanda</div><div class="hfc-sb">🇮🇪 IE · 8 meses</div></div><div class="hfc-r">+14.2%</div></div>
+      <div class="hfc-row"><div><div class="hfc-n">Maíz Brasil</div><div class="hfc-sb">🇧🇷 BR · 4 meses</div></div><div class="hfc-r">+7.8%</div></div>
+      <div class="hfc-row"><div><div class="hfc-n">Bovino Normandía</div><div class="hfc-sb">🇫🇷 FR · 10 meses</div></div><div class="hfc-r">+11.5%</div></div>
+    </div>
+    <div class="hfc" style="display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:11px;color:var(--t3);margin-bottom:2px">Inversión mínima</div><div style="font-family:var(--fd);font-size:26px;color:var(--neon)">€100</div></div>
+      <button class="btn-p wallet-btn" style="font-size:13px;padding:10px 18px">Invertir</button>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAND -->
+<div class="stats-band">
+  <div class="stats-row">
+    <div class="stat-c rv"><div class="sv">$280B</div><div class="sl">Mercado agro UE / año</div></div>
+    <div class="stat-c rv rv-d1"><div class="sv">&lt;0.5%</div><div class="sl">Comisión por transacción</div></div>
+    <div class="stat-c rv rv-d2"><div class="sv">~5s</div><div class="sl">Liquidación blockchain</div></div>
+    <div class="stat-c rv rv-d3"><div class="sv">2.4K</div><div class="sl">Inversores activos</div></div>
+  </div>
+</div>
+
+<!-- MARKETPLACE PREVIEW -->
+<section class="mp-preview">
+  <div class="container">
+    <div class="s-tag"><div class="ldot"></div>Marketplace Global</div>
+    <h2 class="s-h rv">Producciones <em>disponibles</em> ahora</h2>
+    <p class="s-sub rv rv-d1">Explora en tiempo real las empresas agrícolas que tokenizan sus commodities en 14 países.</p>
+
+    <div class="mp-layout rv rv-d2">
+      <div class="mp-map-box"><div id="map"></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="mp-feed">
+          <div class="mp-feed-hd"><div class="live"></div>Transacciones en vivo</div>
+          <div id="feed"></div>
+        </div>
+        <div class="mp-cards" id="cards"></div>
+      </div>
+    </div>
+
+    <div class="mp-bottom rv">
+      <div class="mp-bs"><div class="mp-bs-n">14<em>+</em></div><div class="mp-bs-l">Países Activos</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">63<em>+</em></div><div class="mp-bs-l">Empresas</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">$24<em>M</em></div><div class="mp-bs-l">Volumen Total</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">6.8K<em>+</em></div><div class="mp-bs-l">Tokens Emitidos</div></div>
+    </div>
+
+    <div style="text-align:center;margin-top:36px" class="rv">
+      <a href="marketplace.html" class="btn-p">Ver Marketplace Completo →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta">
+  <div class="cta-box rv">
+    <h2>Únete a la revolución<br>del agro <em>tokenizado</em></h2>
+    <p>Miles de inversores ya generan rendimientos con producción real. Acepta BTC, ETH, SOL, USDC o EUR.</p>
+    <div class="cta-actions">
+      <button class="btn-p wallet-btn">Conectar Wallet →</button>
+      <a href="contact.html" class="btn-s">Contáctanos</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="fg3">
+    <div>
+      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
+      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <div class="fsocs">
+        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+      </div>
+    </div>
+    <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html">Países</a><a href="marketplace.html">Empresas</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Centro de ayuda</a><a href="#">Documentación</a><a href="#">Estado del sistema</a></div>
+    <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">Regulación MiCA</a></div>
+  </div>
+  <div class="fb2">
+    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+const COUNTRIES=[
+  {code:"ES",name:"España",flag:"🇪🇸",lat:40.4,lng:-3.7,comp:12,prod:"Aceite, vino, cereales",vol:"$420K",g:0},
+  {code:"FR",name:"Francia",flag:"🇫🇷",lat:46.6,lng:2.2,comp:9,prod:"Vino, queso, trigo",vol:"$380K",g:0},
+  {code:"IT",name:"Italia",flag:"🇮🇹",lat:42.5,lng:12.5,comp:8,prod:"EVOO, pasta, vino",vol:"$350K",g:1},
+  {code:"DE",name:"Alemania",flag:"🇩🇪",lat:51.2,lng:10.4,comp:7,prod:"Cereales, lácteos",vol:"$310K",g:0},
+  {code:"NL",name:"P. Bajos",flag:"🇳🇱",lat:52.1,lng:5.3,comp:3,prod:"Flores, lácteos",vol:"$180K",g:1},
+  {code:"GR",name:"Grecia",flag:"🇬🇷",lat:38.3,lng:23.7,comp:3,prod:"Aceitunas",vol:"$95K",g:1},
+  {code:"CO",name:"Colombia",flag:"🇨🇴",lat:4.6,lng:-74.1,comp:3,prod:"Café, cacao",vol:"$190K",g:1},
+  {code:"BR",name:"Brasil",flag:"🇧🇷",lat:-14.2,lng:-51.9,comp:4,prod:"Soja, café",vol:"$280K",g:0},
+  {code:"MA",name:"Marruecos",flag:"🇲🇦",lat:31.8,lng:-7.1,comp:2,prod:"Cítricos, argán",vol:"$65K",g:1},
+  {code:"UK",name:"R. Unido",flag:"🇬🇧",lat:53.5,lng:-1.5,comp:3,prod:"Cordero, cerveza",vol:"$140K",g:0},
+  {code:"TR",name:"Turquía",flag:"🇹🇷",lat:39.9,lng:32.9,comp:3,prod:"Avellanas",vol:"$110K",g:0},
+];
+const COMPS=[
+  {name:"Olivares del Sur",flag:"🇪🇸",sector:"Aceite EVOO",prog:87,vol:"$42K",av:"OS"},
+  {name:"Bodegas Rioja",flag:"🇪🇸",sector:"Vino Reserva",prog:94,vol:"$68K",av:"BR"},
+  {name:"Fattoria Toscana",flag:"🇮🇹",sector:"EVOO Premium",prog:96,vol:"$72K",av:"FT"},
+  {name:"Bayern Milch",flag:"🇩🇪",sector:"Lácteos Bio",prog:88,vol:"$62K",av:"BM"},
+  {name:"Café Sierra Nevada",flag:"🇨🇴",sector:"Café Especial",prog:81,vol:"$63K",av:"CS"},
+  {name:"Dutch Bloom",flag:"🇳🇱",sector:"Tulipanes",prog:95,vol:"$88K",av:"DB"},
+];
+const FEED=[
+  {u:"Olivares del Sur",f:"🇪🇸",a:"tokenizó 12T Aceite",amt:"$42K"},
+  {u:"Fattoria Toscana",f:"🇮🇹",a:"vendió 580u EVOO",amt:"$487"},
+  {u:"Domaine Loire",f:"🇫🇷",a:"compró 1,200u VINO",amt:"$1.8K"},
+  {u:"Café Sierra Nevada",f:"🇨🇴",a:"tokenizó 8T Café",amt:"$63K"},
+];
+
+const map=L.map('map',{center:[30,0],zoom:2,zoomControl:true,scrollWheelZoom:false,attributionControl:false,minZoom:2,maxZoom:6});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(map);
+COUNTRIES.forEach(c=>{
+  const icon=L.divIcon({className:'',html:`<div class="mk"><div class="mk-ring ${c.g?'gold':''}"></div><div class="mk-dot ${c.g?'gold':''}"></div></div>`,iconSize:[28,28],iconAnchor:[14,14]});
+  const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
+  m.bindPopup(`<div class="pop-t">${c.flag} ${c.name}</div><div class="pop-i">${c.prod}</div><div class="pop-v">${c.comp} empresas · ${c.vol}</div>`);
+});
+
+document.getElementById('cards').innerHTML=COMPS.map(c=>`
+  <div class="mp-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:36px;height:36px;border-radius:var(--r);background:var(--nd);display:flex;align-items:center;justify-content:center;color:var(--neon);font-weight:700;font-size:12px;border:1px solid var(--nm)">${c.av}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--txt)">${c.name}</div><div style="font-size:10px;color:var(--t3)">${c.flag} ${c.sector}</div></div>
+      <div style="font-size:12px;font-weight:700;color:var(--neon)">${c.vol}</div>
+    </div>
+    <div style="height:3px;background:var(--bg4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${c.prog}%;background:var(--neon)"></div></div>
+    <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9.5px;color:var(--t3)"><span>Tokenización</span><span>${c.prog}%</span></div>
+  </div>
+`).join('');
+
+function rFeed(){document.getElementById('feed').innerHTML=FEED.map(f=>`
+  <div class="mp-fi"><span style="font-size:1rem">${f.f}</span>
+    <div style="flex:1;min-width:0"><div style="font-size:11.5px;color:var(--txt);font-weight:600">${f.u}</div><div style="font-size:10px;color:var(--t3)">${f.a}</div></div>
+    <div style="font-size:11.5px;color:var(--neon);font-weight:700">${f.amt}</div>
+  </div>`).join('')}
+rFeed();
+setInterval(()=>{FEED.unshift(FEED.pop());rFeed()},4500);
+</script>
+</body>
+</html>
