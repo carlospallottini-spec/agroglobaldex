@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marketplace Global — AgroChain</title>
-<meta name="description" content="Marketplace global de commodities agrícolas tokenizadas. Paga con BTC, ETH, SOL, USDC o EUR.">
+<title>Marketplace Global — AgroGlobalDex</title>
+<meta name="description" content="AgroGlobalDex (Demo/PoC) — Casos piloto previstos para el marketplace de tokenización agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>/* ═══════════════════════════════════════════════════════════
-   AGROCHAIN — SHARED STYLES
+   AGROGLOBALDEX — SHARED STYLES
    Color palette: neon green #00FF6A + deep black #05080A
-   Inspired by AgroChain Dex Global final design
+   Inspired by AgroGlobalDex Dex Global final design
 ═══════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -300,12 +300,17 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 </head>
 <body>
 
+<!-- DEMO BANNER -->
+<div style="background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px;line-height:1.55;letter-spacing:0.2px;font-family:Outfit,sans-serif">
+  DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Casos de uso ilustrativos. AgroGlobalDex no es una plataforma operativa. No constituye oferta de inversión ni servicios sobre criptoactivos. No autorizado actualmente como CASP MiCA.
+</div>
+
 <div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
 
 <nav class="main-nav">
   <a href="index.html" class="nav-logo">
     <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
-    <div class="nlt">Agro<span>Chain</span></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
   </a>
   <div class="nav-links">
     <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
@@ -325,9 +330,9 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <section class="page-hero">
   <div class="page-hero-grid"></div>
   <div class="page-hero-content">
-    <div class="page-tag"><div class="dot"></div>Marketplace Global · En vivo</div>
-    <h1 class="page-title">Tokenización en <em>tiempo real</em><br>desde productores de <em>todo el mundo</em></h1>
-    <p class="page-subtitle">Explora las empresas agrícolas y ganaderas que tokenizan sus commodities ahora mismo. Paga con BTC, ETH, SOL, USDC o EUR fiat.</p>
+    <div class="page-tag"><div class="dot"></div>Casos piloto · En evaluación</div>
+    <h1 class="page-title">Casos de uso <em>ilustrativos</em><br>para el piloto en <em>España</em></h1>
+    <p class="page-subtitle">Ejemplos de producciones agropecuarias que podrían tokenizarse en el piloto regulado. Sin operaciones reales todavía: previa firma de LOI con cooperativa, constitución de SPV propietaria del activo y validación regulatoria (CNMV / MiCA Art. 1.4).</p>
   </div>
 </section>
 
@@ -424,7 +429,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
       <div class="feat rv rv-d3"><div class="feat-ico">◉</div><h3>Trazabilidad</h3><p>NFTs registran origen, transporte, almacenamiento y propiedad de la finca al consumidor final.</p></div>
       <div class="feat rv rv-d4"><div class="feat-ico w">⊞</div><h3>Multi-Divisa</h3><p>Paga con BTC, ETH, SOL, USDC o EUR fiat vía SEPA. On/off ramps integrados.</p></div>
       <div class="feat rv rv-d5"><div class="feat-ico">◫</div><h3>Financiamiento</h3><p>Financia cosechas futuras usando tokens como colateral. Capital sin burocracia bancaria.</p></div>
-      <div class="feat rv rv-d6"><div class="feat-ico w">⬢</div><h3>Compliance MiCA</h3><p>Plataforma regulada bajo MiCA UE. KYC/AML integrado. Custodia auditada.</p></div>
+      <div class="feat rv rv-d6"><div class="feat-ico w">⬢</div><h3>Cumplimiento regulatorio (en diseño)</h3><p>Estructura prevista: SPV por activo, CASP MiCA o vía Folleto Art. 1.4 UE 2017/1129, KYC/AML6 con proveedor licenciado, custodia institucional Fireblocks/Anchorage. Aún no autorizado.</p></div>
     </div>
   </div>
 </section>
@@ -432,29 +437,29 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <footer>
   <div class="fg3">
     <div>
-      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
-      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <a href="index.html" class="fb-logo">AgroGlobal<span>Dex</span></a>
+      <p class="fb-p">Prototipo de marketplace para tokenización de producción agropecuaria europea sobre Solana. En desarrollo.</p>
       <div class="fsocs">
-        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
-        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
-        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
-        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
-        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+        <a class="fsoc" href="https://twitter.com/agroglobaldex" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agroglobaldex" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agroglobaldex" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agroglobaldex" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agroglobaldex" target="_blank" rel="noopener" title="Telegram">✈</a>
       </div>
     </div>
     <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html#currencies">Monedas</a><a href="marketplace.html">Empresas</a></div>
-    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agroglobaldex.io" target="_blank" rel="noopener">Blog</a></div>
     <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Ayuda</a><a href="#">Docs</a><a href="#">Sistema</a></div>
     <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
   </div>
   <div class="fb2">
-    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div>© 2026 AgroGlobalDex · Madrid, España · Proyecto en desarrollo. NO autorizado actualmente como CASP MiCA. Aviso: este sitio es un prototipo (Demo/PoC) y no constituye oferta de valores ni servicios de inversión.</div>
     <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
   </div>
 </footer>
 
 <script>/* ═══════════════════════════════════════════════════════════
- * AGROCHAIN — SHARED JS
+ * AGROGLOBALDEX — SHARED JS
  * Real Web3 wallet connection (MetaMask, Phantom, Coinbase)
  * No token AGRO — uses BTC, ETH, SOL, USDC, EUR Fiat
  * ═══════════════════════════════════════════════════════════ */
@@ -474,7 +479,7 @@ const TICKER_DATA = [
   {n:'Soja BR',v:'$478/T',c:'+0.9%',u:1},
   {n:'Cacao',v:'$3,180/T',c:'+5.3%',u:1},
   {n:'Vol 24h',v:'$2.4M',c:'+12%',u:1},
-  {n:'Productores',v:'2.4K',c:'+8%',u:1},
+  {n:'Status',v:'PoC',c:'DEMO',u:1},
   {n:'Países',v:'14',c:'LIVE',u:1},
 ];
 
@@ -496,7 +501,7 @@ const Wallet = {
   balance: null,
 
   init() {
-    const saved = localStorage.getItem('agrochain_wallet');
+    const saved = localStorage.getItem('agroglobaldex_wallet');
     if (saved) {
       try {
         const data = JSON.parse(saved);
@@ -632,7 +637,7 @@ const Wallet = {
     this.type = null;
     this.chain = null;
     this.balance = null;
-    localStorage.removeItem('agrochain_wallet');
+    localStorage.removeItem('agroglobaldex_wallet');
     this.updateUI();
     if (window.phantom?.solana?.isConnected) {
       try { window.phantom.solana.disconnect(); } catch(e) {}
@@ -641,7 +646,7 @@ const Wallet = {
   },
 
   save() {
-    localStorage.setItem('agrochain_wallet', JSON.stringify({
+    localStorage.setItem('agroglobaldex_wallet', JSON.stringify({
       address: this.address, type: this.type, chain: this.chain
     }));
   },
@@ -753,7 +758,7 @@ function _wmHAuth(tab) {
   const det = (ok) => ok ? '<span style="font-size:9px;font-weight:700;background:var(--nd);color:var(--neon);border:1px solid var(--nm);border-radius:20px;padding:1px 7px;margin-left:5px">Detectada</span>' : '';
   const apple = '<button class="wm-apple" id="wm-apl"><svg viewBox="0 0 24 24" width="17" height="17" fill="var(--txt)" style="flex-shrink:0"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/></svg>Continuar con Apple</button>';
   return '<button class="modal-close">✕</button>' +
-    '<h3 style="margin-bottom:6px">Conectar a AgroChain</h3>' +
+    '<h3 style="margin-bottom:6px">Conectar a AgroGlobalDex</h3>' +
     '<p style="color:var(--t2);font-size:13px;margin-bottom:18px;line-height:1.6">Wallet Web3, email o Apple. Una cuenta — web y app.</p>' +
     '<div style="display:flex;border-bottom:1px solid var(--bd);margin:0 -32px 20px;padding:0 32px">' +
     '<button class="wm-tab' + (tab==='wallet'?' wm-act':'') + '" data-p="wallet">Wallet</button>' +
@@ -778,7 +783,7 @@ function _wmHAuth(tab) {
     '<div class="wm-f"><label>Contraseña * <span style="font-weight:400;color:var(--t3)">(mín. 6 caracteres)</span></label><input type="password" id="wm-rp" placeholder="••••••••" autocomplete="new-password"></div>' +
     '<div class="wm-f"><label>Confirmar contraseña *</label><input type="password" id="wm-rp2" placeholder="••••••••" autocomplete="new-password"></div>' +
     '<button class="wm-btn" id="wm-rbtn">Crear cuenta gratis</button>' +
-    '<p class="wp-note" style="margin-top:10px">Al registrarte aceptas nuestros Términos y Privacidad. Regulado bajo MiCA UE.</p>' +
+    '<p class="wp-note" style="margin-top:10px">Al registrarte aceptas nuestros Términos y Privacidad. AgroGlobalDex es un proyecto en desarrollo y no presta servicios de inversión.</p>' +
     '<p class="wp-note" style="margin-top:4px">¿Ya tienes cuenta? <a id="wm-tolog" style="color:var(--neon);cursor:pointer;font-weight:600">Inicia sesión</a></p></div>';
 }
 

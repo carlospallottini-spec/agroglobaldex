@@ -6,6 +6,11 @@ agrochain-electron/out/
 # .exe finales copiados al root (se publican via GitHub Releases)
 AgroChain-Portable.exe
 AgroChain-Setup.exe
+AgroGlobalDex-Portable.exe
+AgroGlobalDex-Setup.exe
+
+# ---- Material privado (outbound, perfiles target, leads) — NUNCA subir ----
+_private/
 
 # ---- Documentos de negocio / estrategia (NO subir al repo publico) ----
 AgroChain_Equipo_Inversores y iniciadores del proyecto.html

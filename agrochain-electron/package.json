@@ -1,9 +1,9 @@
 {
-  "name": "agrochain",
-  "version": "1.0.0",
-  "description": "AgroChain - Tokenizacion del sector agro",
+  "name": "agroglobaldex",
+  "version": "1.1.0",
+  "description": "AgroGlobalDex - Prototipo de marketplace de tokenizacion agropecuaria sobre Solana (Demo/PoC)",
   "main": "main.js",
-  "author": "AgroChain Team",
+  "author": "AgroGlobalDex - Carlos Pallottini",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -16,8 +16,8 @@
     "sharp": "^0.34.5"
   },
   "build": {
-    "appId": "com.agrochain.app",
-    "productName": "AgroChain",
+    "appId": "com.agroglobaldex.app",
+    "productName": "AgroGlobalDex",
     "directories": {
       "output": "dist"
     },
@@ -49,7 +49,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "AgroChain",
+      "shortcutName": "AgroGlobalDex",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     }

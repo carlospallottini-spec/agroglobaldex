@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgroChain — Marketplace Agrícola On-Chain</title>
-<meta name="description" content="Tokenizamos el mercado agrícola global. Marketplace descentralizado con liquidación instantánea y trazabilidad completa.">
+<title>AgroGlobalDex — Marketplace agro tokenizado (Demo / PoC)</title>
+<meta name="description" content="AgroGlobalDex: prototipo de marketplace para tokenización de producción agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>/* ═══════════════════════════════════════════════════════════
-   AGROCHAIN — SHARED STYLES
+   AGROGLOBALDEX — SHARED STYLES
    Color palette: neon green #00FF6A + deep black #05080A
-   Inspired by AgroChain Dex Global final design
+   Inspired by AgroGlobalDex Dex Global final design
 ═══════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -312,6 +312,11 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 </head>
 <body>
 
+<!-- DEMO BANNER (legalmente obligatorio mientras no haya licencia CASP/folleto) -->
+<div style="background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px;line-height:1.55;letter-spacing:0.2px;font-family:Outfit,sans-serif">
+  DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Las cifras, operaciones y activos mostrados son ilustrativos y NO reflejan actividad real. AgroGlobalDex se encuentra en fase de diseño y desarrollo. No constituye oferta de inversión ni servicios sobre criptoactivos. No autorizado actualmente como CASP MiCA.
+</div>
+
 <!-- LIVE TICKER -->
 <div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
 
@@ -319,7 +324,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <nav class="main-nav">
   <a href="index.html" class="nav-logo">
     <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
-    <div class="nlt">Agro<span>Chain</span></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
   </a>
   <div class="nav-links">
     <a href="index.html">Inicio</a>
@@ -357,34 +362,34 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
   <div class="hero-grid"></div>
   <div class="hero-glow"></div>
   <div class="hero-content rv">
-    <div class="h-badge"><div class="ldot"></div>Marketplace en vivo · 14 países activos</div>
-    <h1>El marketplace <em>global</em><br>de activos <span class="dm">agropecuarios</span><br>tokenizados</h1>
-    <p class="h-sub">Invierte en ganado, cosechas y producción real con BTC, ETH, SOL, USDC o EUR. Sin bancos, sin intermediarios — todo on-chain con retornos verificados.</p>
+    <div class="h-badge"><div class="ldot"></div>Pre-launch · Construyendo en público</div>
+    <h1>Invierte en <em>producción</em><br>agropecuaria <span class="dm">real</span><br>desde 100€</h1>
+    <p class="h-sub">AgroGlobalDex pretende conectar a productores españoles y europeos verificados con inversores particulares mediante contratos tokenizados sobre Solana. Sin promesas de rentabilidad: solo trazabilidad on-chain, contratos vinculantes con SPV propietaria del activo, y reportes auditados.</p>
     <div class="h-btns">
       <a href="marketplace.html" class="btn-p">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
-        Ver producciones
+        Ver casos piloto
       </a>
-      <a href="about.html" class="btn-s">Cómo funciona</a>
+      <a href="about.html" class="btn-s">Cómo funcionará</a>
     </div>
     <div class="h-stats">
-      <div class="hstat"><div class="hstat-v">$4.8M</div><div class="hstat-l">Capital activo</div></div>
-      <div class="hstat"><div class="hstat-v">14</div><div class="hstat-l">Producciones</div></div>
-      <div class="hstat"><div class="hstat-v">11.2%</div><div class="hstat-l">Retorno medio</div></div>
-      <div class="hstat"><div class="hstat-v">9</div><div class="hstat-l">Países</div></div>
+      <div class="hstat"><div class="hstat-v">€280B</div><div class="hstat-l">Mercado agro UE/año<br><span style="font-size:9px;opacity:.6">Fuente: Eurostat 2024</span></div></div>
+      <div class="hstat"><div class="hstat-v">Solana</div><div class="hstat-l">Capa base</div></div>
+      <div class="hstat"><div class="hstat-v">100€</div><div class="hstat-l">Ticket inicial<br><span style="font-size:9px;opacity:.6">Plan, no oferta</span></div></div>
+      <div class="hstat"><div class="hstat-v">Q4 2026</div><div class="hstat-l">Lanzamiento<br>previsto</div></div>
     </div>
   </div>
   <div class="h-float rv rv-d2">
     <div class="hfc">
-      <div class="hfc-lbl">Activos en vivo ahora</div>
-      <div class="hfc-row"><div><div class="hfc-n">Leche Asturiana</div><div class="hfc-sb">🇪🇸 ES · 6 meses</div></div><div class="hfc-r">+9.2%</div></div>
-      <div class="hfc-row"><div><div class="hfc-n">Wagyu Irlanda</div><div class="hfc-sb">🇮🇪 IE · 8 meses</div></div><div class="hfc-r">+14.2%</div></div>
-      <div class="hfc-row"><div><div class="hfc-n">Maíz Brasil</div><div class="hfc-sb">🇧🇷 BR · 4 meses</div></div><div class="hfc-r">+7.8%</div></div>
-      <div class="hfc-row"><div><div class="hfc-n">Bovino Normandía</div><div class="hfc-sb">🇫🇷 FR · 10 meses</div></div><div class="hfc-r">+11.5%</div></div>
+      <div class="hfc-lbl">Casos piloto en evaluación <span style="font-size:9px;font-weight:600;opacity:.6;text-transform:none;letter-spacing:0">· Ilustrativo</span></div>
+      <div class="hfc-row"><div><div class="hfc-n">Leche cooperativa España</div><div class="hfc-sb">🇪🇸 ES · piloto</div></div><div class="hfc-r" style="color:var(--t3);font-size:10px">Pre-LOI</div></div>
+      <div class="hfc-row"><div><div class="hfc-n">Cosecha cereal Castilla</div><div class="hfc-sb">🇪🇸 ES · piloto</div></div><div class="hfc-r" style="color:var(--t3);font-size:10px">Pre-LOI</div></div>
+      <div class="hfc-row"><div><div class="hfc-n">Olivar Andalucía</div><div class="hfc-sb">🇪🇸 ES · piloto</div></div><div class="hfc-r" style="color:var(--t3);font-size:10px">Pre-LOI</div></div>
+      <div class="hfc-row"><div><div class="hfc-n">Bovino cooperativa Galicia</div><div class="hfc-sb">🇪🇸 ES · piloto</div></div><div class="hfc-r" style="color:var(--t3);font-size:10px">Pre-LOI</div></div>
     </div>
     <div class="hfc" style="display:flex;justify-content:space-between;align-items:center">
-      <div><div style="font-size:11px;color:var(--t3);margin-bottom:2px">Inversión mínima</div><div style="font-family:var(--fd);font-size:26px;color:var(--neon)">€100</div></div>
-      <button class="btn-p wallet-btn" style="font-size:13px;padding:10px 18px">Invertir</button>
+      <div><div style="font-size:11px;color:var(--t3);margin-bottom:2px">Ticket inicial planeado</div><div style="font-family:var(--fd);font-size:26px;color:var(--neon)">€100</div></div>
+      <a href="contact.html" class="btn-p" style="font-size:13px;padding:10px 18px">Unirse a la waitlist</a>
     </div>
   </div>
 </section>
@@ -392,10 +397,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <!-- STATS BAND -->
 <div class="stats-band">
   <div class="stats-row">
-    <div class="stat-c rv"><div class="sv">$280B</div><div class="sl">Mercado agro UE / año</div></div>
-    <div class="stat-c rv rv-d1"><div class="sv">&lt;0.5%</div><div class="sl">Comisión por transacción</div></div>
-    <div class="stat-c rv rv-d2"><div class="sv">~5s</div><div class="sl">Liquidación blockchain</div></div>
-    <div class="stat-c rv rv-d3"><div class="sv">2.4K</div><div class="sl">Inversores activos</div></div>
+    <div class="stat-c rv"><div class="sv">€280B</div><div class="sl">Mercado agro UE / año<br><span style="font-size:9px;opacity:.55">Eurostat 2024</span></div></div>
+    <div class="stat-c rv rv-d1"><div class="sv">&lt;0.5%</div><div class="sl">Comisión objetivo por operación<br><span style="font-size:9px;opacity:.55">Modelo previsto</span></div></div>
+    <div class="stat-c rv rv-d2"><div class="sv">~5s</div><div class="sl">Liquidación Solana<br><span style="font-size:9px;opacity:.55">Característica L1</span></div></div>
+    <div class="stat-c rv rv-d3"><div class="sv">Pre-launch</div><div class="sl">Inversores activos<br><span style="font-size:9px;opacity:.55">Producto en desarrollo</span></div></div>
   </div>
 </div>
 
@@ -403,8 +408,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <section class="mp-preview">
   <div class="container">
     <div class="s-tag"><div class="ldot"></div>Marketplace Global</div>
-    <h2 class="s-h rv">Producciones <em>disponibles</em> ahora</h2>
-    <p class="s-sub rv rv-d1">Explora en tiempo real las empresas agrícolas que tokenizan sus commodities en 14 países.</p>
+    <h2 class="s-h rv">Casos piloto <em>en evaluación</em></h2>
+    <p class="s-sub rv rv-d1">Ejemplos ilustrativos de producciones que podrían tokenizarse en el piloto, una vez constituidas las SPVs por activo y firmados los contratos con cada productor. Sin operaciones reales todavía.</p>
 
     <div class="mp-layout rv rv-d2">
       <div class="mp-map-box"><div id="map"></div></div>
@@ -418,10 +423,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
     </div>
 
     <div class="mp-bottom rv">
-      <div class="mp-bs"><div class="mp-bs-n">14<em>+</em></div><div class="mp-bs-l">Países Activos</div></div>
-      <div class="mp-bs"><div class="mp-bs-n">63<em>+</em></div><div class="mp-bs-l">Empresas</div></div>
-      <div class="mp-bs"><div class="mp-bs-n">$24<em>M</em></div><div class="mp-bs-l">Volumen Total</div></div>
-      <div class="mp-bs"><div class="mp-bs-n">6.8K<em>+</em></div><div class="mp-bs-l">Tokens Emitidos</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">ES<em>·EU</em></div><div class="mp-bs-l">Mercado piloto</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">Q4<em> 26</em></div><div class="mp-bs-l">Lanzamiento previsto</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">Art<em>·1.4</em></div><div class="mp-bs-l">Vía regulatoria UE</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">Solana</div><div class="mp-bs-l">Blockchain base</div></div>
     </div>
 
     <div style="text-align:center;margin-top:36px" class="rv">
@@ -433,11 +438,11 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <!-- CTA -->
 <div class="cta">
   <div class="cta-box rv">
-    <h2>Únete a la revolución<br>del agro <em>tokenizado</em></h2>
-    <p>Miles de inversores ya generan rendimientos con producción real. Acepta BTC, ETH, SOL, USDC o EUR.</p>
+    <h2>Sigue el desarrollo<br>de <em>AgroGlobalDex</em></h2>
+    <p>Estamos construyendo la infraestructura técnica (Solana) y legal (SPVs, MiCA Art. 1.4) para tokenizar producción agropecuaria europea de forma cumplidora. Suscríbete para recibir actualizaciones del piloto.</p>
     <div class="cta-actions">
-      <button class="btn-p wallet-btn">Conectar Wallet →</button>
-      <a href="contact.html" class="btn-s">Contáctanos</a>
+      <a href="contact.html" class="btn-p">Unirme a la waitlist →</a>
+      <a href="contact.html" class="btn-s">Contactar</a>
     </div>
   </div>
 </div>
@@ -446,29 +451,29 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <footer>
   <div class="fg3">
     <div>
-      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
-      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <a href="index.html" class="fb-logo">AgroGlobal<span>Dex</span></a>
+      <p class="fb-p">Prototipo de marketplace para tokenización de producción agropecuaria europea sobre Solana. En desarrollo.</p>
       <div class="fsocs">
-        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
-        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
-        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
-        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
-        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+        <a class="fsoc" href="https://twitter.com/agroglobaldex" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agroglobaldex" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agroglobaldex" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agroglobaldex" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agroglobaldex" target="_blank" rel="noopener" title="Telegram">✈</a>
       </div>
     </div>
     <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html">Países</a><a href="marketplace.html">Empresas</a></div>
-    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agroglobaldex.io" target="_blank" rel="noopener">Blog</a></div>
     <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Centro de ayuda</a><a href="#">Documentación</a><a href="#">Estado del sistema</a></div>
     <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">Regulación MiCA</a></div>
   </div>
   <div class="fb2">
-    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div>© 2026 AgroGlobalDex · Madrid, España · Proyecto en desarrollo. NO autorizado actualmente como CASP MiCA. Aviso: este sitio es un prototipo (Demo/PoC) y no constituye oferta de valores ni servicios de inversión.</div>
     <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
   </div>
 </footer>
 
 <script>/* ═══════════════════════════════════════════════════════════
- * AGROCHAIN — SHARED JS
+ * AGROGLOBALDEX — SHARED JS
  * Real Web3 wallet connection (MetaMask, Phantom, Coinbase)
  * No token AGRO — uses BTC, ETH, SOL, USDC, EUR Fiat
  * ═══════════════════════════════════════════════════════════ */
@@ -487,9 +492,9 @@ const TICKER_DATA = [
   {n:'Trigo EU',v:'€245/T',c:'-0.3%',u:0},
   {n:'Soja BR',v:'$478/T',c:'+0.9%',u:1},
   {n:'Cacao',v:'$3,180/T',c:'+5.3%',u:1},
-  {n:'Vol 24h',v:'$2.4M',c:'+12%',u:1},
-  {n:'Productores',v:'2.4K',c:'+8%',u:1},
-  {n:'Países',v:'14',c:'LIVE',u:1},
+  {n:'Aceitunas',v:'€1.20/kg',c:'+1.8%',u:1},
+  {n:'Cebada EU',v:'€198/T',c:'-0.7%',u:0},
+  {n:'Status',v:'PoC',c:'DEMO',u:1},
 ];
 
 /* ═══════ TICKER RENDERER ═══════ */
@@ -510,7 +515,7 @@ const Wallet = {
   balance: null,
 
   init() {
-    const saved = localStorage.getItem('agrochain_wallet');
+    const saved = localStorage.getItem('agroglobaldex_wallet');
     if (saved) {
       try {
         const data = JSON.parse(saved);
@@ -646,7 +651,7 @@ const Wallet = {
     this.type = null;
     this.chain = null;
     this.balance = null;
-    localStorage.removeItem('agrochain_wallet');
+    localStorage.removeItem('agroglobaldex_wallet');
     this.updateUI();
     if (window.phantom?.solana?.isConnected) {
       try { window.phantom.solana.disconnect(); } catch(e) {}
@@ -655,7 +660,7 @@ const Wallet = {
   },
 
   save() {
-    localStorage.setItem('agrochain_wallet', JSON.stringify({
+    localStorage.setItem('agroglobaldex_wallet', JSON.stringify({
       address: this.address, type: this.type, chain: this.chain
     }));
   },
@@ -767,7 +772,7 @@ function _wmHAuth(tab) {
   const det = (ok) => ok ? '<span style="font-size:9px;font-weight:700;background:var(--nd);color:var(--neon);border:1px solid var(--nm);border-radius:20px;padding:1px 7px;margin-left:5px">Detectada</span>' : '';
   const apple = '<button class="wm-apple" id="wm-apl"><svg viewBox="0 0 24 24" width="17" height="17" fill="var(--txt)" style="flex-shrink:0"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/></svg>Continuar con Apple</button>';
   return '<button class="modal-close">✕</button>' +
-    '<h3 style="margin-bottom:6px">Conectar a AgroChain</h3>' +
+    '<h3 style="margin-bottom:6px">Conectar a AgroGlobalDex</h3>' +
     '<p style="color:var(--t2);font-size:13px;margin-bottom:18px;line-height:1.6">Wallet Web3, email o Apple. Una cuenta — web y app.</p>' +
     '<div style="display:flex;border-bottom:1px solid var(--bd);margin:0 -32px 20px;padding:0 32px">' +
     '<button class="wm-tab' + (tab==='wallet'?' wm-act':'') + '" data-p="wallet">Wallet</button>' +
@@ -792,7 +797,7 @@ function _wmHAuth(tab) {
     '<div class="wm-f"><label>Contraseña * <span style="font-weight:400;color:var(--t3)">(mín. 6 caracteres)</span></label><input type="password" id="wm-rp" placeholder="••••••••" autocomplete="new-password"></div>' +
     '<div class="wm-f"><label>Confirmar contraseña *</label><input type="password" id="wm-rp2" placeholder="••••••••" autocomplete="new-password"></div>' +
     '<button class="wm-btn" id="wm-rbtn">Crear cuenta gratis</button>' +
-    '<p class="wp-note" style="margin-top:10px">Al registrarte aceptas nuestros Términos y Privacidad. Regulado bajo MiCA UE.</p>' +
+    '<p class="wp-note" style="margin-top:10px">Al registrarte aceptas nuestros Términos y Privacidad. AgroGlobalDex es un proyecto en desarrollo y no presta servicios de inversión.</p>' +
     '<p class="wp-note" style="margin-top:4px">¿Ya tienes cuenta? <a id="wm-tolog" style="color:var(--neon);cursor:pointer;font-weight:600">Inicia sesión</a></p></div>';
 }
 

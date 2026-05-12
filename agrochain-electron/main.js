@@ -9,7 +9,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 720,
-    title: 'AgroChain',
+    title: 'AgroGlobalDex',
     icon: path.join(__dirname, 'build', 'icon.ico'),
     backgroundColor: '#05080A',
     autoHideMenuBar: true,

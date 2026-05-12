@@ -3,12 +3,222 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marketplace Global — AgroChain</title>
-<meta name="description" content="Marketplace global de commodities agrícolas tokenizadas. Paga con BTC, ETH, SOL, USDC o EUR.">
+<title>Marketplace Global — AgroGlobalDex</title>
+<meta name="description" content="AgroGlobalDex (Demo/PoC) — Casos piloto previstos para el marketplace de tokenización agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="css/styles.css">
+<style>/* ═══════════════════════════════════════════════════════════
+   AGROGLOBALDEX — SHARED STYLES
+   Color palette: neon green #00FF6A + deep black #05080A
+   Inspired by AgroGlobalDex Dex Global final design
+═══════════════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--bg5:#1E2820;
+  --neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--nb:#00FF6A55;
+  --gold:#C8A84B;--gd:#C8A84B0D;--gm:#C8A84B28;
+  --txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--t4:#202E22;
+  --red:#FF3D4A;--amb:#F0A020;--blu:#3A9EF5;--pur:#8A78F0;
+  --bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;
+  --r:8px;--r2:14px;--r3:20px;--r4:28px;
+  --fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh;position:relative;font-weight:400}
+a{color:inherit;text-decoration:none}
+
+/* GRAIN TEXTURE */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.4;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bd3);border-radius:2px}
+
+/* ═══════ LIVE TICKER ═══════ */
+.tkr{background:var(--bg2);border-bottom:1px solid var(--bd);height:36px;overflow:hidden;display:flex;align-items:center;position:sticky;top:0;z-index:200}
+.tkr-inner{display:flex;white-space:nowrap;animation:tkscroll 45s linear infinite}
+.tkr-inner:hover{animation-play-state:paused}
+@keyframes tkscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ti{display:inline-flex;align-items:center;gap:7px;padding:0 22px;font-size:11px;font-weight:500;border-right:1px solid var(--bd)}
+.tn2{color:var(--t3);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.tv{color:var(--txt);font-weight:600}
+.tup{color:var(--neon);font-size:10.5px;font-weight:700}
+.tdn{color:var(--red);font-size:10.5px;font-weight:700}
+.ti-live{width:6px;height:6px;border-radius:50%;background:var(--neon);animation:pd 1.5s infinite;margin-right:2px}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ═══════ NAV ═══════ */
+nav.main-nav{position:sticky;top:36px;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nlt{font-family:var(--fd);font-size:16px;color:var(--txt);letter-spacing:-.01em}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r);transition:color .2s,background .2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:3px;left:13px;right:13px;height:1px;background:var(--neon);transform:scaleX(0);transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.nav-links a:hover,.nav-links a.active{color:var(--neon)}
+.nav-links a:hover::after,.nav-links a.active::after{transform:scaleX(1)}
+.nav-r{display:flex;gap:8px;align-items:center;margin-left:auto}
+
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--fb)}
+.nwb:hover{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3);transition:background .3s}
+.nwb.connected{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb.connected .wdot{background:var(--neon);animation:pd 2s infinite}
+
+.nbtn-p{padding:8px 20px;border:none;border-radius:var(--r);background:var(--neon);color:#000;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.nbtn-p:hover{background:#00e55f}
+.nbtn-g{padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.nbtn-g:hover{border-color:var(--bd3);color:var(--txt)}
+
+/* MOBILE MENU */
+.nav-burger{display:none;flex-direction:column;gap:4px;cursor:pointer;margin-left:auto;padding:6px}
+.nav-burger span{width:20px;height:2px;background:var(--neon);transition:all .3s;border-radius:1px}
+.nav-burger.open span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
+.nav-burger.open span:nth-child(2){opacity:0}
+.nav-burger.open span:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
+.mobile-menu{position:fixed;top:0;right:-100%;width:280px;height:100vh;background:var(--bg2);z-index:160;padding:5rem 1.5rem 2rem;display:flex;flex-direction:column;gap:1.2rem;transition:right .35s cubic-bezier(.4,0,.2,1);border-left:1px solid var(--bd)}
+.mobile-menu.open{right:0}
+.mobile-menu a{color:var(--txt);font-size:15px;font-weight:500;padding:8px 0;border-bottom:1px solid var(--bd);transition:color .2s}
+.mobile-menu a:hover{color:var(--neon)}
+.mobile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:155;opacity:0;pointer-events:none;transition:opacity .3s}
+.mobile-overlay.open{opacity:1;pointer-events:auto}
+
+/* ═══════ PAGE HERO ═══════ */
+.page-hero{padding:80px 40px 60px;position:relative;overflow:hidden;border-bottom:1px solid var(--bd)}
+.page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 40% 50%,#00FF6A08 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 85% 20%,#00FF6A05 0%,transparent 60%);pointer-events:none}
+.page-hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--bd) 1px,transparent 1px),linear-gradient(90deg,var(--bd) 1px,transparent 1px);background-size:56px 56px;opacity:.25;pointer-events:none}
+.page-hero-content{position:relative;z-index:2;max-width:900px}
+.page-tag{display:inline-flex;align-items:center;gap:8px;background:var(--nd);border:1px solid var(--nm);border-radius:24px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--neon);margin-bottom:24px;letter-spacing:.05em}
+.page-tag .dot{width:6px;height:6px;background:var(--neon);border-radius:50%;animation:pd 2s infinite}
+.page-title{font-family:var(--fd);font-size:clamp(34px,5vw,64px);line-height:1.04;letter-spacing:-.03em;margin-bottom:20px;font-weight:400}
+.page-title em{color:var(--neon);font-style:italic}
+.page-title .dim{color:var(--t3)}
+.page-subtitle{font-size:17px;color:var(--t2);line-height:1.75;max-width:620px}
+
+/* ═══════ SECTIONS ═══════ */
+section{padding:80px 40px;position:relative;z-index:2}
+.container{max-width:1200px;margin:0 auto}
+.s-tag{display:inline-flex;align-items:center;gap:6px;background:var(--nd);border:1px solid var(--nm);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--neon);text-transform:uppercase;letter-spacing:.07em;margin-bottom:18px}
+.s-tag.gld{background:var(--gd);border-color:var(--gm);color:var(--gold)}
+.s-h{font-family:var(--fd);font-size:clamp(28px,3.5vw,48px);line-height:1.08;letter-spacing:-.03em;margin-bottom:14px;font-weight:400}
+.s-h em{color:var(--neon);font-style:italic}
+.s-sub{font-size:15.5px;color:var(--t2);line-height:1.8;max-width:560px;margin-bottom:44px}
+
+/* ═══════ BUTTONS ═══════ */
+.btn-p{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--neon);color:#000;border:none;border-radius:var(--r2);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:all .2s;position:relative;overflow:hidden;text-decoration:none}
+.btn-p:hover{background:#00e55f;transform:translateY(-1px)}
+.btn-s{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:transparent;color:var(--txt);border:1px solid var(--bd2);border-radius:var(--r2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:all .2s;text-decoration:none}
+.btn-s:hover{border-color:var(--nm);color:var(--neon)}
+
+/* ═══════ REVEAL ═══════ */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .65s cubic-bezier(.25,.46,.45,.94),transform .65s cubic-bezier(.25,.46,.45,.94)}
+.rv.vis{opacity:1;transform:translateY(0)}
+.rv-d1{transition-delay:.1s}.rv-d2{transition-delay:.2s}.rv-d3{transition-delay:.3s}.rv-d4{transition-delay:.4s}.rv-d5{transition-delay:.5s}.rv-d6{transition-delay:.6s}
+
+/* ═══════ WALLET MODAL ═══════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,8,10,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:500;display:none;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity .25s}
+.modal-overlay.active{display:flex;opacity:1}
+.modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r3);padding:32px;max-width:440px;width:100%;position:relative;transform:scale(.95);transition:transform .3s}
+.modal-overlay.active .modal{transform:scale(1)}
+.modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--bd);color:var(--t2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:var(--fb)}
+.modal-close:hover{border-color:var(--bd2);color:var(--txt)}
+.modal h3{font-family:var(--fd);font-size:24px;font-weight:400;margin-bottom:6px;letter-spacing:-.02em}
+.modal > p{color:var(--t2);font-size:13px;margin-bottom:24px;line-height:1.7}
+
+.wallet-option{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--bd2);background:var(--bg3);border-radius:var(--r2);margin-bottom:8px;cursor:pointer;transition:all .2s}
+.wallet-option:hover{border-color:var(--nm);background:var(--nd);transform:translateX(3px)}
+.wallet-option svg,.wallet-option img{width:32px;height:32px;flex-shrink:0}
+.wo-info{flex:1}
+.wo-name{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:2px}
+.wo-sub{font-size:11px;color:var(--t3)}
+.wo-arr{color:var(--t3);font-size:14px}
+
+.wp-divider{display:flex;align-items:center;gap:10px;margin:20px 0 14px;font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.07em}
+.wp-divider::before,.wp-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
+.wp-note{font-size:11px;color:var(--t3);text-align:center;margin-top:14px;line-height:1.6}
+.wp-note a{color:var(--neon)}
+
+/* CONNECTED STATE */
+.wp-connected{display:none}
+.wp-connected.show{display:block}
+.wp-balance{background:var(--nd);border:1px solid var(--nm);border-radius:var(--r2);padding:24px;text-align:center;margin-bottom:16px}
+.wp-balance-label{font-size:11px;color:var(--neon);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.wp-balance-val{font-family:var(--fd);font-size:32px;color:var(--txt);line-height:1}
+.wp-balance-sub{font-size:12px;color:var(--t2);margin-top:6px;word-break:break-all;font-family:monospace}
+.wp-actions{display:flex;gap:8px;margin-bottom:16px}
+.wp-act{flex:1;padding:10px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:var(--fb);transition:all .2s;text-align:center}
+.wp-act:hover{border-color:var(--bd3);color:var(--txt)}
+.wp-disconnect{width:100%;padding:10px;background:transparent;border:1px solid var(--bd);border-radius:var(--r);font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;font-family:var(--fb);transition:all .2s;margin-top:8px}
+.wp-disconnect:hover{border-color:var(--red);color:var(--red)}
+
+/* ═══════ TOAST ═══════ */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);padding:12px 18px;display:flex;align-items:center;gap:10px;z-index:600;opacity:0;transform:translateY(20px);transition:all .3s;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:320px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-color:var(--nm)}
+.toast.error{border-color:#FF3D4A40}
+.toast-ico{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.toast.success .toast-ico{background:var(--nd);color:var(--neon)}
+.toast.error .toast-ico{background:#FF3D4A18;color:var(--red)}
+.toast-txt{font-size:12.5px;color:var(--txt);font-weight:500;line-height:1.4}
+
+/* ═══════ FOOTER ═══════ */
+footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28px;position:relative;z-index:2}
+.fg3{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:44px;max-width:1200px;margin-left:auto;margin-right:auto}
+.fb-logo{font-family:var(--fd);font-size:18px;color:var(--neon);margin-bottom:12px;display:inline-block}
+.fb-logo span{color:var(--t3)}
+.fb-p{font-size:13px;color:var(--t3);line-height:1.75;max-width:240px;margin-bottom:18px}
+.fsocs{display:flex;gap:8px}
+.fsoc{width:34px;height:34px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .2s;color:var(--t2);font-size:13px;text-decoration:none}
+.fsoc:hover{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.fc-title{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
+.fc-col a{display:block;font-size:13px;color:var(--t3);text-decoration:none;margin-bottom:9px;transition:color .15s}
+.fc-col a:hover{color:var(--neon)}
+.fb2{display:flex;justify-content:space-between;align-items:center;padding-top:22px;border-top:1px solid var(--bd);font-size:11.5px;color:var(--t3);max-width:1200px;margin:0 auto;flex-wrap:wrap;gap:14px}
+.fb2-legal{display:flex;gap:18px}
+.fb2-legal a{color:var(--t3)}
+.fb2-legal a:hover{color:var(--t2)}
+
+/* ═══════ RESPONSIVE ═══════ */
+@media(max-width:900px){
+  nav.main-nav{padding:0 16px}
+  .nav-links,.nav-r .nbtn-g,.nav-r .nbtn-p{display:none}
+  .nav-burger{display:flex}
+  .nav-r{margin-left:0}
+  .page-hero{padding:50px 20px 40px}
+  section{padding:50px 20px}
+  .fg3{grid-template-columns:1fr 1fr;gap:30px}
+  footer{padding:40px 20px 24px}
+  .tkr{height:32px}
+  .ti{padding:0 16px;font-size:10px}
+}
+@media(max-width:600px){
+  .fg3{grid-template-columns:1fr}
+  .fb2{flex-direction:column;text-align:center}
+}
+
+/* ── Auth modal tabs & forms ── */
+.wm-tab{font-size:12.5px;font-weight:600;color:var(--t3);padding:9px 15px;border:none;background:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--fb);transition:all .2s}
+.wm-tab:hover,.wm-act{color:var(--neon)!important;border-color:var(--neon)!important}
+.wm-f{margin-bottom:12px}
+.wm-f label{display:block;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.wm-f input{width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);padding:10px 13px;color:var(--txt);font-family:var(--fb);font-size:13.5px;outline:none;transition:border-color .2s}
+.wm-f input:focus{border-color:var(--nm)}
+.wm-f input::placeholder{color:var(--t3)}
+.wm-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--neon),#00cc55);color:#000;border:none;border-radius:var(--r2);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;transition:opacity .2s}
+.wm-btn:hover{opacity:.9}
+.wm-btn:disabled{opacity:.5;cursor:not-allowed}
+.wm-apple{width:100%;padding:11px;background:var(--bg3);color:var(--txt);border:1px solid var(--bd2);border-radius:var(--r2);font-size:13.5px;font-weight:600;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;transition:all .2s}
+.wm-apple:hover{border-color:var(--bd3)}
+.wm-or{display:flex;align-items:center;gap:10px;margin:10px 0 14px;font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.07em}
+.wm-or::before,.wm-or::after{content:'';flex:1;height:1px;background:var(--bd)}
+.wm-err{display:none;border-radius:var(--r);padding:9px 13px;font-size:12px;line-height:1.55;margin-bottom:12px}
+.wm-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:_sp .6s linear infinite}
+@keyframes _sp{to{transform:rotate(360deg)}}
+</style>
 <style>
 .mp-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px}
 .mp-pill{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--bd);border-radius:50px;padding:7px 14px;font-size:12px}
@@ -90,12 +300,17 @@
 </head>
 <body>
 
+<!-- DEMO BANNER -->
+<div style="background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px;line-height:1.55;letter-spacing:0.2px;font-family:Outfit,sans-serif">
+  DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Casos de uso ilustrativos. AgroGlobalDex no es una plataforma operativa. No constituye oferta de inversión ni servicios sobre criptoactivos. No autorizado actualmente como CASP MiCA.
+</div>
+
 <div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
 
 <nav class="main-nav">
   <a href="index.html" class="nav-logo">
     <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
-    <div class="nlt">Agro<span>Chain</span></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
   </a>
   <div class="nav-links">
     <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
@@ -115,9 +330,9 @@
 <section class="page-hero">
   <div class="page-hero-grid"></div>
   <div class="page-hero-content">
-    <div class="page-tag"><div class="dot"></div>Marketplace Global · En vivo</div>
-    <h1 class="page-title">Tokenización en <em>tiempo real</em><br>desde productores de <em>todo el mundo</em></h1>
-    <p class="page-subtitle">Explora las empresas agrícolas y ganaderas que tokenizan sus commodities ahora mismo. Paga con BTC, ETH, SOL, USDC o EUR fiat.</p>
+    <div class="page-tag"><div class="dot"></div>Casos piloto · En evaluación</div>
+    <h1 class="page-title">Casos de uso <em>ilustrativos</em><br>para el piloto en <em>España</em></h1>
+    <p class="page-subtitle">Ejemplos de producciones agropecuarias que podrían tokenizarse en el piloto regulado. Sin operaciones reales todavía: previa firma de LOI con cooperativa, constitución de SPV propietaria del activo y validación regulatoria (CNMV / MiCA Art. 1.4).</p>
   </div>
 </section>
 
@@ -214,7 +429,7 @@
       <div class="feat rv rv-d3"><div class="feat-ico">◉</div><h3>Trazabilidad</h3><p>NFTs registran origen, transporte, almacenamiento y propiedad de la finca al consumidor final.</p></div>
       <div class="feat rv rv-d4"><div class="feat-ico w">⊞</div><h3>Multi-Divisa</h3><p>Paga con BTC, ETH, SOL, USDC o EUR fiat vía SEPA. On/off ramps integrados.</p></div>
       <div class="feat rv rv-d5"><div class="feat-ico">◫</div><h3>Financiamiento</h3><p>Financia cosechas futuras usando tokens como colateral. Capital sin burocracia bancaria.</p></div>
-      <div class="feat rv rv-d6"><div class="feat-ico w">⬢</div><h3>Compliance MiCA</h3><p>Plataforma regulada bajo MiCA UE. KYC/AML integrado. Custodia auditada.</p></div>
+      <div class="feat rv rv-d6"><div class="feat-ico w">⬢</div><h3>Cumplimiento regulatorio (en diseño)</h3><p>Estructura prevista: SPV por activo, CASP MiCA o vía Folleto Art. 1.4 UE 2017/1129, KYC/AML6 con proveedor licenciado, custodia institucional Fireblocks/Anchorage. Aún no autorizado.</p></div>
     </div>
   </div>
 </section>
@@ -222,28 +437,630 @@
 <footer>
   <div class="fg3">
     <div>
-      <a href="index.html" class="fb-logo">Agro<span>Chain</span></a>
-      <p class="fb-p">El marketplace global de inversión agropecuaria tokenizada. Desde €100, sin banco.</p>
+      <a href="index.html" class="fb-logo">AgroGlobal<span>Dex</span></a>
+      <p class="fb-p">Prototipo de marketplace para tokenización de producción agropecuaria europea sobre Solana. En desarrollo.</p>
       <div class="fsocs">
-        <a class="fsoc" href="https://twitter.com/agrochain" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
-        <a class="fsoc" href="https://linkedin.com/company/agrochain" target="_blank" rel="noopener" title="LinkedIn">in</a>
-        <a class="fsoc" href="https://github.com/agrochain" target="_blank" rel="noopener" title="GitHub">◆</a>
-        <a class="fsoc" href="https://discord.gg/agrochain" target="_blank" rel="noopener" title="Discord">◉</a>
-        <a class="fsoc" href="https://t.me/agrochain" target="_blank" rel="noopener" title="Telegram">✈</a>
+        <a class="fsoc" href="https://twitter.com/agroglobaldex" target="_blank" rel="noopener" title="Twitter/X">𝕏</a>
+        <a class="fsoc" href="https://linkedin.com/company/agroglobaldex" target="_blank" rel="noopener" title="LinkedIn">in</a>
+        <a class="fsoc" href="https://github.com/agroglobaldex" target="_blank" rel="noopener" title="GitHub">◆</a>
+        <a class="fsoc" href="https://discord.gg/agroglobaldex" target="_blank" rel="noopener" title="Discord">◉</a>
+        <a class="fsoc" href="https://t.me/agroglobaldex" target="_blank" rel="noopener" title="Telegram">✈</a>
       </div>
     </div>
     <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html#currencies">Monedas</a><a href="marketplace.html">Empresas</a></div>
-    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agrochain.io" target="_blank" rel="noopener">Blog</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agroglobaldex.io" target="_blank" rel="noopener">Blog</a></div>
     <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Ayuda</a><a href="#">Docs</a><a href="#">Sistema</a></div>
     <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
   </div>
   <div class="fb2">
-    <div>© 2026 AgroChain · Madrid, España · Regulado bajo MiCA UE</div>
+    <div>© 2026 AgroGlobalDex · Madrid, España · Proyecto en desarrollo. NO autorizado actualmente como CASP MiCA. Aviso: este sitio es un prototipo (Demo/PoC) y no constituye oferta de valores ni servicios de inversión.</div>
     <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
   </div>
 </footer>
 
-<script src="js/main.js"></script>
+<script>/* ═══════════════════════════════════════════════════════════
+ * AGROGLOBALDEX — SHARED JS
+ * Real Web3 wallet connection (MetaMask, Phantom, Coinbase)
+ * No token AGRO — uses BTC, ETH, SOL, USDC, EUR Fiat
+ * ═══════════════════════════════════════════════════════════ */
+
+/* ═══════ LIVE TICKER DATA ═══════ */
+const TICKER_DATA = [
+  {n:'BTC/USD',v:'$68,420',c:'+1.4%',u:1},
+  {n:'ETH/USD',v:'$3,842',c:'+1.2%',u:1},
+  {n:'SOL/USD',v:'$187.32',c:'+3.8%',u:1},
+  {n:'USDC/EUR',v:'€0.92',c:'+0.01%',u:1},
+  {n:'EUR/USD',v:'$1.08',c:'-0.2%',u:0},
+  {n:'Aceite Olivar ES',v:'€4.20/L',c:'+2.1%',u:1},
+  {n:'Vino Rioja',v:'€8.50/kg',c:'+0.8%',u:1},
+  {n:'Queso Manchego',v:'€18.5/kg',c:'+1.5%',u:1},
+  {n:'Café Colombia',v:'$5.85/kg',c:'+4.2%',u:1},
+  {n:'Trigo EU',v:'€245/T',c:'-0.3%',u:0},
+  {n:'Soja BR',v:'$478/T',c:'+0.9%',u:1},
+  {n:'Cacao',v:'$3,180/T',c:'+5.3%',u:1},
+  {n:'Vol 24h',v:'$2.4M',c:'+12%',u:1},
+  {n:'Status',v:'PoC',c:'DEMO',u:1},
+  {n:'Países',v:'14',c:'LIVE',u:1},
+];
+
+/* ═══════ TICKER RENDERER ═══════ */
+function renderTicker() {
+  const el = document.getElementById('ticker');
+  if (!el) return;
+  const html = TICKER_DATA.map(d =>
+    `<span class="ti"><span class="ti-live"></span><span class="tn2">${d.n}</span><span class="tv">${d.v}</span><span class="${d.u?'tup':'tdn'}">${d.c}</span></span>`
+  ).join('');
+  el.innerHTML = html + html + html;
+}
+
+/* ═══════ WALLET MANAGER ═══════ */
+const Wallet = {
+  address: null,
+  type: null,
+  chain: null,
+  balance: null,
+
+  init() {
+    const saved = localStorage.getItem('agroglobaldex_wallet');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        this.address = data.address;
+        this.type = data.type;
+        this.chain = data.chain;
+        this.updateUI();
+      } catch (e) {}
+    }
+    // Listen for MetaMask account changes
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length === 0) this.disconnect();
+        else {
+          this.address = accounts[0];
+          this.save();
+          this.updateUI();
+          showToast('Cuenta cambiada: ' + this.short(), 'success');
+        }
+      });
+      window.ethereum.on('chainChanged', () => window.location.reload());
+    }
+    // Listen for Phantom disconnect
+    if (window.phantom?.solana) {
+      window.phantom.solana.on('disconnect', () => this.disconnect());
+    }
+  },
+
+  /* REAL MetaMask connection (Ethereum) */
+  async connectMetaMask() {
+    if (typeof window.ethereum === 'undefined' || !window.ethereum.isMetaMask) {
+      showToast('MetaMask no detectado. Instálalo desde metamask.io', 'error');
+      setTimeout(() => window.open('https://metamask.io/download/', '_blank', 'noopener'), 1500);
+      return false;
+    }
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) throw new Error('Sin cuentas');
+      this.address = accounts[0];
+      this.type = 'metamask';
+      this.chain = 'ethereum';
+      // Fetch balance
+      const balWei = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [this.address, 'latest']
+      });
+      this.balance = (parseInt(balWei, 16) / 1e18).toFixed(4) + ' ETH';
+      this.save();
+      this.updateUI();
+      showToast('✓ MetaMask conectada: ' + this.short(), 'success');
+      return true;
+    } catch (err) {
+      if (err.code === 4001) showToast('Conexión rechazada', 'error');
+      else showToast('Error: ' + (err.message || 'desconocido'), 'error');
+      return false;
+    }
+  },
+
+  /* REAL Phantom connection (Solana) */
+  async connectPhantom() {
+    const provider = window.phantom?.solana;
+    if (!provider?.isPhantom) {
+      showToast('Phantom no detectado. Instálalo desde phantom.app', 'error');
+      setTimeout(() => window.open('https://phantom.app/download', '_blank', 'noopener'), 1500);
+      return false;
+    }
+    try {
+      const resp = await provider.connect();
+      this.address = resp.publicKey.toString();
+      this.type = 'phantom';
+      this.chain = 'solana';
+      this.balance = '— SOL';
+      this.save();
+      this.updateUI();
+      showToast('✓ Phantom conectada: ' + this.short(), 'success');
+      // Fetch SOL balance
+      try {
+        const r = await fetch('https://api.mainnet-beta.solana.com', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 1, method: 'getBalance',
+            params: [this.address]
+          })
+        });
+        const j = await r.json();
+        if (j.result?.value !== undefined) {
+          this.balance = (j.result.value / 1e9).toFixed(4) + ' SOL';
+          this.save();
+          this.updateUI();
+        }
+      } catch(e) {}
+      return true;
+    } catch (err) {
+      showToast('Conexión rechazada', 'error');
+      return false;
+    }
+  },
+
+  /* REAL Coinbase Wallet (via ethereum provider) */
+  async connectCoinbase() {
+    if (typeof window.ethereum === 'undefined') {
+      showToast('Coinbase Wallet no detectado', 'error');
+      setTimeout(() => window.open('https://www.coinbase.com/wallet/downloads', '_blank', 'noopener'), 1500);
+      return false;
+    }
+    try {
+      let provider = window.ethereum;
+      if (window.ethereum.providers) {
+        provider = window.ethereum.providers.find(p => p.isCoinbaseWallet) || window.ethereum;
+      }
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      this.address = accounts[0];
+      this.type = 'coinbase';
+      this.chain = 'ethereum';
+      this.save();
+      this.updateUI();
+      showToast('✓ Coinbase conectada: ' + this.short(), 'success');
+      return true;
+    } catch (err) {
+      showToast('Conexión rechazada', 'error');
+      return false;
+    }
+  },
+
+  /* WalletConnect placeholder (requires @walletconnect/ethereum-provider SDK) */
+  connectWalletConnect() {
+    showToast('WalletConnect requiere SDK en producción. Usa MetaMask o Phantom.', 'error');
+  },
+
+  disconnect() {
+    this.address = null;
+    this.type = null;
+    this.chain = null;
+    this.balance = null;
+    localStorage.removeItem('agroglobaldex_wallet');
+    this.updateUI();
+    if (window.phantom?.solana?.isConnected) {
+      try { window.phantom.solana.disconnect(); } catch(e) {}
+    }
+    showToast('Wallet desconectada', 'success');
+  },
+
+  save() {
+    localStorage.setItem('agroglobaldex_wallet', JSON.stringify({
+      address: this.address, type: this.type, chain: this.chain
+    }));
+  },
+
+  short() {
+    if (!this.address) return '';
+    return this.address.slice(0, 6) + '...' + this.address.slice(-4);
+  },
+
+  updateUI() {
+    document.querySelectorAll('.wallet-btn, .nwb').forEach(btn => {
+      if (this.address) {
+        btn.classList.add('connected');
+        btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>${this.short()}</span>`;
+      } else {
+        btn.classList.remove('connected');
+        btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span>`;
+      }
+    });
+    // Update modal if open
+    const modal = document.getElementById('wallet-modal');
+    if (modal) {
+      const discon = modal.querySelector('.wp-connected');
+      const opts = modal.querySelector('.wp-options');
+      if (this.address) {
+        if (opts) opts.style.display = 'none';
+        if (discon) {
+          discon.classList.add('show');
+          const valEl = discon.querySelector('.wp-balance-val');
+          const subEl = discon.querySelector('.wp-balance-sub');
+          if (valEl) valEl.textContent = this.balance || '—';
+          if (subEl) subEl.textContent = this.address;
+        }
+      } else {
+        if (opts) opts.style.display = 'block';
+        if (discon) discon.classList.remove('show');
+      }
+    }
+  }
+};
+
+
+/* ═══════ WALLET + AUTH MODAL (replaces original) ═══════ */
+function openWalletModal() {
+  let modal = document.getElementById('wallet-modal');
+  if (!modal) {
+    document.body.insertAdjacentHTML('beforeend',
+      '<div class="modal-overlay" id="wallet-modal"><div class="modal" id="wm-inner"></div></div>');
+    modal = document.getElementById('wallet-modal');
+    modal.addEventListener('click', e => { if (e.target === modal) closeWalletModal(); });
+  }
+  _wmR();
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeWalletModal() {
+  const m = document.getElementById('wallet-modal');
+  if (m) m.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function _wmR() {
+  const inn = document.getElementById('wm-inner');
+  if (!inn) return;
+  const connected = Wallet.address || Auth.user;
+  inn.innerHTML = connected ? _wmHConn() : _wmHAuth('wallet');
+  inn.querySelector('.modal-close')?.addEventListener('click', closeWalletModal);
+  connected ? _wmBConn(inn) : _wmBAuth(inn);
+}
+
+function _wmHConn() {
+  const u = Auth.user, w = Wallet.address;
+  const name = u ? Auth.name() : Wallet.short();
+  const ini  = u ? Auth.initials() : (w||'??').slice(0,2).toUpperCase();
+  return '<button class="modal-close">✕</button>' +
+    '<h3 style="margin-bottom:18px">Tu cuenta</h3>' +
+    (u ? '<div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r2);margin-bottom:16px">' +
+      '<div style="width:44px;height:44px;border-radius:50%;background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:16px;font-weight:700;flex-shrink:0">' + ini + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--txt)">' + name + '</div>' +
+      '<div style="font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email||'') + '</div>' +
+      '<span style="font-size:9px;font-weight:700;background:' + (u.demo?'rgba(240,160,32,.12)':'var(--nd)') + ';color:' + (u.demo?'var(--amb)':'var(--neon)') + ';border:1px solid ' + (u.demo?'rgba(240,160,32,.25)':'var(--nm)') + ';border-radius:20px;padding:2px 8px;display:inline-block;margin-top:4px">' + (u.demo?'⚡ Demo':'✓ Verificado') + '</span></div></div>' : '') +
+    (w ? '<div class="wp-balance"><div class="wp-balance-label">Wallet ' + (Wallet.type||'') + '</div>' +
+      '<div class="wp-balance-val">' + (Wallet.balance||'—') + '</div>' +
+      '<div class="wp-balance-sub" style="font-size:11px;word-break:break-all">' + w + '</div></div>' +
+      '<div class="wp-actions"><button class="wp-act" id="wm-copy">Copiar dirección</button><button class="wp-act" id="wm-exp">Ver en Explorer</button></div>'
+    : '<div id="wm-addw" style="display:flex;align-items:center;gap:10px;padding:13px;background:var(--bg3);border:1px dashed var(--bd2);border-radius:var(--r2);cursor:pointer;margin-bottom:16px">' +
+      '<span style="font-size:20px">◎</span><div><div style="font-size:13px;font-weight:600;color:var(--t2)">Conectar wallet Web3</div>' +
+      '<div style="font-size:11px;color:var(--t3)">MetaMask · Phantom · Coinbase</div></div>' +
+      '<span style="margin-left:auto;color:var(--neon);font-weight:700">+</span></div>') +
+    '<a href="app.html" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;background:linear-gradient(135deg,#166534,var(--neon));border-radius:var(--r);font-size:13px;font-weight:700;color:#000;margin-bottom:8px;text-decoration:none">Abrir App →</a>' +
+    '<button id="wm-out" class="wp-disconnect">Cerrar sesión</button>';
+}
+
+function _wmBConn(inn) {
+  inn.querySelector('#wm-copy')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(Wallet.address).then(() => showToast('Dirección copiada', 'success'));
+  });
+  inn.querySelector('#wm-exp')?.addEventListener('click', () => {
+    window.open(Wallet.chain==='solana' ? 'https://solscan.io/account/'+Wallet.address : 'https://etherscan.io/address/'+Wallet.address, '_blank', 'noopener');
+  });
+  inn.querySelector('#wm-addw')?.addEventListener('click', () => { inn.innerHTML = _wmHAuth('wallet'); _wmBAuth(inn); });
+  inn.querySelector('#wm-out')?.addEventListener('click', async () => { await Auth.signOut(); _wmR(); showToast('Sesión cerrada', 'success'); });
+}
+
+function _wmHAuth(tab) {
+  const hp = !!(window.phantom?.solana?.isPhantom || window.solana?.isPhantom);
+  const he = typeof window.ethereum !== 'undefined';
+  const det = (ok) => ok ? '<span style="font-size:9px;font-weight:700;background:var(--nd);color:var(--neon);border:1px solid var(--nm);border-radius:20px;padding:1px 7px;margin-left:5px">Detectada</span>' : '';
+  const apple = '<button class="wm-apple" id="wm-apl"><svg viewBox="0 0 24 24" width="17" height="17" fill="var(--txt)" style="flex-shrink:0"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/></svg>Continuar con Apple</button>';
+  return '<button class="modal-close">✕</button>' +
+    '<h3 style="margin-bottom:6px">Conectar a AgroGlobalDex</h3>' +
+    '<p style="color:var(--t2);font-size:13px;margin-bottom:18px;line-height:1.6">Wallet Web3, email o Apple. Una cuenta — web y app.</p>' +
+    '<div style="display:flex;border-bottom:1px solid var(--bd);margin:0 -32px 20px;padding:0 32px">' +
+    '<button class="wm-tab' + (tab==='wallet'?' wm-act':'') + '" data-p="wallet">Wallet</button>' +
+    '<button class="wm-tab' + (tab==='login'?' wm-act':'') + '" data-p="login">Iniciar sesión</button>' +
+    '<button class="wm-tab' + (tab==='register'?' wm-act':'') + '" data-p="register">Registro</button></div>' +
+    '<div id="wmp-wallet" style="display:' + (tab==='wallet'?'block':'none') + '">' +
+    '<div class="wallet-option" data-w="metamask"><svg viewBox="0 0 40 40"><polygon points="36,4 22.3,14.2 24.8,8" fill="#E17726"/><polygon points="4,4 17.6,14.3 15.3,8" fill="#E27625"/><polygon points="30.9,27.5 27.2,33.2 35.2,35.4 37.5,27.6" fill="#E27625"/><polygon points="2.6,27.6 4.8,35.4 12.8,33.2 9.1,27.5" fill="#E27625"/><polygon points="12.4,17.5 10.2,20.8 18,21.2 17.7,12.8" fill="#E27625"/><polygon points="27.6,17.5 22.3,12.7 22,21.2 29.8,20.8" fill="#E27625"/></svg><div class="wo-info"><div class="wo-name">MetaMask ' + det(he) + '</div><div class="wo-sub">Ethereum · ERC-20</div></div><div class="wo-arr">→</div></div>' +
+    '<div class="wallet-option" data-w="phantom"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="19" fill="#AB9FF2"/><path d="M29 16c0-4.4-3.6-8-9-8s-9 3.6-9 8c0 4.2 3.4 7.5 7.5 7.5.7 0 1.4-.1 2-.3 3.5-1 6.5-4.2 6.5-7.2z" fill="white"/><ellipse cx="15.5" cy="16.5" rx="1.5" ry="2" fill="#AB9FF2"/><ellipse cx="21.5" cy="16.5" rx="1.5" ry="2" fill="#AB9FF2"/></svg><div class="wo-info"><div class="wo-name">Phantom ' + det(hp) + '</div><div class="wo-sub">Solana · SPL Tokens</div></div><div class="wo-arr">→</div></div>' +
+    '<div class="wallet-option" data-w="coinbase"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="19" fill="#0052FF"/><rect x="14" y="14" width="12" height="12" rx="2" fill="white"/></svg><div class="wo-info"><div class="wo-name">Coinbase Wallet</div><div class="wo-sub">Multi-chain</div></div><div class="wo-arr">→</div></div>' +
+    '<div class="wallet-option" data-w="walletconnect"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="19" fill="#3B99FC"/><path d="M11.5 16c4.7-4.6 12.3-4.6 17 0l.6.6c.2.2.2.6 0 .8l-2 2c-.1.1-.3.1-.4 0l-.8-.8c-3.3-3.2-8.6-3.2-11.9 0l-.9.8c-.1.1-.3.1-.4 0l-2-2c-.2-.2-.2-.6 0-.8l.8-.6z" fill="white"/></svg><div class="wo-info"><div class="wo-name">WalletConnect</div><div class="wo-sub">300+ wallets</div></div><div class="wo-arr">→</div></div>' +
+    '<p class="wp-note">Nunca almacenamos tus claves privadas.</p></div>' +
+    '<div id="wmp-login" style="display:' + (tab==='login'?'block':'none') + '">' + apple.replace('wm-apl','wm-apl-l') +
+    '<div class="wm-or">o con email</div><div class="wm-err" id="wm-lerr"></div>' +
+    '<div class="wm-f"><label>Email</label><input type="email" id="wm-le" placeholder="tu@email.com" autocomplete="email"></div>' +
+    '<div class="wm-f"><label>Contraseña</label><input type="password" id="wm-lp" placeholder="••••••••" autocomplete="current-password"></div>' +
+    '<button class="wm-btn" id="wm-lbtn">Iniciar sesión</button>' +
+    '<p class="wp-note" style="margin-top:12px">¿Sin cuenta? <a id="wm-toreg" style="color:var(--neon);cursor:pointer;font-weight:600">Regístrate gratis</a></p></div>' +
+    '<div id="wmp-register" style="display:' + (tab==='register'?'block':'none') + '">' + apple.replace('wm-apl','wm-apl-r') +
+    '<div class="wm-or">o con email</div><div class="wm-err" id="wm-rerr"></div>' +
+    '<div class="wm-f"><label>Nombre</label><input type="text" id="wm-rn" placeholder="Tu nombre" autocomplete="name"></div>' +
+    '<div class="wm-f"><label>Email *</label><input type="email" id="wm-re" placeholder="tu@email.com" autocomplete="email"></div>' +
+    '<div class="wm-f"><label>Contraseña * <span style="font-weight:400;color:var(--t3)">(mín. 6 caracteres)</span></label><input type="password" id="wm-rp" placeholder="••••••••" autocomplete="new-password"></div>' +
+    '<div class="wm-f"><label>Confirmar contraseña *</label><input type="password" id="wm-rp2" placeholder="••••••••" autocomplete="new-password"></div>' +
+    '<button class="wm-btn" id="wm-rbtn">Crear cuenta gratis</button>' +
+    '<p class="wp-note" style="margin-top:10px">Al registrarte aceptas nuestros Términos y Privacidad. AgroGlobalDex es un proyecto en desarrollo y no presta servicios de inversión.</p>' +
+    '<p class="wp-note" style="margin-top:4px">¿Ya tienes cuenta? <a id="wm-tolog" style="color:var(--neon);cursor:pointer;font-weight:600">Inicia sesión</a></p></div>';
+}
+
+function _wmBAuth(inn) {
+  // Tabs
+  inn.querySelectorAll('.wm-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      inn.querySelectorAll('.wm-tab').forEach(x => x.classList.remove('wm-act'));
+      t.classList.add('wm-act');
+      ['wallet','login','register'].forEach(id => {
+        const p = inn.querySelector('#wmp-' + id);
+        if (p) p.style.display = t.dataset.p === id ? 'block' : 'none';
+      });
+    });
+  });
+  inn.querySelector('#wm-toreg')?.addEventListener('click', () => inn.querySelector('[data-p="register"]')?.click());
+  inn.querySelector('#wm-tolog')?.addEventListener('click', () => inn.querySelector('[data-p="login"]')?.click());
+  // Wallets
+  inn.querySelectorAll('.wallet-option').forEach(opt => {
+    opt.addEventListener('click', async () => {
+      const w = opt.dataset.w;
+      let ok = false;
+      if (w==='metamask') ok = await Wallet.connectMetaMask();
+      else if (w==='phantom') ok = await Wallet.connectPhantom();
+      else if (w==='coinbase') ok = await Wallet.connectCoinbase();
+      else Wallet.connectWalletConnect();
+      if (ok) { Auth.linkWallet(Wallet.address,Wallet.type,Wallet.chain); _wmR(); }
+    });
+  });
+  // Apple
+  const doApple = async (errEl) => {
+    try { await Auth.signInApple(); if (Auth.user) _wmR(); }
+    catch(e) { _wmE(errEl, e.message||'Error con Apple'); }
+  };
+  inn.querySelector('#wm-apl-l')?.addEventListener('click', () => doApple(inn.querySelector('#wm-lerr')));
+  inn.querySelector('#wm-apl-r')?.addEventListener('click', () => doApple(inn.querySelector('#wm-rerr')));
+  // Login
+  const lbtn = inn.querySelector('#wm-lbtn');
+  const doL = async () => {
+    const e = inn.querySelector('#wm-le')?.value.trim();
+    const p = inn.querySelector('#wm-lp')?.value;
+    const err = inn.querySelector('#wm-lerr');
+    _wmE(err,'');
+    if (!e||!e.includes('@')) return _wmE(err,'Email no válido');
+    if (!p||p.length<6) return _wmE(err,'Contraseña demasiado corta');
+    lbtn.disabled=true; lbtn.innerHTML='<span class="wm-spin"></span>Conectando…';
+    try { await Auth.signIn(e,p); _wmR(); showToast('✓ Sesión iniciada','success'); }
+    catch(ex) {
+      lbtn.disabled=false; lbtn.textContent='Iniciar sesión';
+      const m=ex.message||'';
+      _wmE(err, m.includes('Invalid login')?'Email o contraseña incorrectos':m.includes('not confirmed')?'Confirma tu email primero':(m||'Error de conexión'));
+    }
+  };
+  lbtn?.addEventListener('click', doL);
+  inn.querySelector('#wm-lp')?.addEventListener('keydown', ev => { if(ev.key==='Enter') doL(); });
+  // Register
+  const rbtn = inn.querySelector('#wm-rbtn');
+  const doR = async () => {
+    const n=inn.querySelector('#wm-rn')?.value.trim();
+    const e=inn.querySelector('#wm-re')?.value.trim();
+    const p=inn.querySelector('#wm-rp')?.value;
+    const p2=inn.querySelector('#wm-rp2')?.value;
+    const err=inn.querySelector('#wm-rerr');
+    _wmE(err,'');
+    if(!e||!e.includes('@')) return _wmE(err,'Email no válido');
+    if(!p||p.length<6) return _wmE(err,'Mínimo 6 caracteres');
+    if(p!==p2) return _wmE(err,'Las contraseñas no coinciden');
+    rbtn.disabled=true; rbtn.innerHTML='<span class="wm-spin"></span>Creando cuenta…';
+    try {
+      const r = await Auth.signUp(e,p,n);
+      if(r?.needsConfirm) { _wmE(err,'✉ Revisa tu email para confirmar la cuenta',true); rbtn.disabled=false; rbtn.textContent='Crear cuenta gratis'; return; }
+      _wmR(); showToast('✓ Cuenta creada · Bienvenido','success');
+    } catch(ex) {
+      rbtn.disabled=false; rbtn.textContent='Crear cuenta gratis';
+      const m=ex.message||'';
+      _wmE(err, m.includes('already registered')?'Email ya registrado · Inicia sesión':(m||'Error al crear cuenta'));
+    }
+  };
+  rbtn?.addEventListener('click', doR);
+  inn.querySelector('#wm-rp2')?.addEventListener('keydown', ev => { if(ev.key==='Enter') doR(); });
+}
+
+function _wmE(el, msg, isOk) {
+  if (!el) return;
+  if (!msg) { el.style.display='none'; return; }
+  el.style.cssText='display:block;padding:9px 13px;border-radius:var(--r);font-size:12px;line-height:1.55;margin-bottom:12px;background:'+(isOk?'rgba(0,255,106,.08)':'rgba(255,61,74,.08)')+';border:1px solid '+(isOk?'rgba(0,255,106,.25)':'rgba(255,61,74,.25)')+';color:'+(isOk?'var(--neon)':'var(--red)');
+  el.textContent=msg;
+}
+
+
+
+/* ═══════ TOAST ═══════ */
+function showToast(msg, type = 'success') {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<div class="toast-ico">${type==='success'?'✓':'!'}</div><div class="toast-txt">${msg}</div>`;
+  requestAnimationFrame(() => toast.classList.add('show'));
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+/* ═══════ MOBILE MENU ═══════ */
+function initMobileMenu() {
+  const burger = document.getElementById('burger');
+  const menu = document.getElementById('mob-menu');
+  const overlay = document.getElementById('mob-overlay');
+  if (!burger || !menu || !overlay) return;
+  const close = () => {
+    burger.classList.remove('open');
+    menu.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+  burger.addEventListener('click', () => {
+    const isOpen = burger.classList.toggle('open');
+    menu.classList.toggle('open');
+    overlay.classList.toggle('open');
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+  overlay.addEventListener('click', close);
+  menu.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+}
+
+/* ═══════ REVEAL ON SCROLL ═══════ */
+function initReveal() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('vis');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.rv').forEach(el => obs.observe(el));
+}
+
+/* ═══════ ACTIVE NAV ═══════ */
+function setActiveNav() {
+  const current = location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('.nav-links a, .mobile-menu a').forEach(a => {
+    const href = a.getAttribute('href');
+    if (href === current || (current === '' && href === 'index.html')) {
+      a.classList.add('active');
+    }
+  });
+}
+
+/* ═══════ INIT ═══════ */
+document.addEventListener('DOMContentLoaded', () => {
+  renderTicker();
+  Wallet.init();
+  Auth._init();
+  initMobileMenu();
+  initReveal();
+  setActiveNav();
+  // Bind all wallet buttons
+  document.querySelectorAll('.wallet-btn, .nwb').forEach(btn => {
+    btn.addEventListener('click', openWalletModal);
+  });
+});
+
+
+/* ═══════════════════════════════════════════════════════════
+   SUPABASE AUTH — Email, Apple, sesión persistente
+   Para activar: reemplaza SB_URL y SB_KEY con tus claves
+   de https://supabase.com → Settings → API
+═══════════════════════════════════════════════════════════ */
+const SB_URL = 'https://TU_PROYECTO.supabase.co';
+const SB_KEY = 'TU_ANON_KEY_AQUI';
+const SB_OK  = !SB_URL.includes('TU_PROYECTO');
+let _sb = null;
+
+(function loadSB() {
+  if (!SB_OK) return;
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+  s.onload = () => { _sb = window.supabase.createClient(SB_URL, SB_KEY); Auth._init(); };
+  document.head.appendChild(s);
+})();
+
+const Auth = {
+  user: null,
+
+  async _init() {
+    if (_sb) {
+      try {
+        const { data: { session } } = await _sb.auth.getSession();
+        if (session?.user) { this.user = session.user; this._nav(); this._syncW(); }
+        _sb.auth.onAuthStateChange((ev, sess) => {
+          if (ev === 'SIGNED_IN'  && sess) { this.user = sess.user; this._nav(); this._syncW(); }
+          if (ev === 'SIGNED_OUT')          { this.user = null;      this._nav(); }
+        });
+      } catch(e) {}
+      return;
+    }
+    try {
+      const r = localStorage.getItem('agro_auth');
+      if (r) { this.user = JSON.parse(r); this._nav(); this._syncW(); }
+    } catch(e) {}
+  },
+
+  _syncW() {
+    if (!this.user?.id || Wallet.address) return;
+    try {
+      const d = JSON.parse(localStorage.getItem('agro_w_' + this.user.id) || 'null');
+      if (d) { Wallet.address = d.a; Wallet.type = d.t; Wallet.chain = d.c; Wallet.updateUI(); }
+    } catch(e) {}
+  },
+
+  _nav() {
+    if (this.user && !Wallet.address) {
+      const lbl = this.name().slice(0,14);
+      document.querySelectorAll('.wallet-btn,.nwb').forEach(b => {
+        b.classList.add('connected');
+        b.innerHTML = '<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>' + lbl + '</span>';
+      });
+    }
+  },
+
+  name()     { return (this.user?.user_metadata?.full_name || this.user?.email?.split('@')[0] || 'Inversor'); },
+  initials() { return this.name().slice(0,2).toUpperCase(); },
+
+  async signIn(email, pass) {
+    if (_sb) {
+      const { data, error } = await _sb.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      this.user = data.user;
+    } else {
+      this.user = { id:'u'+Date.now(), email, user_metadata:{ full_name: email.split('@')[0] }, demo:true };
+      localStorage.setItem('agro_auth', JSON.stringify(this.user));
+    }
+    this._nav(); return this.user;
+  },
+
+  async signUp(email, pass, name) {
+    if (_sb) {
+      const { data, error } = await _sb.auth.signUp({ email, password:pass, options:{ data:{ full_name: name||email.split('@')[0] } } });
+      if (error) throw error;
+      if (data.user && !data.session) return { needsConfirm: true };
+      this.user = data.user;
+    } else {
+      this.user = { id:'u'+Date.now(), email, user_metadata:{ full_name: name||email.split('@')[0] }, demo:true };
+      localStorage.setItem('agro_auth', JSON.stringify(this.user));
+    }
+    this._nav(); return this.user;
+  },
+
+  async signInApple() {
+    if (_sb) {
+      await _sb.auth.signInWithOAuth({ provider:'apple', options:{ redirectTo: window.location.href } });
+    } else {
+      this.user = { id:'a'+Date.now(), email: Math.random().toString(36).slice(2)+'@privaterelay.appleid.com', user_metadata:{ full_name:'Apple User', provider:'apple' }, demo:true };
+      localStorage.setItem('agro_auth', JSON.stringify(this.user));
+      this._nav();
+      showToast('Apple Sign In (modo demo)', 'success');
+    }
+  },
+
+  async signOut() {
+    if (_sb) await _sb.auth.signOut().catch(()=>{});
+    localStorage.removeItem('agro_auth');
+    if (this.user?.id) localStorage.removeItem('agro_w_'+this.user.id);
+    this.user = null;
+    Wallet.disconnect();
+  },
+
+  linkWallet(addr, type, chain) {
+    if (this.user?.id) localStorage.setItem('agro_w_'+this.user.id, JSON.stringify({a:addr,t:type,c:chain}));
+  }
+};
+</script>
 <script>
 const COUNTRIES=[
   {code:"ES",name:"España",flag:"🇪🇸",lat:40.4,lng:-3.7,comp:12,prod:"Aceite, vino, cereales",vol:"$420K",g:0},
