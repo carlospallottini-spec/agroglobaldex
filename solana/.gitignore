@@ -1,0 +1,10 @@
+# Anchor / Solana build artifacts
+target/
+!target/deploy/agroglobaldex-keypair.json
+node_modules/
+.anchor/
+test-ledger/
+*.so
+
+# Cargo lock — committed for reproducibility (uncomment to exclude)
+# Cargo.lock

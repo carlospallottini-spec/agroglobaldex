@@ -1,0 +1,2864 @@
+{
+  "address": "G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a",
+  "metadata": {
+    "name": "agroglobaldex",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "AgroGlobalDex - Tokenized agricultural RWA marketplace on Solana"
+  },
+  "instructions": [
+    {
+      "name": "aggregate_external_asset",
+      "docs": [
+        "Aggregator: register an externally-minted RWA-agro asset for display.",
+        "Authority-only. Either `mint` is `Some` (Solana SPL) or",
+        "`external_chain_id`/`external_contract` must be non-empty (cross-chain)."
+      ],
+      "discriminator": [
+        162,
+        113,
+        5,
+        100,
+        17,
+        238,
+        2,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "curator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "external_asset",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  101,
+                  114,
+                  110,
+                  97,
+                  108,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.external_asset_count",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "payload",
+          "type": {
+            "defined": {
+              "name": "AggregatePayload"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "buy_asset",
+      "docs": [
+        "Buy a native listing in USDC. Compliance-checked."
+      ],
+      "discriminator": [
+        197,
+        37,
+        177,
+        1,
+        180,
+        23,
+        175,
+        98
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry"
+        },
+        {
+          "name": "listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry"
+              },
+              {
+                "kind": "account",
+                "path": "listing.seller",
+                "account": "MarketplaceListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "seller"
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "buyer_compliance",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "buyer_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "seller_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "treasury_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "usdc_token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize the marketplace global config."
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "compliance_authority",
+          "docs": [
+            "the marketplace so other instructions can require it as `Signer` via",
+            "`seeds`/`bump` when stamping `ComplianceRecord`s."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint",
+          "docs": [
+            "USDC mint (devnet or mainnet — caller passes the correct address)."
+          ]
+        },
+        {
+          "name": "treasury_usdc_ata",
+          "docs": [
+            "Treasury USDC ATA, created here so fees can flow on the very first buy."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "list_asset",
+      "docs": [
+        "List a native asset at a USDC price (6 decimals per token base unit)."
+      ],
+      "discriminator": [
+        11,
+        25,
+        254,
+        205,
+        61,
+        252,
+        23,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry"
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "relations": [
+            "asset_registry"
+          ]
+        },
+        {
+          "name": "seller_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "seller"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry"
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "Escrow token account owned by the listing PDA."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "listing"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price_usdc",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "mint_token",
+      "docs": [
+        "Mint tokens against a registered asset. Issuer-only, capped at",
+        "`total_supply`."
+      ],
+      "discriminator": [
+        172,
+        137,
+        183,
+        14,
+        207,
+        110,
+        234,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "issuer",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "asset_registry"
+          ]
+        },
+        {
+          "name": "asset_registry",
+          "docs": [
+            "Deterministically reconstructed using the explicit `index` stored",
+            "inside the registry itself. No reliance on client-supplied seeds."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.marketplace",
+                "account": "AssetRegistry"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry"
+              }
+            ]
+          },
+          "relations": [
+            "asset_registry"
+          ]
+        },
+        {
+          "name": "issuer_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "issuer"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "redeem",
+      "docs": [
+        "Burn tokens to redeem the underlying off-chain commodity."
+      ],
+      "discriminator": [
+        184,
+        12,
+        86,
+        149,
+        70,
+        196,
+        97,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "holder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "asset_registry"
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "holder_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "holder"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "register_asset",
+      "docs": [
+        "Register a new tokenizable asset (one `AssetRegistry` per real-world lot).",
+        "`oracle_attestation` is the SHA-256 hash of the off-chain certificate.",
+        "`white_paper_uri` is required by MiCA Art. 6."
+      ],
+      "discriminator": [
+        21,
+        80,
+        155,
+        149,
+        117,
+        207,
+        235,
+        16
+      ],
+      "accounts": [
+        {
+          "name": "issuer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.asset_count",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "Token-2022 mint PDA. Created manually below with the TransferHook",
+            "extension wired to the compliance-hook program id.",
+            ""
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "compliance_hook_program",
+          "docs": [
+            "The compliance-hook program id. Stored inside the TransferHook",
+            "extension so every transfer of the mint CPIs into it."
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "asset_class",
+          "type": {
+            "defined": {
+              "name": "AssetClass"
+            }
+          }
+        },
+        {
+          "name": "total_supply",
+          "type": "u64"
+        },
+        {
+          "name": "oracle_attestation",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "white_paper_uri",
+          "type": "string"
+        },
+        {
+          "name": "metadata_uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "update_external_asset",
+      "docs": [
+        "Aggregator: toggle `verified` / `active` flags on an aggregated asset."
+      ],
+      "discriminator": [
+        121,
+        42,
+        154,
+        121,
+        70,
+        149,
+        44,
+        51
+      ],
+      "accounts": [
+        {
+          "name": "curator",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "external_asset",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  101,
+                  114,
+                  110,
+                  97,
+                  108,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "external_asset.index",
+                "account": "ExternalAssetRegistry"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "verified",
+          "type": "bool"
+        },
+        {
+          "name": "active",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_kyc",
+      "docs": [
+        "Stamp / update KYC + jurisdiction flags for a wallet. Authority-only."
+      ],
+      "discriminator": [
+        61,
+        184,
+        181,
+        178,
+        233,
+        174,
+        248,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "compliance_signer",
+          "docs": [
+            "The human / service wallet permitted to manage compliance. Currently",
+            "equal to `marketplace.authority` — production deployments should",
+            "separate this role."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "compliance_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "compliance_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "kyc_verified",
+          "type": "bool"
+        },
+        {
+          "name": "jurisdiction",
+          "type": {
+            "array": [
+              "u8",
+              2
+            ]
+          }
+        },
+        {
+          "name": "accredited_investor",
+          "type": "bool"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AssetRegistry",
+      "discriminator": [
+        60,
+        94,
+        213,
+        134,
+        205,
+        170,
+        175,
+        68
+      ]
+    },
+    {
+      "name": "ComplianceRecord",
+      "discriminator": [
+        147,
+        228,
+        164,
+        27,
+        251,
+        44,
+        67,
+        185
+      ]
+    },
+    {
+      "name": "ExternalAssetRegistry",
+      "discriminator": [
+        100,
+        38,
+        86,
+        65,
+        49,
+        55,
+        103,
+        180
+      ]
+    },
+    {
+      "name": "Marketplace",
+      "discriminator": [
+        70,
+        222,
+        41,
+        62,
+        78,
+        3,
+        32,
+        174
+      ]
+    },
+    {
+      "name": "MarketplaceListing",
+      "discriminator": [
+        211,
+        106,
+        229,
+        109,
+        73,
+        75,
+        97,
+        122
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AssetListed",
+      "discriminator": [
+        39,
+        64,
+        97,
+        162,
+        189,
+        150,
+        150,
+        2
+      ]
+    },
+    {
+      "name": "AssetPurchased",
+      "discriminator": [
+        221,
+        170,
+        90,
+        143,
+        119,
+        11,
+        112,
+        113
+      ]
+    },
+    {
+      "name": "AssetRedeemed",
+      "discriminator": [
+        106,
+        239,
+        232,
+        244,
+        21,
+        191,
+        83,
+        153
+      ]
+    },
+    {
+      "name": "AssetRegistered",
+      "discriminator": [
+        252,
+        56,
+        47,
+        89,
+        8,
+        180,
+        249,
+        254
+      ]
+    },
+    {
+      "name": "ComplianceUpdated",
+      "discriminator": [
+        196,
+        6,
+        124,
+        206,
+        58,
+        250,
+        107,
+        157
+      ]
+    },
+    {
+      "name": "ExternalAssetAggregated",
+      "discriminator": [
+        220,
+        120,
+        157,
+        218,
+        10,
+        195,
+        172,
+        127
+      ]
+    },
+    {
+      "name": "ExternalAssetUpdated",
+      "discriminator": [
+        135,
+        212,
+        24,
+        38,
+        228,
+        117,
+        110,
+        97
+      ]
+    },
+    {
+      "name": "TokensMinted",
+      "discriminator": [
+        207,
+        212,
+        128,
+        194,
+        175,
+        54,
+        64,
+        24
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedMarketplaceAuthority",
+      "msg": "Caller is not the marketplace authority"
+    },
+    {
+      "code": 6001,
+      "name": "UnauthorizedComplianceAuthority",
+      "msg": "Caller is not the compliance authority"
+    },
+    {
+      "code": 6002,
+      "name": "UnauthorizedIssuer",
+      "msg": "Caller is not the asset issuer"
+    },
+    {
+      "code": 6003,
+      "name": "UnauthorizedCurator",
+      "msg": "Caller is not the curator of this external asset"
+    },
+    {
+      "code": 6004,
+      "name": "KycNotVerified",
+      "msg": "Wallet has not passed KYC verification"
+    },
+    {
+      "code": 6005,
+      "name": "JurisdictionNotAllowed",
+      "msg": "Jurisdiction is not allowed by the marketplace policy"
+    },
+    {
+      "code": 6006,
+      "name": "AccreditedInvestorRequired",
+      "msg": "Accredited investor status is required for this asset"
+    },
+    {
+      "code": 6007,
+      "name": "AssetNotRedeemable",
+      "msg": "Asset is not redeemable"
+    },
+    {
+      "code": 6008,
+      "name": "SupplyExceeded",
+      "msg": "Requested amount exceeds the declared total supply"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6010,
+      "name": "ListingUnavailable",
+      "msg": "Listing is inactive or has insufficient remaining quantity"
+    },
+    {
+      "code": 6011,
+      "name": "InsufficientFunds",
+      "msg": "Buyer balance is insufficient to settle the trade"
+    },
+    {
+      "code": 6012,
+      "name": "PriceOverflow",
+      "msg": "Price overflow when computing the trade settlement"
+    },
+    {
+      "code": 6013,
+      "name": "MissingWhitePaper",
+      "msg": "White paper URI is required for MiCA-regulated assets"
+    },
+    {
+      "code": 6014,
+      "name": "StringTooLong",
+      "msg": "Provided string exceeds the maximum allowed length"
+    },
+    {
+      "code": 6015,
+      "name": "FeeTooHigh",
+      "msg": "Fee basis points must be <= 1000 (10%)"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidAssetMetadata",
+      "msg": "Asset class metadata is invalid or incomplete"
+    },
+    {
+      "code": 6017,
+      "name": "CrossChainNotTradable",
+      "msg": "Cross-chain external assets are display-only and cannot be listed"
+    },
+    {
+      "code": 6018,
+      "name": "MissingExternalMint",
+      "msg": "External asset does not declare an SPL mint"
+    },
+    {
+      "code": 6019,
+      "name": "ListingMismatch",
+      "msg": "Listing source/mint mismatch"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidUsdcMint",
+      "msg": "USDC mint does not match the marketplace USDC mint"
+    },
+    {
+      "code": 6021,
+      "name": "ExternalAssetInactive",
+      "msg": "External asset is not currently active"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidAggregatorPayload",
+      "msg": "Aggregator payload incomplete or inconsistent"
+    }
+  ],
+  "types": [
+    {
+      "name": "AggregatePayload",
+      "docs": [
+        "Off-chain payload for aggregator entries. Bundled into a single struct so",
+        "it can be serialized cleanly across the IX boundary and the IDL stays tidy."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "external_chain_id",
+            "type": "string"
+          },
+          {
+            "name": "external_contract",
+            "type": "string"
+          },
+          {
+            "name": "asset_class",
+            "type": {
+              "defined": {
+                "name": "AssetClass"
+              }
+            }
+          },
+          {
+            "name": "source_platform",
+            "type": "string"
+          },
+          {
+            "name": "source_url",
+            "type": "string"
+          },
+          {
+            "name": "metadata_uri",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetClass",
+      "docs": [
+        "Three top-level asset classes supported by the marketplace.",
+        "Each carries class-specific metadata that the off-chain certificate",
+        "(referenced through `oracle_attestation`) must back."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Grain",
+            "fields": [
+              {
+                "name": "kind",
+                "type": {
+                  "defined": {
+                    "name": "GrainKind"
+                  }
+                }
+              },
+              {
+                "name": "tons",
+                "type": "u64"
+              }
+            ]
+          },
+          {
+            "name": "CarbonCredit",
+            "fields": [
+              {
+                "name": "standard",
+                "type": {
+                  "defined": {
+                    "name": "CarbonStandard"
+                  }
+                }
+              },
+              {
+                "name": "vintage_year",
+                "type": "u16"
+              },
+              {
+                "name": "kg_co2eq",
+                "type": "u64"
+              }
+            ]
+          },
+          {
+            "name": "HarvestFraction",
+            "fields": [
+              {
+                "name": "crop",
+                "type": {
+                  "defined": {
+                    "name": "GrainKind"
+                  }
+                }
+              },
+              {
+                "name": "hectares",
+                "type": "u32"
+              },
+              {
+                "name": "harvest_year",
+                "type": "u16"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetListed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "source",
+            "type": {
+              "defined": {
+                "name": "ListingSource"
+              }
+            }
+          },
+          {
+            "name": "source_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetPurchased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "fee_usdc",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetRedeemed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "holder",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "redeemed_at",
+            "docs": [
+              "The off-chain settlement workflow MUST listen to this event and release",
+              "the physical commodity (or retire the credit) to `holder`."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetRegistered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "issuer",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetRegistry",
+      "docs": [
+        "One per tokenized real-world asset lot. The mint of the SPL Token-2022",
+        "is derived from this registry as a PDA so the program is its mint authority."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "docs": [
+              "The marketplace this asset belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "issuer",
+            "docs": [
+              "Issuer (producer / cooperative / project) wallet. Only they can mint."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "The SPL Token-2022 mint that represents this asset."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_class",
+            "docs": [
+              "Class + class-specific metadata."
+            ],
+            "type": {
+              "defined": {
+                "name": "AssetClass"
+              }
+            }
+          },
+          {
+            "name": "total_supply",
+            "docs": [
+              "Maximum tokens that may ever be minted against this lot."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "minted_supply",
+            "docs": [
+              "Amount minted so far."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "oracle_attestation",
+            "docs": [
+              "SHA-256 of the off-chain attestation (warehouse receipt, VCS issuance, etc)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "white_paper_uri",
+            "docs": [
+              "MiCA Art. 6 white paper URI (IPFS / Arweave preferred)."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "metadata_uri",
+            "docs": [
+              "Off-chain JSON metadata URI (image, full description)."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "redeemable",
+            "docs": [
+              "Whether burning tokens redeems the underlying off-chain commodity.",
+              "Carbon credits, for example, are typically redeemable (retirement)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "frozen_metadata",
+            "docs": [
+              "True once the issuer has minted at least once and no more changes",
+              "to immutable fields are allowed."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "index",
+            "docs": [
+              "Sequential index assigned by the marketplace at registration time.",
+              "Used as a seed component so PDA seeds are deterministically",
+              "reconstructible without trusting the client."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for this PDA."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CarbonStandard",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Vcs"
+          },
+          {
+            "name": "GoldStandard"
+          },
+          {
+            "name": "EuEts"
+          },
+          {
+            "name": "Other"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ComplianceRecord",
+      "docs": [
+        "One per wallet. Stamped by the marketplace `compliance_authority`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "docs": [
+              "The wallet this record refers to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "marketplace",
+            "docs": [
+              "Marketplace the record is scoped to (multi-tenant friendly)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "kyc_verified",
+            "docs": [
+              "True if the wallet has passed KYC."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "jurisdiction",
+            "docs": [
+              "ISO-3166-alpha-2 country code (e.g. \"AR\", \"DE\")."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                2
+              ]
+            }
+          },
+          {
+            "name": "accredited_investor",
+            "docs": [
+              "Whether the wallet qualifies as an accredited / professional investor",
+              "under MiFID II / MiCA categorization."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "updated_at",
+            "docs": [
+              "Unix timestamp when the record was last updated."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for this PDA."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ComplianceUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "kyc_verified",
+            "type": "bool"
+          },
+          {
+            "name": "jurisdiction",
+            "type": {
+              "array": [
+                "u8",
+                2
+              ]
+            }
+          },
+          {
+            "name": "accredited_investor",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExternalAssetAggregated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "external_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "curator",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "source_platform",
+            "type": "string"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExternalAssetRegistry",
+      "docs": [
+        "One per third-party (aggregated) token. Curated by the marketplace",
+        "authority. `mint` is `Some` if the token is a Solana SPL token tradable",
+        "on-chain; if it is on another chain we only store metadata and link out."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "docs": [
+              "Marketplace that aggregates this asset."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "curator",
+            "docs": [
+              "Wallet that submitted the curation (normally `marketplace.authority`)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "Solana SPL mint, if the token is native to Solana. When `None` the",
+              "asset is cross-chain and only display metadata is stored."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "external_chain_id",
+            "docs": [
+              "Free-form chain identifier for cross-chain assets (\"ethereum\",",
+              "\"polygon\", \"bsc\", \"rsk\", ...). Empty if `mint` is set."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "external_contract",
+            "docs": [
+              "Contract address on the foreign chain. Empty if `mint` is set."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "asset_class",
+            "docs": [
+              "Reuse the same asset taxonomy as native assets."
+            ],
+            "type": {
+              "defined": {
+                "name": "AssetClass"
+              }
+            }
+          },
+          {
+            "name": "source_platform",
+            "docs": [
+              "Short label for the upstream platform (\"Agrotoken\", \"Topaz\", \"RIPE\",",
+              "\"AgroToken\", \"Centrifuge\")."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "source_url",
+            "docs": [
+              "URL pointing at the upstream platform listing / explorer."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "metadata_uri",
+            "docs": [
+              "Off-chain JSON metadata URI (image, full description)."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "verified",
+            "docs": [
+              "Curator-verified flag (independent of on-chain validation)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "active",
+            "docs": [
+              "Whether this aggregated asset is currently visible/tradable."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Creation timestamp."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "index",
+            "docs": [
+              "Sequential index assigned at aggregation time (for PDA seeds)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for this PDA."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExternalAssetUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "external_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "verified",
+            "type": "bool"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GrainKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Soy"
+          },
+          {
+            "name": "Corn"
+          },
+          {
+            "name": "Wheat"
+          },
+          {
+            "name": "Other"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListingSource",
+      "docs": [
+        "A listing in the marketplace can either reference a native `AssetRegistry`",
+        "(tokens minted by this program) or an aggregated `ExternalAssetRegistry`",
+        "(tokens minted by another platform but listed here for trading).",
+        "",
+        "In both cases `source` points at the registry account so the buy_asset",
+        "instruction can dispatch correctly. Cross-chain externals are display-only",
+        "and cannot be listed (the `aggregate_external_asset` instruction enforces",
+        "that listing requires a Solana SPL mint)."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Native"
+          },
+          {
+            "name": "External"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Marketplace",
+      "docs": [
+        "Global marketplace configuration. One per deployment."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "Wallet that can update marketplace parameters."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "compliance_authority",
+            "docs": [
+              "PDA derived from [COMPLIANCE_AUTHORITY_SEED, marketplace] — the only",
+              "signer authorized to write `ComplianceRecord`s."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "docs": [
+              "USDC SPL mint used to settle trades. Stored on the marketplace so we",
+              "can swap mainnet/devnet without changing program code."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "PDA that owns the USDC treasury ATA where fees accumulate."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for the marketplace PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "compliance_bump",
+            "docs": [
+              "Bump for the compliance authority PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "treasury_bump",
+            "docs": [
+              "Bump for the treasury PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "fee_bps",
+            "docs": [
+              "Fee charged on each buy, in basis points (e.g. 50 = 0.5%)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "asset_count",
+            "docs": [
+              "Monotonic counter of native registered assets."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "external_asset_count",
+            "docs": [
+              "Monotonic counter of external (aggregated) registered assets."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketplaceListing",
+      "docs": [
+        "A fixed-price USDC listing of `remaining` tokens of the underlying mint.",
+        "",
+        "`source` discriminates whether `source_registry` points at an",
+        "`AssetRegistry` (native, minted by us) or an `ExternalAssetRegistry`",
+        "(aggregated SPL token from another platform, e.g. Agrotoken)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "source",
+            "docs": [
+              "Discriminator for `source_registry`."
+            ],
+            "type": {
+              "defined": {
+                "name": "ListingSource"
+              }
+            }
+          },
+          {
+            "name": "source_registry",
+            "docs": [
+              "Either an `AssetRegistry` PDA or an `ExternalAssetRegistry` PDA."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "The actual SPL mint being traded (same as either",
+              "`AssetRegistry.mint` or `ExternalAssetRegistry.mint`)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "escrow",
+            "docs": [
+              "Escrow ATA (owned by the listing PDA) that holds the tokens for sale."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "price_usdc",
+            "docs": [
+              "Price in USDC base units (6 decimals) per single base-unit of the token."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "docs": [
+              "Remaining quantity available for sale."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Listing creation timestamp."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for this PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "active",
+            "docs": [
+              "Whether the listing is still active."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokensMinted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_minted_supply",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}
