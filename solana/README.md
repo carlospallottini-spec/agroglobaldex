@@ -5,9 +5,11 @@ Soporta tres clases nativas (granos, créditos de carbono, fracciones de cosecha
 futuras) **y agrega** tokens emitidos por otras plataformas (Agrotoken, Topaz,
 RIPE, Centrifuge…).
 
-> **Estado:** beta production-shaped. Compila contra Anchor 0.31.1 + Solana 2.1
-> con un toolchain de Rust suficientemente moderno (`cargo ≥ 1.82`). No auditado.
-> Devnet sí, mainnet **no**.
+> **Estado:** beta production-shaped, **buildeado y verificado end-to-end** en
+> un validator local con seed completo (init → KYC → register Grain →
+> mintToken → aggregate Agrotoken-like + Centrifuge cross-chain). Compila contra
+> Anchor 0.31.1 + Solana 3.0.0 + platform-tools v1.54 (cargo 1.89, rustc 1.89).
+> No auditado. Devnet/local sí, mainnet **no**.
 
 ## Stack
 
@@ -63,15 +65,49 @@ Marketplace[authority]                       seeds: marketplace, authority
 
 ## Buildear y deployar
 
-Necesitás un toolchain Rust reciente (cargo ≥ 1.82). El cargo embebido en
-Solana CLI ≤ 1.18 NO funciona — usá Solana 2.1+ con cargo del sistema.
+Toolchain validado: **Solana 3.0.0 + Anchor 0.31.1 + platform-tools v1.54**
+(cargo 1.89, rustc 1.89). Versiones más viejas (Solana ≤ 2.2, platform-tools
+≤ 1.53) fallan al compilar deps con `edition2024`.
 
 ```bash
+# Instalar Solana 3.0
+sh -c "$(curl -sSfL https://release.anza.xyz/v3.0.0/install)"
+# Instalar Anchor 0.31.1
+cargo install --git https://github.com/coral-xyz/anchor --tag v0.31.1 anchor-cli --locked
+
 cd solana
 
 anchor keys sync           # primera vez: alinea declare_id! con target/deploy/*-keypair.json
-anchor build
-./scripts/deploy-devnet.sh # build + deploy + copia el IDL a web 2.0/js/idl/
+anchor build               # genera target/deploy/agroglobaldex.so + target/idl/ + target/types/
+
+# Local validator (rápido para probar todo end-to-end)
+solana-test-validator --reset --quiet &
+solana config set --url http://127.0.0.1:8899
+solana airdrop 100
+solana program deploy --program-id target/deploy/agroglobaldex-keypair.json \
+                     target/deploy/agroglobaldex.so
+npx ts-node --project tsconfig.seed.json scripts/seed-localnet.ts
+
+# Deploy a devnet (requiere wallet con SOL devnet)
+./scripts/deploy-devnet.sh
+```
+
+### Seed run validado (output real del seed-localnet.ts)
+
+```
+Program ID: G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a
+[1] USDC mint creado
+[2] Marketplace inicializado (fee_bps=50)
+[3] KYC stamped (AR, accredited=true)
+[4] register_asset Grain (100 ton soja) — mint Token-2022 con TransferHook
+[5] mint_token 50 ton
+[6] aggregate_external_asset SPL (Agrotoken)
+[7] aggregate_external_asset cross-chain (Centrifuge / Ethereum)
+[VERIFY] Marketplace assetCount=1, externalAssetCount=2, feeBps=50
+         AssetRegistry rows: 1
+         ExternalAssetRegistry rows: 2 (Agrotoken, Centrifuge)
+         ComplianceRecord rows: 1
+✓ Seed completo
 ```
 
 ## Decisiones de diseño relevantes
