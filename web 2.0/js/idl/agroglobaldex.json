@@ -1,0 +1,305 @@
+{
+  "address": "G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a",
+  "metadata": {
+    "name": "agroglobaldex",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "AgroGlobalDex — Tokenized agricultural RWA marketplace on Solana"
+  },
+  "_note": "Este es un IDL stub manual para que el cliente JS pueda cargar la estructura. Después de correr `anchor build` localmente, copiá el IDL real desde solana/target/idl/agroglobaldex.json sobre este archivo. La estructura sigue el formato Anchor 0.31.x.",
+  "instructions": [
+    {
+      "name": "initialize",
+      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+      "accounts": [
+        {"name": "authority", "writable": true, "signer": true},
+        {"name": "marketplace", "writable": true},
+        {"name": "compliance_authority"},
+        {"name": "treasury"},
+        {"name": "usdc_mint"},
+        {"name": "treasury_usdc_ata", "writable": true},
+        {"name": "token_program"},
+        {"name": "associated_token_program"},
+        {"name": "system_program"},
+        {"name": "rent"}
+      ],
+      "args": [{"name": "fee_bps", "type": "u16"}]
+    },
+    {
+      "name": "register_asset",
+      "discriminator": [196, 184, 53, 36, 167, 8, 161, 199],
+      "accounts": [
+        {"name": "issuer", "writable": true, "signer": true},
+        {"name": "marketplace", "writable": true},
+        {"name": "asset_registry", "writable": true},
+        {"name": "mint", "writable": true},
+        {"name": "compliance_hook_program"},
+        {"name": "token_program"},
+        {"name": "system_program"},
+        {"name": "rent"}
+      ],
+      "args": [
+        {"name": "asset_class", "type": {"defined": {"name": "AssetClass"}}},
+        {"name": "total_supply", "type": "u64"},
+        {"name": "oracle_attestation", "type": {"array": ["u8", 32]}},
+        {"name": "white_paper_uri", "type": "string"},
+        {"name": "metadata_uri", "type": "string"}
+      ]
+    },
+    {
+      "name": "mint_token",
+      "discriminator": [172, 137, 183, 14, 207, 110, 234, 56],
+      "accounts": [
+        {"name": "issuer", "writable": true, "signer": true},
+        {"name": "asset_registry", "writable": true},
+        {"name": "mint", "writable": true},
+        {"name": "issuer_token_account", "writable": true},
+        {"name": "token_program"},
+        {"name": "associated_token_program"},
+        {"name": "system_program"}
+      ],
+      "args": [{"name": "amount", "type": "u64"}]
+    },
+    {
+      "name": "update_kyc",
+      "discriminator": [199, 56, 175, 230, 191, 144, 18, 21],
+      "accounts": [
+        {"name": "compliance_signer", "writable": true, "signer": true},
+        {"name": "marketplace"},
+        {"name": "compliance_authority"},
+        {"name": "wallet"},
+        {"name": "compliance_record", "writable": true},
+        {"name": "system_program"}
+      ],
+      "args": [
+        {"name": "kyc_verified", "type": "bool"},
+        {"name": "jurisdiction", "type": {"array": ["u8", 2]}},
+        {"name": "accredited_investor", "type": "bool"}
+      ]
+    },
+    {
+      "name": "list_asset",
+      "discriminator": [110, 232, 217, 102, 156, 207, 13, 21],
+      "accounts": [
+        {"name": "seller", "writable": true, "signer": true},
+        {"name": "marketplace"},
+        {"name": "asset_registry"},
+        {"name": "mint", "writable": true},
+        {"name": "seller_token_account", "writable": true},
+        {"name": "listing", "writable": true},
+        {"name": "escrow", "writable": true},
+        {"name": "token_program"},
+        {"name": "associated_token_program"},
+        {"name": "system_program"},
+        {"name": "rent"}
+      ],
+      "args": [
+        {"name": "price_usdc", "type": "u64"},
+        {"name": "amount", "type": "u64"}
+      ]
+    },
+    {
+      "name": "buy_asset",
+      "discriminator": [60, 21, 64, 232, 145, 71, 71, 14],
+      "accounts": [
+        {"name": "buyer", "writable": true, "signer": true},
+        {"name": "marketplace"},
+        {"name": "asset_registry"},
+        {"name": "listing", "writable": true},
+        {"name": "escrow", "writable": true},
+        {"name": "seller"},
+        {"name": "mint", "writable": true},
+        {"name": "buyer_token_account", "writable": true},
+        {"name": "buyer_compliance"},
+        {"name": "usdc_mint"},
+        {"name": "buyer_usdc_ata", "writable": true},
+        {"name": "seller_usdc_ata", "writable": true},
+        {"name": "treasury_usdc_ata", "writable": true},
+        {"name": "treasury"},
+        {"name": "token_program"},
+        {"name": "usdc_token_program"},
+        {"name": "associated_token_program"},
+        {"name": "system_program"}
+      ],
+      "args": [{"name": "amount", "type": "u64"}]
+    },
+    {
+      "name": "redeem",
+      "discriminator": [184, 12, 86, 149, 70, 196, 97, 225],
+      "accounts": [
+        {"name": "holder", "writable": true, "signer": true},
+        {"name": "asset_registry"},
+        {"name": "mint", "writable": true},
+        {"name": "holder_token_account", "writable": true},
+        {"name": "token_program"}
+      ],
+      "args": [{"name": "amount", "type": "u64"}]
+    },
+    {
+      "name": "aggregate_external_asset",
+      "discriminator": [55, 91, 92, 159, 184, 197, 56, 124],
+      "accounts": [
+        {"name": "curator", "writable": true, "signer": true},
+        {"name": "marketplace", "writable": true},
+        {"name": "external_asset", "writable": true},
+        {"name": "system_program"}
+      ],
+      "args": [{"name": "payload", "type": {"defined": {"name": "AggregatePayload"}}}]
+    },
+    {
+      "name": "update_external_asset",
+      "discriminator": [99, 187, 174, 99, 199, 99, 51, 198],
+      "accounts": [
+        {"name": "curator", "signer": true},
+        {"name": "marketplace"},
+        {"name": "external_asset", "writable": true}
+      ],
+      "args": [
+        {"name": "verified", "type": "bool"},
+        {"name": "active", "type": "bool"}
+      ]
+    }
+  ],
+  "accounts": [
+    {"name": "Marketplace", "discriminator": [70, 222, 41, 62, 78, 3, 32, 174]},
+    {"name": "AssetRegistry", "discriminator": [157, 8, 27, 80, 248, 254, 102, 124]},
+    {"name": "ComplianceRecord", "discriminator": [83, 21, 56, 113, 222, 32, 39, 4]},
+    {"name": "MarketplaceListing", "discriminator": [125, 49, 187, 209, 187, 142, 73, 152]},
+    {"name": "ExternalAssetRegistry", "discriminator": [115, 84, 99, 245, 199, 156, 25, 30]}
+  ],
+  "types": [
+    {
+      "name": "GrainKind",
+      "type": {"kind": "enum", "variants": [{"name": "Soy"}, {"name": "Corn"}, {"name": "Wheat"}, {"name": "Other"}]}
+    },
+    {
+      "name": "CarbonStandard",
+      "type": {"kind": "enum", "variants": [{"name": "Vcs"}, {"name": "GoldStandard"}, {"name": "EuEts"}, {"name": "Other"}]}
+    },
+    {
+      "name": "ListingSource",
+      "type": {"kind": "enum", "variants": [{"name": "Native"}, {"name": "External"}]}
+    },
+    {
+      "name": "AssetClass",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {"name": "Grain", "fields": [{"name": "kind", "type": {"defined": {"name": "GrainKind"}}}, {"name": "tons", "type": "u64"}]},
+          {"name": "CarbonCredit", "fields": [{"name": "standard", "type": {"defined": {"name": "CarbonStandard"}}}, {"name": "vintage_year", "type": "u16"}, {"name": "kg_co2eq", "type": "u64"}]},
+          {"name": "HarvestFraction", "fields": [{"name": "crop", "type": {"defined": {"name": "GrainKind"}}}, {"name": "hectares", "type": "u32"}, {"name": "harvest_year", "type": "u16"}]}
+        ]
+      }
+    },
+    {
+      "name": "AggregatePayload",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "mint", "type": {"option": "pubkey"}},
+          {"name": "external_chain_id", "type": "string"},
+          {"name": "external_contract", "type": "string"},
+          {"name": "asset_class", "type": {"defined": {"name": "AssetClass"}}},
+          {"name": "source_platform", "type": "string"},
+          {"name": "source_url", "type": "string"},
+          {"name": "metadata_uri", "type": "string"}
+        ]
+      }
+    },
+    {
+      "name": "Marketplace",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "authority", "type": "pubkey"},
+          {"name": "compliance_authority", "type": "pubkey"},
+          {"name": "usdc_mint", "type": "pubkey"},
+          {"name": "treasury", "type": "pubkey"},
+          {"name": "bump", "type": "u8"},
+          {"name": "compliance_bump", "type": "u8"},
+          {"name": "treasury_bump", "type": "u8"},
+          {"name": "fee_bps", "type": "u16"},
+          {"name": "asset_count", "type": "u64"},
+          {"name": "external_asset_count", "type": "u64"}
+        ]
+      }
+    },
+    {
+      "name": "AssetRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "marketplace", "type": "pubkey"},
+          {"name": "issuer", "type": "pubkey"},
+          {"name": "mint", "type": "pubkey"},
+          {"name": "asset_class", "type": {"defined": {"name": "AssetClass"}}},
+          {"name": "total_supply", "type": "u64"},
+          {"name": "minted_supply", "type": "u64"},
+          {"name": "oracle_attestation", "type": {"array": ["u8", 32]}},
+          {"name": "white_paper_uri", "type": "string"},
+          {"name": "metadata_uri", "type": "string"},
+          {"name": "redeemable", "type": "bool"},
+          {"name": "frozen_metadata", "type": "bool"},
+          {"name": "index", "type": "u64"},
+          {"name": "bump", "type": "u8"}
+        ]
+      }
+    },
+    {
+      "name": "ComplianceRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "wallet", "type": "pubkey"},
+          {"name": "marketplace", "type": "pubkey"},
+          {"name": "kyc_verified", "type": "bool"},
+          {"name": "jurisdiction", "type": {"array": ["u8", 2]}},
+          {"name": "accredited_investor", "type": "bool"},
+          {"name": "updated_at", "type": "i64"},
+          {"name": "bump", "type": "u8"}
+        ]
+      }
+    },
+    {
+      "name": "MarketplaceListing",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "marketplace", "type": "pubkey"},
+          {"name": "source", "type": {"defined": {"name": "ListingSource"}}},
+          {"name": "source_registry", "type": "pubkey"},
+          {"name": "mint", "type": "pubkey"},
+          {"name": "seller", "type": "pubkey"},
+          {"name": "escrow", "type": "pubkey"},
+          {"name": "price_usdc", "type": "u64"},
+          {"name": "remaining", "type": "u64"},
+          {"name": "created_at", "type": "i64"},
+          {"name": "bump", "type": "u8"},
+          {"name": "active", "type": "bool"}
+        ]
+      }
+    },
+    {
+      "name": "ExternalAssetRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "marketplace", "type": "pubkey"},
+          {"name": "curator", "type": "pubkey"},
+          {"name": "mint", "type": {"option": "pubkey"}},
+          {"name": "external_chain_id", "type": "string"},
+          {"name": "external_contract", "type": "string"},
+          {"name": "asset_class", "type": {"defined": {"name": "AssetClass"}}},
+          {"name": "source_platform", "type": "string"},
+          {"name": "source_url", "type": "string"},
+          {"name": "metadata_uri", "type": "string"},
+          {"name": "verified", "type": "bool"},
+          {"name": "active", "type": "bool"},
+          {"name": "created_at", "type": "i64"},
+          {"name": "index", "type": "u64"},
+          {"name": "bump", "type": "u8"}
+        ]
+      }
+    }
+  ]
+}

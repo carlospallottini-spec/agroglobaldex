@@ -1,40 +1,54 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{transfer as sol_transfer, Transfer as SolTransfer};
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_2022::{transfer_checked, Token2022, TransferChecked};
-use anchor_spl::token_interface::{Mint, TokenAccount};
+use anchor_spl::token::Token;
+use anchor_spl::token::{transfer as usdc_transfer, Transfer as UsdcTransfer};
+use anchor_spl::token_interface::{
+    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+};
 
 use crate::errors::AgroError;
 use crate::instructions::update_kyc::enforce_compliance;
 use crate::state::*;
 
+/// Buy `amount` tokens from a native listing, paying in USDC.
+///
+/// Settlement flow:
+///   1. KYC + jurisdiction gate on the buyer.
+///   2. Buyer → seller: (gross * (10000 - fee_bps) / 10000) USDC.
+///   3. Buyer → treasury: (gross * fee_bps / 10000) USDC.
+///   4. Listing escrow → buyer ATA: `amount` of the asset token.
 #[derive(Accounts)]
 pub struct BuyAsset<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
 
     #[account(
-        mut,
         seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
         bump = marketplace.bump
     )]
     pub marketplace: Account<'info, Marketplace>,
 
-    /// CHECK: lamports recipient for the fee — must match marketplace.authority.
     #[account(
-        mut,
-        constraint = fee_recipient.key() == marketplace.authority
-            @ AgroError::UnauthorizedMarketplaceAuthority
+        constraint = asset_registry.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
     )]
-    pub fee_recipient: UncheckedAccount<'info>,
-
-    #[account(constraint = asset_registry.marketplace == marketplace.key())]
     pub asset_registry: Account<'info, AssetRegistry>,
 
     #[account(
         mut,
-        has_one = asset_registry,
+        seeds = [
+            LISTING_SEED,
+            asset_registry.key().as_ref(),
+            listing.seller.as_ref(),
+        ],
+        bump = listing.bump,
         constraint = listing.active @ AgroError::ListingUnavailable,
+        constraint = listing.source == ListingSource::Native
+            @ AgroError::ListingMismatch,
+        constraint = listing.source_registry == asset_registry.key()
+            @ AgroError::ListingMismatch,
+        constraint = listing.mint == asset_registry.mint
+            @ AgroError::ListingMismatch,
     )]
     pub listing: Account<'info, MarketplaceListing>,
 
@@ -44,8 +58,8 @@ pub struct BuyAsset<'info> {
     )]
     pub escrow: InterfaceAccount<'info, TokenAccount>,
 
-    /// CHECK: paid in SOL — checked by address only.
-    #[account(mut, address = listing.seller)]
+    /// CHECK: identity verified by listing.seller; only needs to receive USDC.
+    #[account(address = listing.seller)]
     pub seller: UncheckedAccount<'info>,
 
     #[account(
@@ -75,7 +89,49 @@ pub struct BuyAsset<'info> {
     )]
     pub buyer_compliance: Account<'info, ComplianceRecord>,
 
-    pub token_program: Program<'info, Token2022>,
+    // ---- USDC side ---------------------------------------------------------
+    #[account(
+        address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint,
+    )]
+    pub usdc_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        mut,
+        associated_token::mint = usdc_mint,
+        associated_token::authority = buyer,
+        associated_token::token_program = usdc_token_program,
+    )]
+    pub buyer_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        associated_token::mint = usdc_mint,
+        associated_token::authority = seller,
+        associated_token::token_program = usdc_token_program,
+    )]
+    pub seller_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        associated_token::mint = usdc_mint,
+        associated_token::authority = treasury,
+        associated_token::token_program = usdc_token_program,
+    )]
+    pub treasury_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+
+    /// CHECK: PDA validated by seeds + matches marketplace.treasury.
+    #[account(
+        seeds = [TREASURY_SEED, marketplace.key().as_ref()],
+        bump = marketplace.treasury_bump,
+        constraint = treasury.key() == marketplace.treasury
+            @ AgroError::ListingMismatch,
+    )]
+    pub treasury: UncheckedAccount<'info>,
+
+    // Two token programs because USDC is classic SPL Token and asset tokens
+    // are SPL Token-2022.
+    pub token_program: Interface<'info, TokenInterface>,
+    pub usdc_token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
@@ -85,21 +141,21 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
     let listing = &mut ctx.accounts.listing;
     require!(listing.remaining >= amount, AgroError::ListingUnavailable);
 
-    // ---- Compliance gate ----------------------------------------------------
     enforce_compliance(
         &ctx.accounts.buyer_compliance,
         &ctx.accounts.asset_registry.asset_class,
     )?;
 
-    // ---- Compute settlement -------------------------------------------------
+    // ---- Settlement math ---------------------------------------------------
     let gross = (amount as u128)
-        .checked_mul(listing.price_lamports as u128)
+        .checked_mul(listing.price_usdc as u128)
         .ok_or(AgroError::PriceOverflow)?;
     let fee = gross
         .checked_mul(ctx.accounts.marketplace.fee_bps as u128)
         .ok_or(AgroError::PriceOverflow)?
         / 10_000u128;
     let seller_amount = gross.checked_sub(fee).ok_or(AgroError::PriceOverflow)?;
+
     let gross_u64: u64 = gross.try_into().map_err(|_| AgroError::PriceOverflow)?;
     let fee_u64: u64 = fee.try_into().map_err(|_| AgroError::PriceOverflow)?;
     let seller_u64: u64 = seller_amount
@@ -107,35 +163,39 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
         .map_err(|_| AgroError::PriceOverflow)?;
 
     require!(
-        ctx.accounts.buyer.lamports() >= gross_u64,
+        ctx.accounts.buyer_usdc_ata.amount >= gross_u64,
         AgroError::InsufficientFunds
     );
 
-    // ---- Pay seller + fee in SOL -------------------------------------------
-    sol_transfer(
+    // ---- USDC: buyer -> seller --------------------------------------------
+    usdc_transfer(
         CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            SolTransfer {
-                from: ctx.accounts.buyer.to_account_info(),
-                to: ctx.accounts.seller.to_account_info(),
+            ctx.accounts.usdc_token_program.to_account_info(),
+            UsdcTransfer {
+                from: ctx.accounts.buyer_usdc_ata.to_account_info(),
+                to: ctx.accounts.seller_usdc_ata.to_account_info(),
+                authority: ctx.accounts.buyer.to_account_info(),
             },
         ),
         seller_u64,
     )?;
+
+    // ---- USDC: buyer -> treasury (fee) ------------------------------------
     if fee_u64 > 0 {
-        sol_transfer(
+        usdc_transfer(
             CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
-                SolTransfer {
-                    from: ctx.accounts.buyer.to_account_info(),
-                    to: ctx.accounts.fee_recipient.to_account_info(),
+                ctx.accounts.usdc_token_program.to_account_info(),
+                UsdcTransfer {
+                    from: ctx.accounts.buyer_usdc_ata.to_account_info(),
+                    to: ctx.accounts.treasury_usdc_ata.to_account_info(),
+                    authority: ctx.accounts.buyer.to_account_info(),
                 },
             ),
             fee_u64,
         )?;
     }
 
-    // ---- Transfer tokens out of escrow to buyer -----------------------------
+    // ---- Asset token: listing escrow -> buyer ------------------------------
     let asset_registry_key = ctx.accounts.asset_registry.key();
     let seller_key = listing.seller;
     let listing_bump = listing.bump;
@@ -143,7 +203,7 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
         LISTING_SEED,
         asset_registry_key.as_ref(),
         seller_key.as_ref(),
-        &[listing_bump],
+        std::slice::from_ref(&listing_bump),
     ]];
 
     let decimals = ctx.accounts.mint.decimals;
@@ -169,8 +229,8 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
         buyer: ctx.accounts.buyer.key(),
         seller: listing.seller,
         amount,
-        total_lamports: gross_u64,
-        fee_lamports: fee_u64,
+        total_usdc: gross_u64,
+        fee_usdc: fee_u64,
     });
 
     Ok(())

@@ -11,17 +11,14 @@ pub struct MintToken<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
 
+    /// Deterministically reconstructed using the explicit `index` stored
+    /// inside the registry itself. No reliance on client-supplied seeds.
     #[account(
         mut,
         seeds = [
             ASSET_REGISTRY_SEED,
             asset_registry.marketplace.as_ref(),
-            asset_registry.issuer.as_ref(),
-            // We cannot reconstruct the asset_count seed here without storing
-            // it; in production add an explicit `index: u64` field to the
-            // AssetRegistry and seed with that. For the PoC we trust the
-            // address resolution from the client and verify the bump.
-            &[asset_registry.bump],
+            &asset_registry.index.to_le_bytes(),
         ],
         bump = asset_registry.bump,
         has_one = issuer @ AgroError::UnauthorizedIssuer,
@@ -60,20 +57,16 @@ pub fn handler(ctx: Context<MintToken>, amount: u64) -> Result<()> {
         .ok_or(AgroError::PriceOverflow)?;
     require!(new_minted <= registry.total_supply, AgroError::SupplyExceeded);
 
-    // PDA signer seeds for the asset_registry mint authority.
     let registry_key = registry.key();
     let marketplace_key = registry.marketplace;
-    let issuer_key = registry.issuer;
+    let index_bytes = registry.index.to_le_bytes();
     let bump = registry.bump;
 
-    // NOTE: The asset_registry seeds in production must include the asset_count
-    // index. We sign with a simplified seed set here matching the PoC layout.
-    // TODO: add `index: u64` field to AssetRegistry and include it in seeds.
     let signer_seeds: &[&[&[u8]]] = &[&[
         ASSET_REGISTRY_SEED,
         marketplace_key.as_ref(),
-        issuer_key.as_ref(),
-        &[bump],
+        index_bytes.as_ref(),
+        std::slice::from_ref(&bump),
     ]];
 
     let cpi_ctx = CpiContext::new_with_signer(

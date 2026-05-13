@@ -11,6 +11,9 @@ pub enum AgroError {
     #[msg("Caller is not the asset issuer")]
     UnauthorizedIssuer,
 
+    #[msg("Caller is not the curator of this external asset")]
+    UnauthorizedCurator,
+
     #[msg("Wallet has not passed KYC verification")]
     KycNotVerified,
 
@@ -49,4 +52,22 @@ pub enum AgroError {
 
     #[msg("Asset class metadata is invalid or incomplete")]
     InvalidAssetMetadata,
+
+    #[msg("Cross-chain external assets are display-only and cannot be listed")]
+    CrossChainNotTradable,
+
+    #[msg("External asset does not declare an SPL mint")]
+    MissingExternalMint,
+
+    #[msg("Listing source/mint mismatch")]
+    ListingMismatch,
+
+    #[msg("USDC mint does not match the marketplace USDC mint")]
+    InvalidUsdcMint,
+
+    #[msg("External asset is not currently active")]
+    ExternalAssetInactive,
+
+    #[msg("Aggregator payload incomplete or inconsistent")]
+    InvalidAggregatorPayload,
 }

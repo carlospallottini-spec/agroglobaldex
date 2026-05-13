@@ -1,13 +1,18 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_2022::{transfer_checked, Token2022, TransferChecked};
-use anchor_spl::token_interface::{Mint, TokenAccount};
+use anchor_spl::token_interface::{
+    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+};
 
 use crate::errors::AgroError;
 use crate::state::*;
 
+/// List `amount` tokens of a **native** (program-minted) asset at a fixed
+/// per-token price denominated in USDC base units (6 decimals).
+///
+/// The tokens are escrowed in an ATA owned by the listing PDA until purchased
+/// or — in a future iteration — cancelled.
 #[derive(Accounts)]
-#[instruction(price_lamports: u64, amount: u64)]
 pub struct ListAsset<'info> {
     #[account(mut)]
     pub seller: Signer<'info>,
@@ -21,6 +26,7 @@ pub struct ListAsset<'info> {
     #[account(
         has_one = mint,
         constraint = asset_registry.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
     )]
     pub asset_registry: Account<'info, AssetRegistry>,
 
@@ -48,8 +54,7 @@ pub struct ListAsset<'info> {
     )]
     pub listing: Account<'info, MarketplaceListing>,
 
-    /// Escrow token account owned by the listing PDA. It holds the tokens
-    /// for sale until the listing is bought or cancelled.
+    /// Escrow token account owned by the listing PDA.
     #[account(
         init,
         payer = seller,
@@ -59,17 +64,16 @@ pub struct ListAsset<'info> {
     )]
     pub escrow: InterfaceAccount<'info, TokenAccount>,
 
-    pub token_program: Program<'info, Token2022>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<ListAsset>, price_lamports: u64, amount: u64) -> Result<()> {
+pub fn handler(ctx: Context<ListAsset>, price_usdc: u64, amount: u64) -> Result<()> {
     require!(amount > 0, AgroError::InvalidAmount);
-    require!(price_lamports > 0, AgroError::InvalidAmount);
+    require!(price_usdc > 0, AgroError::InvalidAmount);
 
-    // Move tokens from seller -> escrow ATA owned by listing PDA.
     let decimals = ctx.accounts.mint.decimals;
     let cpi_ctx = CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
@@ -84,10 +88,12 @@ pub fn handler(ctx: Context<ListAsset>, price_lamports: u64, amount: u64) -> Res
 
     let listing = &mut ctx.accounts.listing;
     listing.marketplace = ctx.accounts.marketplace.key();
-    listing.asset_registry = ctx.accounts.asset_registry.key();
+    listing.source = ListingSource::Native;
+    listing.source_registry = ctx.accounts.asset_registry.key();
+    listing.mint = ctx.accounts.mint.key();
     listing.seller = ctx.accounts.seller.key();
     listing.escrow = ctx.accounts.escrow.key();
-    listing.price_lamports = price_lamports;
+    listing.price_usdc = price_usdc;
     listing.remaining = amount;
     listing.created_at = Clock::get()?.unix_timestamp;
     listing.bump = ctx.bumps.listing;
@@ -96,8 +102,10 @@ pub fn handler(ctx: Context<ListAsset>, price_lamports: u64, amount: u64) -> Res
     emit!(AssetListed {
         listing: listing.key(),
         seller: listing.seller,
-        asset_registry: listing.asset_registry,
-        price_lamports,
+        source: ListingSource::Native,
+        source_registry: listing.source_registry,
+        mint: listing.mint,
+        price_usdc,
         amount,
     });
 

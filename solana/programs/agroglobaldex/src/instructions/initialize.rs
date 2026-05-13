@@ -1,4 +1,7 @@
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::Token;
+use anchor_spl::token_interface::{Mint, TokenAccount};
 
 use crate::errors::AgroError;
 use crate::state::*;
@@ -26,7 +29,29 @@ pub struct Initialize<'info> {
     )]
     pub compliance_authority: UncheckedAccount<'info>,
 
+    /// CHECK: PDA that owns the USDC treasury ATA. Validated by seeds.
+    #[account(
+        seeds = [TREASURY_SEED, marketplace.key().as_ref()],
+        bump
+    )]
+    pub treasury: UncheckedAccount<'info>,
+
+    /// USDC mint (devnet or mainnet — caller passes the correct address).
+    pub usdc_mint: InterfaceAccount<'info, Mint>,
+
+    /// Treasury USDC ATA, created here so fees can flow on the very first buy.
+    #[account(
+        init,
+        payer = authority,
+        associated_token::mint = usdc_mint,
+        associated_token::authority = treasury,
+    )]
+    pub treasury_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
 pub fn handler(ctx: Context<Initialize>, fee_bps: u16) -> Result<()> {
@@ -35,14 +60,19 @@ pub fn handler(ctx: Context<Initialize>, fee_bps: u16) -> Result<()> {
     let marketplace = &mut ctx.accounts.marketplace;
     marketplace.authority = ctx.accounts.authority.key();
     marketplace.compliance_authority = ctx.accounts.compliance_authority.key();
+    marketplace.usdc_mint = ctx.accounts.usdc_mint.key();
+    marketplace.treasury = ctx.accounts.treasury.key();
     marketplace.bump = ctx.bumps.marketplace;
     marketplace.compliance_bump = ctx.bumps.compliance_authority;
+    marketplace.treasury_bump = ctx.bumps.treasury;
     marketplace.fee_bps = fee_bps;
     marketplace.asset_count = 0;
+    marketplace.external_asset_count = 0;
 
     msg!(
-        "AgroGlobalDex marketplace initialized. authority={} fee_bps={}",
+        "AgroGlobalDex marketplace initialized. authority={} usdc_mint={} fee_bps={}",
         marketplace.authority,
+        marketplace.usdc_mint,
         fee_bps
     );
     Ok(())

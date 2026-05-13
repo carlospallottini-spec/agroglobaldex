@@ -1,3 +1,4 @@
+pub mod aggregate;
 pub mod buy_asset;
 pub mod initialize;
 pub mod list_asset;
@@ -6,6 +7,7 @@ pub mod redeem;
 pub mod register_asset;
 pub mod update_kyc;
 
+pub use aggregate::*;
 pub use buy_asset::*;
 pub use initialize::*;
 pub use list_asset::*;

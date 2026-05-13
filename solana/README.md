@@ -1,241 +1,127 @@
-# AgroGlobalDex — Solana/Anchor smart contracts
+# AgroGlobalDex — Solana Program
 
-PoC scaffold for the **AgroGlobalDex** marketplace: a MiCA-aligned venue for
-tokenized agricultural RWAs (Real-World Assets) on Solana.
+Programa Anchor (Rust) que da soporte al marketplace de RWA agro tokenizado.
+Soporta tres clases nativas (granos, créditos de carbono, fracciones de cosechas
+futuras) **y agrega** tokens emitidos por otras plataformas (Agrotoken, Topaz,
+RIPE, Centrifuge…).
 
-> **WARNING — Proof of Concept.** This code is **not audited** and **must not
-> be deployed to mainnet with real value**. It is intended as the starting
-> point for a human developer to extend toward a production system.
+> **Estado:** beta production-shaped. Compila contra Anchor 0.31.1 + Solana 2.1
+> con un toolchain de Rust suficientemente moderno (`cargo ≥ 1.82`). No auditado.
+> Devnet sí, mainnet **no**.
 
----
+## Stack
 
-## What it does
+- `anchor-lang` / `anchor-spl` 0.31.1
+- `spl-token-2022` 6.x (transfer hook extension)
+- USDC SPL clásico para settlement (mint configurable por marketplace)
 
-Three classes of agro RWA can be issued, listed, traded and redeemed:
-
-| Class             | Backing                                  | Unit       | Redeemable? |
-|-------------------|------------------------------------------|------------|-------------|
-| `Grain`           | Warehouse receipt (soy / corn / wheat)   | tons       | yes (physical delivery) |
-| `CarbonCredit`    | VCS / Gold-Standard / EU-ETS issuance    | kg CO2eq   | yes (retirement) |
-| `HarvestFraction` | Notarized land + crop plan, future year  | hectares   | no (cash settlement off-chain) |
-
-Each issuance is represented by an **SPL Token-2022 mint** whose authority is
-the program. Every wallet that wants to buy/hold a regulated token must first
-have a `ComplianceRecord` PDA stamped by the marketplace's
-`compliance_authority`.
-
----
-
-## Project layout
+## Estructura
 
 ```
 solana/
-├── Anchor.toml                # Anchor + cluster + test validator config
-├── Cargo.toml                 # Rust workspace
-├── package.json               # TS test deps
+├── Anchor.toml
+├── Cargo.toml                       # workspace
+├── package.json                     # tests TS (mocha)
 ├── tsconfig.json
-├── programs/agroglobaldex/
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs             # #[program] entry + declare_id!
-│       ├── state.rs           # Marketplace, AssetRegistry, ComplianceRecord, MarketplaceListing, events
-│       ├── errors.rs          # AgroError enum
-│       └── instructions/
-│           ├── mod.rs
-│           ├── initialize.rs
-│           ├── register_asset.rs
-│           ├── mint_token.rs
-│           ├── update_kyc.rs   (+ enforce_compliance helper)
-│           ├── list_asset.rs
-│           ├── buy_asset.rs
-│           └── redeem.rs
-└── tests/agroglobaldex.ts     # Mocha/Anchor happy-path tests
+├── programs/
+│   └── agroglobaldex/
+│       ├── Cargo.toml
+│       └── src/
+│           ├── lib.rs               # entry + #[program]
+│           ├── state.rs             # cuentas, enums, eventos
+│           ├── errors.rs            # AgroError
+│           └── instructions/
+│               ├── mod.rs
+│               ├── initialize.rs    # marketplace + treasury USDC ATA
+│               ├── register_asset.rs# AssetRegistry + mint Token-2022 con TransferHook
+│               ├── mint_token.rs    # issuer-only, capped a total_supply
+│               ├── update_kyc.rs    # KYC + jurisdicción + accredited
+│               ├── list_asset.rs    # listado nativo en USDC
+│               ├── buy_asset.rs     # compra en USDC con fee al treasury
+│               ├── redeem.rs        # burn → emit AssetRedeemed
+│               └── aggregate.rs     # aggregator (SPL Solana o cross-chain)
+├── scripts/
+│   └── deploy-devnet.sh             # anchor keys sync + build + deploy + IDL copy
+└── tests/
+    └── agroglobaldex.ts             # happy path
 ```
 
----
+## Diagrama de cuentas (PDA tree)
 
-## Quick start
+```
+Marketplace[authority]                       seeds: marketplace, authority
+├── ComplianceAuthority                       seeds: compliance_authority, marketplace
+├── Treasury                                   seeds: treasury, marketplace
+│   └── treasury_usdc_ata                     ATA USDC, owner=treasury
+├── AssetRegistry[index]                       seeds: asset_registry, marketplace, index_le
+│   └── Mint[asset]                           seeds: asset_mint, asset_registry  ← Token-2022 + TransferHook
+│       └── MarketplaceListing[seller]        seeds: listing, asset_registry, seller
+│           └── escrow ATA                    ATA Token-2022, owner=listing PDA
+├── ExternalAssetRegistry[index]               seeds: external_asset, marketplace, index_le
+└── ComplianceRecord[wallet]                   seeds: compliance_record, marketplace, wallet
+```
 
-Prerequisites: Solana CLI 1.18+, Anchor 0.30.1, Node 18+, Yarn.
+## Buildear y deployar
+
+Necesitás un toolchain Rust reciente (cargo ≥ 1.82). El cargo embebido en
+Solana CLI ≤ 1.18 NO funciona — usá Solana 2.1+ con cargo del sistema.
 
 ```bash
-# from solana/
+cd solana
+
+anchor keys sync           # primera vez: alinea declare_id! con target/deploy/*-keypair.json
+anchor build
+./scripts/deploy-devnet.sh # build + deploy + copia el IDL a web 2.0/js/idl/
+```
+
+## Decisiones de diseño relevantes
+
+- **Token-2022 con TransferHook**. La única manera de imponer KYC on-chain en
+  *cada* transferencia, no sólo en `buy_asset`. El hook se deploya como
+  programa separado (TODO).
+- **USDC para settlement** (no SOL). `price_usdc` en base units (6 decimales).
+  Fee va a un PDA treasury en USDC.
+- **Index reconstruible**. `AssetRegistry` y `ExternalAssetRegistry` guardan
+  su `index: u64` y las seeds incluyen `index.to_le_bytes()` para que cualquier
+  cliente reconstruya el PDA sin depender de input no validado.
+- **Una mint por lote**. Cada lote físico es su propia mint. Sin fungibilidad
+  entre vintages.
+- **ListingSource discriminator**. Native vs External comparten la misma
+  cuenta `MarketplaceListing` con campo `source`. En el PoC `buy_asset` sólo
+  soporta `Native`; los externals son display-only on-chain.
+- **`enforce_compliance` único**. Helper compartido entre `buy_asset` y el
+  futuro transfer hook. Bloquea KP/IR/SY y exige `accredited_investor` para
+  `HarvestFraction`.
+
+## Roadmap a mainnet (TODO crítico)
+
+1. **Compliance-Hook program separado**. Hoy `register_asset.rs` ya wirea la
+   TransferHook extension al mint, pero apuntando al propio programa
+   (placeholder). Deployar un programa real con `execute(amount)` +
+   `initialize_extra_account_meta_list`.
+2. **Buy externos SPL**. Soportar `ListingSource::External` en `buy_asset.rs`
+   con un adapter que respete la compliance del mint externo.
+3. **Cancel listing**. Hoy un listing se cierra solo al agotarse `remaining`.
+4. **Treasury withdraw**. Instrucción para que la authority retire fees.
+5. **Multisig + oráculo KYC**. Hoy `compliance_authority == marketplace.authority`.
+   Producción debería separar y soportar un firmante por jurisdicción.
+6. **Pyth/Switchboard** para precios spot de commodities.
+7. **Audit** (Trail of Bits / OtterSec / Halborn) antes de mainnet.
+8. **MiCA white paper aprobado** por la NCA — ver
+   `legal/05-jurisdictional-strategy.md` (recomendación: Francia AMF).
+
+## Tests
+
+```bash
 yarn install
-anchor build
-anchor keys sync     # writes the real program id back into Anchor.toml + lib.rs
-anchor test          # spins up a local validator, runs tests/agroglobaldex.ts
+anchor test
 ```
 
-Deploy to devnet:
-
-```bash
-solana config set --url devnet
-solana airdrop 2
-anchor build
-anchor deploy --provider.cluster devnet
-```
-
-The placeholder program id in `Anchor.toml` and `declare_id!` is
-`AGRoG1obA1Dex11111111111111111111111111111`. **Replace it** with the keypair
-output by `anchor keys sync` before deploying.
-
----
-
-## Architecture
-
-```
-                       +----------------------------+
-                       |        Marketplace         |  PDA[ "marketplace", authority ]
-                       |  authority, fee_bps,       |
-                       |  compliance_authority      |
-                       +-------------+--------------+
-                                     |
-              +----------------------+----------------------+
-              |                                             |
-              v                                             v
-  +-----------+-----------+                  +--------------+--------------+
-  | ComplianceRecord       |  PDA[ "compliance_record",     |
-  | wallet, kyc_verified,  |       marketplace, wallet ]    |
-  | jurisdiction,          |                                |
-  | accredited_investor    |                                |
-  +-----------+-----------+                                  |
-              |  (read by buy_asset & future transfer hook)  |
-              v                                              v
-  +-----------+----------+      mint_authority      +--------+--------+
-  |    AssetRegistry     |<-------------------------+   Token-2022    |
-  | issuer, mint,        |                          |   Mint (PDA)    |
-  | asset_class,         |                          +--------+--------+
-  | oracle_attestation,  |                                   |
-  | white_paper_uri,     |                                   |
-  | total/minted_supply, |                                   |
-  | redeemable           |                                   |
-  +-----------+----------+                                   |
-              |                                              |
-              v                                              v
-  +-----------+----------+       escrow ATA owned by listing |
-  |  MarketplaceListing  +------> +-------------------+      |
-  | seller, price, qty,  |        |  Token Account    |<-----+
-  | escrow, active       |        +-------------------+
-  +----------------------+
-```
-
-### Flows
-
-**Issue**
-1. Producer calls `register_asset` → creates `AssetRegistry` + Token-2022 mint.
-2. Producer calls `mint_token` → tokens land in producer's ATA, registry tracks `minted_supply`.
-
-**Trade (compliance-gated)**
-1. Producer calls `list_asset` → tokens move into a listing-owned escrow ATA.
-2. Marketplace operator KYCs the buyer via `update_kyc` → stamps `ComplianceRecord`.
-3. Buyer calls `buy_asset`:
-   - Loads `buyer_compliance` PDA (fails if missing).
-   - `enforce_compliance` checks KYC, jurisdiction blocklist, accredited-investor for `HarvestFraction`.
-   - Pays seller + marketplace fee in SOL.
-   - Tokens transfer from escrow → buyer's ATA.
-
-**Redeem**
-1. Holder calls `redeem` → burns tokens, emits `AssetRedeemed`.
-2. Off-chain workflow watches the event and physically delivers / retires the asset.
-
----
-
-## Why SPL Token-2022 (not classic SPL Token)?
-
-Token-2022 ships first-class **mint extensions**, three of which we need (or
-will need) for a regulated RWA:
-
-| Extension              | What we use it for                                                                 |
-|------------------------|------------------------------------------------------------------------------------|
-| **Transfer Hook**      | On-chain CPI into AgroGlobalDex on **every** transfer to verify `ComplianceRecord`. |
-| **Default Account State** | Mints can be issued frozen-by-default so accounts must be thawed after KYC.        |
-| **Permanent Delegate** | Compliance authority can claw back tokens in case of fraud / sanctions order.      |
-| **Metadata Pointer**   | Point at the MiCA white paper without a side-program like Metaplex.                |
-
-The classic SPL token cannot enforce transfer-time compliance on-chain — the
-best you can do is freeze accounts manually, which doesn't scale and leaks
-states. Token-2022 is therefore the only realistic choice for a MiCA-compliant
-RWA on Solana.
-
-> **PoC scope:** the scaffold initializes a vanilla Token-2022 mint and
-> enforces compliance only at `buy_asset`. Wiring the actual transfer-hook
-> program is a TODO — see roadmap.
-
----
-
-## Compliance model (MiCA-style)
-
-- `Marketplace.compliance_authority` is a PDA derived from the marketplace; it
-  is the only signer authorized to write `ComplianceRecord`s.
-- A `ComplianceRecord` carries: `kyc_verified`, `jurisdiction` (ISO-3166-α2),
-  `accredited_investor`, `updated_at`.
-- `enforce_compliance` (in `update_kyc.rs`) is the single chokepoint reused by
-  every regulated instruction. It:
-  - Requires KYC verified.
-  - Blocks a hard-coded sanctioned list (KP, IR, SY). **Replace** with a
-    mutable on-chain list for production.
-  - Requires accredited investor status for `HarvestFraction` (yield-bearing).
-- `AssetRegistry.white_paper_uri` satisfies MiCA Art. 6 (white paper required
-  for asset-referenced tokens). `oracle_attestation` is a SHA-256 hash of the
-  off-chain backing certificate.
-
----
-
-## Design decisions (why these choices)
-
-1. **Token-2022 over classic SPL** — only path to enforceable on-chain compliance.
-2. **One mint per asset lot** (not per asset *class*) — keeps fungibility scoped
-   to a single warehouse receipt / carbon project, mirrors how the off-chain
-   world works (each VCS issuance has its own serial range).
-3. **Lamports (SOL) as settlement currency in the PoC** — keeps the scaffold
-   short. Production should accept a stablecoin (USDC) via a second token
-   account on the listing escrow; trivial extension.
-4. **Compliance authority = marketplace authority in PoC** — production should
-   split these roles (multi-sig for marketplace ops, separate KYC oracle for
-   compliance).
-5. **`HarvestFraction` is not redeemable in-protocol** — it represents a
-   future cash flow, not a deliverable good; settlement happens off-chain
-   when the harvest is realized.
-
----
-
-## Roadmap to production
-
-- [ ] **Token-2022 Transfer Hook** sibling program that calls back into
-      AgroGlobalDex to verify the *recipient*'s `ComplianceRecord` on every
-      transfer (not just on `buy_asset`).
-- [ ] **Default Account State = Frozen** on mint init, with thaw-on-KYC flow.
-- [ ] **Permanent Delegate** wired to the compliance authority for sanctions clawback.
-- [ ] **Metadata pointer** extension pointing at an on-chain MiCA metadata account.
-- [ ] **Oracle integration** with Pyth / Switchboard for commodity price feeds
-      (soy, corn, wheat futures) and FX (EUR/USD), so listings can be quoted
-      in stable terms and AMM-style pools can be added.
-- [ ] **Stablecoin settlement** (USDC) instead of SOL.
-- [ ] **Listing cancel + partial-fill book** (current PoC supports partial
-      fills but no explicit cancel — add a `cancel_listing` instruction that
-      returns escrowed tokens to seller).
-- [ ] **Per-marketplace allowlist/blocklist** stored on-chain, governed by the
-      `compliance_authority`, replacing the hard-coded `BLOCKED` constant.
-- [ ] **Separate compliance signer** from marketplace operator (multi-sig +
-      independent KYC oracle).
-- [ ] **Add `index: u64` field to `AssetRegistry`** so PDA seeds can be
-      reconstructed deterministically without trusting the client (see
-      `mint_token.rs` TODO).
-- [ ] **Audit** — Trail of Bits / OtterSec / Halborn before any mainnet move.
-- [ ] **Fuzzing** with `cargo-fuzz` and Anchor-friendly property tests.
-- [ ] **Off-chain indexer + event-driven settlement service** for redemptions.
-- [ ] **Web frontend integration** — replace the static HTML demo under
-      `../web 2.0/` with a real Solana wallet adapter UI hitting these programs.
-
----
-
-## License
-
-MIT — see repository root.
+Cobertura mínima: happy path init → register → mint → kyc → list → buy.
+Falta cobertura de transfer hook y aggregator.
 
 ## Disclaimer
 
-This is a **proof of concept**. It has not been audited. The on-chain logic
-is intentionally simplified. **Do not deploy to mainnet** or expose to real
-user funds without a professional security audit and legal review of the
-MiCA / local-jurisdiction implications.
+PoC. No auditado. No usar en mainnet con valor real. Cualquier deployment
+productivo requiere audit profesional, multisig de authority, oráculos KYC
+reales y autorización CASP bajo MiCA — ver carpeta `legal/` en el root.
