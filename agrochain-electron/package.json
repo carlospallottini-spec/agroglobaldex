@@ -1,7 +1,7 @@
 {
   "name": "agroglobaldex",
-  "version": "1.1.0",
-  "description": "AgroGlobalDex - Prototipo de marketplace de tokenizacion agropecuaria sobre Solana (Demo/PoC)",
+  "version": "2.0.0",
+  "description": "AgroGlobalDex - Marketplace global de RWA agropecuarios sobre Solana con compliance MiCA + Token-2022 + aggregator cross-chain + yield offerings (Demo/PoC)",
   "main": "main.js",
   "author": "AgroGlobalDex - Carlos Pallottini",
   "license": "MIT",

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgroGlobalDex — Marketplace agro tokenizado (Demo / PoC)</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="AgroGlobalDex: prototipo de marketplace para tokenización de producción agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -330,6 +331,9 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
     <a href="index.html">Inicio</a>
     <a href="about.html">Nosotros</a>
     <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html">Tokenizar</a>
+    <a href="invest.html">Invertir</a>
+    <a href="investors.html">Inversores</a>
     <a href="team.html">Equipo</a>
     <a href="contact.html">Contacto</a>
   </div>
@@ -348,6 +352,9 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
   <a href="index.html">Inicio</a>
   <a href="about.html">Nosotros</a>
   <a href="marketplace.html">Marketplace</a>
+  <a href="tokenize.html">Tokenizar</a>
+  <a href="invest.html">Invertir</a>
+  <a href="investors.html">Inversores</a>
   <a href="team.html">Equipo</a>
   <a href="contact.html">Contacto</a>
   <button class="nwb wallet-btn" style="margin-top:16px">
@@ -1132,5 +1139,6 @@ function rFeed(){document.getElementById('feed').innerHTML=FEED.map(f=>`
 rFeed();
 setInterval(()=>{FEED.unshift(FEED.pop());rFeed()},4500);
 </script>
+<script type="module" src="js/pwa-install.js"></script>
 </body>
 </html>

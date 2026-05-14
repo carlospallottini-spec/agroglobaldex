@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tokenizar activo — AgroGlobalDex</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<meta name="description" content="AgroGlobalDex (Demo/PoC) — Tokenizá granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--bg5:#1E2820;
+  --neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--nb:#00FF6A55;
+  --gold:#C8A84B;--gd:#C8A84B0D;--gm:#C8A84B28;
+  --txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--t4:#202E22;
+  --red:#FF3D4A;--amb:#F0A020;--blu:#3A9EF5;--pur:#8A78F0;
+  --bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;
+  --r:8px;--r2:14px;--r3:20px;--r4:28px;
+  --fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh;position:relative;font-weight:400}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.4;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bd3);border-radius:2px}
+
+/* NAV */
+nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nlt{font-family:var(--fd);font-size:16px;color:var(--txt);letter-spacing:-.01em}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r);transition:color .2s;position:relative}
+.nav-links a:hover,.nav-links a.active{color:var(--neon)}
+.nav-r{display:flex;gap:8px;align-items:center;margin-left:auto}
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.nwb:hover{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.nwb.connected{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb.connected .wdot{background:var(--neon);animation:pd 2s infinite}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* DEMO BANNER */
+.demo-banner{background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px}
+
+/* PAGE */
+.page-hero{padding:64px 32px 32px;border-bottom:1px solid var(--bd);position:relative}
+.page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 40% 50%,#00FF6A08 0%,transparent 65%);pointer-events:none}
+.page-hero-content{position:relative;max-width:1100px;margin:0 auto}
+.page-tag{display:inline-flex;align-items:center;gap:8px;background:var(--nd);border:1px solid var(--nm);border-radius:24px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--neon);margin-bottom:16px;letter-spacing:.05em}
+.page-tag .dot{width:6px;height:6px;background:var(--neon);border-radius:50%;animation:pd 2s infinite}
+.page-title{font-family:var(--fd);font-size:clamp(28px,4vw,48px);line-height:1.08;margin-bottom:14px}
+.page-title em{color:var(--neon);font-style:italic}
+.page-subtitle{font-size:15px;color:var(--t2);line-height:1.7;max-width:600px}
+
+main{max-width:1100px;margin:32px auto 80px;padding:0 32px}
+
+/* STEPPER */
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:32px;padding:14px 18px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r);font-size:13px;color:var(--t3);transition:all .2s;flex:1;min-width:0}
+.step .num{width:24px;height:24px;border-radius:50%;background:var(--bg4);color:var(--t3);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.step.active{color:var(--neon)}
+.step.active .num{background:var(--neon);color:#000}
+.step.done{color:var(--txt)}
+.step.done .num{background:var(--bd3);color:var(--neon)}
+.step-sep{flex:0 0 24px;height:1px;background:var(--bd);margin:0 4px}
+
+/* CARDS */
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:780px){.opts{grid-template-columns:1fr}}
+.opt{padding:22px 20px;background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r2);cursor:pointer;transition:all .2s;text-align:left;font-family:inherit;color:inherit;font-size:14px}
+.opt:hover{border-color:var(--nm);background:var(--nd)}
+.opt.selected{border-color:var(--neon);background:var(--nd);box-shadow:0 0 0 1px var(--neon) inset}
+.opt h3{font-family:var(--fd);font-size:22px;margin-bottom:8px;color:var(--txt)}
+.opt h3 em{font-style:italic;color:var(--neon)}
+.opt p{color:var(--t2);font-size:13px;line-height:1.55}
+.opt-ico{font-size:24px;margin-bottom:12px;display:block}
+
+/* FORM */
+.form-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:28px;margin-bottom:18px}
+.form-card h3{font-family:var(--fd);font-size:22px;margin-bottom:6px}
+.form-card p.help{color:var(--t2);font-size:13px;margin-bottom:18px;line-height:1.6}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;letter-spacing:.02em;text-transform:uppercase}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);color:var(--txt);font-family:var(--fb);font-size:14px;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--nm);background:var(--bg4)}
+.field .hint{font-size:11px;color:var(--t3);margin-top:6px}
+.field .hint.error{color:var(--red)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:640px){.row2,.row3{grid-template-columns:1fr}}
+
+/* BUTTONS */
+.actions{display:flex;justify-content:space-between;gap:12px;margin-top:24px}
+.btn-p{padding:12px 22px;border:none;border-radius:var(--r);background:var(--neon);color:#000;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)}
+.btn-p:hover{background:#00e55f}
+.btn-p:disabled{opacity:.4;cursor:not-allowed}
+.btn-g{padding:12px 18px;border:1px solid var(--bd2);border-radius:var(--r);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.btn-g:hover{border-color:var(--bd3);color:var(--txt)}
+
+/* REVIEW */
+.review-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd);gap:14px}
+.review-row:last-child{border-bottom:0}
+.review-row .k{color:var(--t2);font-size:13px}
+.review-row .v{color:var(--txt);font-size:13px;font-weight:600;font-family:ui-monospace,monospace;text-align:right;word-break:break-all;max-width:60%}
+
+/* WARN */
+.warn{padding:14px 18px;background:#F0A02012;border:1px solid #F0A02055;border-radius:var(--r2);color:#F4C078;font-size:13px;line-height:1.6;margin-bottom:18px}
+.warn strong{color:#F0A020}
+.ok{padding:14px 18px;background:var(--nd);border:1px solid var(--nm);border-radius:var(--r2);color:var(--neon);font-size:13px;margin-bottom:18px}
+
+/* HIDDEN */
+.hidden{display:none!important}
+
+/* FOOTER mini */
+footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;color:var(--t3);font-size:12px}
+
+/* TOAST */
+#toast-stack{position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px}
+.toast{padding:14px 18px;background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);display:flex;gap:10px;align-items:center;min-width:280px;animation:slideIn .25s ease}
+.toast.success{border-color:var(--nm)}
+.toast.error{border-color:#FF3D4A55}
+.toast-ico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.toast.success .toast-ico{background:var(--neon);color:#000}
+.toast.error .toast-ico{background:var(--red);color:#fff}
+.toast-txt{font-size:13px;color:var(--txt)}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Esta pantalla es funcional contra devnet de Solana. AgroGlobalDex no opera en producción ni cuenta con autorización CASP MiCA al día de hoy.</div>
+
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="about.html">Nosotros</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html" class="active">Tokenizar</a>
+    <a href="invest.html">Invertir</a>
+    <a href="investors.html">Inversores</a>
+    <a href="team.html">Equipo</a>
+    <a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb">
+      <div class="wdot"></div>
+      <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      <span>Conectar Wallet</span>
+    </button>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="page-hero-content">
+    <div class="page-tag"><div class="dot"></div>Productor · Tokenizar</div>
+    <h1 class="page-title">Tokenizá tu <em>cosecha</em>, crédito de <em>carbono</em> o fracción de campo.</h1>
+    <p class="page-subtitle">Cuatro pasos: elegís el tipo de activo, completás los datos, subís el certificado off-chain, firmás con tu wallet. Tras la transacción, el token vive en Solana y puede listarse en el marketplace.</p>
+  </div>
+</section>
+
+<main>
+  <!-- STEPPER -->
+  <div class="stepper" id="stepper">
+    <div class="step active" data-step="1"><div class="num">1</div><div>Tipo</div></div>
+    <div class="step-sep"></div>
+    <div class="step" data-step="2"><div class="num">2</div><div>Detalles</div></div>
+    <div class="step-sep"></div>
+    <div class="step" data-step="3"><div class="num">3</div><div>Certificación</div></div>
+    <div class="step-sep"></div>
+    <div class="step" data-step="4"><div class="num">4</div><div>Firmar</div></div>
+  </div>
+
+  <!-- STEP 1: Tipo de activo -->
+  <section class="step-panel" data-panel="1">
+    <div class="form-card">
+      <h3>¿Qué querés tokenizar?</h3>
+      <p class="help">Elegí la categoría que mejor describe el activo. Cada clase tiene reglas de compliance y redención específicas.</p>
+      <div class="opts">
+        <button class="opt" data-kind="grain">
+          <span class="opt-ico">🌾</span>
+          <h3>Granos</h3>
+          <p>Soja, maíz, trigo, otros. Tokens redimibles contra commodity físico depositado en warehouse acreditado.</p>
+        </button>
+        <button class="opt" data-kind="carbon">
+          <span class="opt-ico">🌳</span>
+          <h3>Crédito de carbono</h3>
+          <p>VCS, Gold Standard, EU ETS. Burn = retiro (retirement) del crédito. Vintage year obligatorio.</p>
+        </button>
+        <button class="opt" data-kind="harvest">
+          <span class="opt-ico">🌱</span>
+          <h3>Fracción de cosecha</h3>
+          <p>Derechos sobre producción futura por hectáreas y año. Requiere inversor acreditado (MiCA/MiFID).</p>
+        </button>
+        <button class="opt" data-kind="investment">
+          <span class="opt-ico">💼</span>
+          <h3>Inversión / <em>Yield</em></h3>
+          <p>Activo financiero con expectativa de retorno (ej. "Viñedo Rioja 12 meses 9% ROI"). <strong>Security token bajo MiCA/MiFID</strong>. Solo accredited investors. Yield settlement off-chain por contrato.</p>
+        </button>
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn-g" href="marketplace.html">Cancelar</a>
+      <button class="btn-p" id="next-1" disabled>Siguiente →</button>
+    </div>
+  </section>
+
+  <!-- STEP 2: Detalles -->
+  <section class="step-panel hidden" data-panel="2">
+    <div class="form-card">
+      <h3 id="step2-title">Detalles del activo</h3>
+      <p class="help">Estos datos quedarán inmutables on-chain una vez minteado el primer lote. Asegurate de que coincidan con tu certificado off-chain.</p>
+
+      <!-- Grain fields -->
+      <div class="cls-fields cls-grain hidden">
+        <div class="row2">
+          <div class="field"><label>Tipo de grano</label>
+            <select id="f-grainKind">
+              <option value="soy">Soja</option>
+              <option value="corn">Maíz</option>
+              <option value="wheat">Trigo</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+          <div class="field"><label>Toneladas</label>
+            <input type="number" id="f-tons" min="1" step="1" placeholder="100">
+            <div class="hint">1 token = 1 kg. Total supply = toneladas × 1000.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carbon fields -->
+      <div class="cls-fields cls-carbon hidden">
+        <div class="row3">
+          <div class="field"><label>Estándar</label>
+            <select id="f-standard">
+              <option value="vcs">Verra VCS</option>
+              <option value="goldStandard">Gold Standard</option>
+              <option value="euEts">EU ETS</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+          <div class="field"><label>Vintage year</label>
+            <input type="number" id="f-vintageYear" min="2000" max="2100" placeholder="2024">
+          </div>
+          <div class="field"><label>kg CO₂eq totales</label>
+            <input type="number" id="f-kgCo2eq" min="1" step="1" placeholder="50000">
+            <div class="hint">1 token = 1 kg CO₂eq.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Harvest fields -->
+      <div class="cls-fields cls-harvest hidden">
+        <div class="row3">
+          <div class="field"><label>Cultivo</label>
+            <select id="f-crop">
+              <option value="soy">Soja</option>
+              <option value="corn">Maíz</option>
+              <option value="wheat">Trigo</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+          <div class="field"><label>Hectáreas</label>
+            <input type="number" id="f-hectares" min="1" placeholder="50">
+          </div>
+          <div class="field"><label>Año de cosecha</label>
+            <input type="number" id="f-harvestYear" min="2024" max="2100" placeholder="2027">
+          </div>
+        </div>
+        <div class="warn"><strong>Atención.</strong> Las fracciones de cosecha son instrumentos de yield: bajo MiCA/MiFID II pueden calificar como security tokens. Sólo se pueden vender a inversores acreditados.</div>
+      </div>
+
+      <!-- Investment Offering fields -->
+      <div class="cls-fields cls-investment hidden">
+        <div class="field"><label>Nombre del producto</label>
+          <input type="text" id="f-productName" maxlength="64" placeholder="Viñedo Rioja 2026 Reserva">
+          <div class="hint">Hasta 64 caracteres. Aparece en el marketplace como el nombre del activo.</div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>Tipo de producto</label>
+            <select id="f-productKind">
+              <option value="vineyard">Viñedo</option>
+              <option value="olive">Olivar</option>
+              <option value="dairy">Lácteos</option>
+              <option value="livestock">Ganado</option>
+              <option value="crops">Cultivos</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+          <div class="field"><label>Duración (meses)</label>
+            <input type="number" id="f-durationMonths" min="1" max="120" placeholder="12">
+            <div class="hint">1 a 120 meses.</div>
+          </div>
+          <div class="field"><label>ROI esperado (%)</label>
+            <input type="number" id="f-expectedYieldPct" min="0" max="50" step="0.1" placeholder="9">
+            <div class="hint">Cap 50%. Ejemplo: 9 = 9.00%.</div>
+          </div>
+        </div>
+        <div class="field"><label>Fecha de maduración</label>
+          <input type="date" id="f-maturityDate">
+          <div class="hint">Cuándo se settlea el principal + yield (off-chain).</div>
+        </div>
+        <div class="warn"><strong>Aviso regulatorio.</strong> Este activo es un <strong>instrumento financiero</strong> bajo MiCA y MiFID II. Para ofertarlo al público en la UE necesitás autorización de investment firm + folleto aprobado por la NCA (e.g. AMF en Francia). Consultá tu abogado antes de mintear. Sólo accredited investors podrán comprarlo on-chain.</div>
+      </div>
+
+      <div class="field"><label>Total supply (tokens)</label>
+        <input type="number" id="f-totalSupply" min="1" placeholder="100000">
+        <div class="hint">Cantidad máxima de tokens que se podrán mintear contra este lote.</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-g" id="back-2">← Atrás</button>
+      <button class="btn-p" id="next-2">Siguiente →</button>
+    </div>
+  </section>
+
+  <!-- STEP 3: Certificación -->
+  <section class="step-panel hidden" data-panel="3">
+    <div class="form-card">
+      <h3>Certificación off-chain</h3>
+      <p class="help">El certificado físico (warehouse receipt, VCS issuance, contrato notariado) se queda fuera de la cadena. Sólo subimos su hash SHA-256 para que sea verificable e inmutable.</p>
+
+      <div class="field"><label>Certificado (PDF, máx 20 MB)</label>
+        <input type="file" id="f-file" accept=".pdf,.jpg,.png">
+        <div class="hint" id="f-fileHint">SHA-256 se calcula en tu navegador y nunca se sube el archivo.</div>
+      </div>
+
+      <div class="field"><label>White paper URI (MiCA Art. 6)</label>
+        <input type="text" id="f-whitePaper" placeholder="ipfs://… o https://…">
+        <div class="hint">Obligatorio bajo MiCA. Si todavía no tenés uno, usá un template en <a href="../legal/08-white-paper-template.md" target="_blank" style="color:var(--neon)">/legal/08-white-paper-template.md</a> y subilo a IPFS/Arweave.</div>
+      </div>
+
+      <div class="field"><label>Metadata URI (JSON con imagen y descripción)</label>
+        <input type="text" id="f-metadata" placeholder="ipfs://…/meta.json">
+        <div class="hint">Opcional pero recomendado para que el marketplace muestre el activo con imagen.</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-g" id="back-3">← Atrás</button>
+      <button class="btn-p" id="next-3" disabled>Siguiente →</button>
+    </div>
+  </section>
+
+  <!-- STEP 4: Revisión + firmar -->
+  <section class="step-panel hidden" data-panel="4">
+    <div class="form-card">
+      <h3>Revisar y firmar</h3>
+      <p class="help">Esto va a enviar una transacción a Solana devnet. Vas a pagar fees en SOL (no en USDC).</p>
+
+      <div id="kyc-banner"></div>
+
+      <div id="review"></div>
+    </div>
+
+    <div id="result-card" class="form-card hidden" style="border-color:var(--nm)">
+      <h3 style="color:var(--neon)">¡Tokenización exitosa!</h3>
+      <div id="result-body"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-g" id="back-4">← Atrás</button>
+      <button class="btn-p" id="submit-tx">Firmar y tokenizar</button>
+    </div>
+  </section>
+</main>
+
+<footer class="f">© 2026 AgroGlobalDex — Demo/PoC sobre Solana devnet. No operativo en mainnet.</footer>
+
+<div id="toast-stack"></div>
+
+<script type="module">
+import { connectWallet, getPublicKey, isConnected } from './js/wallet-adapter.js';
+import {
+  registerAsset, sha256OfFile, fetchMarketplace,
+} from './js/agroglobaldex-client.js';
+import { addrUrl, txUrl, NETWORK } from './js/network-config.js';
+import { checkKyc, reasonToMessage } from './js/kyc-gate.js';
+
+const state = { kind: null, file: null, hash: null };
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+function showToast(msg, kind = 'success') {
+  const stack = $('#toast-stack');
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt">${msg}</div>`;
+  stack.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 350); }, 4200);
+}
+window.showToast = showToast;
+
+function setStep(n) {
+  $$('.step-panel').forEach(p => p.classList.add('hidden'));
+  $(`[data-panel="${n}"]`).classList.remove('hidden');
+  $$('.step').forEach(s => {
+    const sn = Number(s.dataset.step);
+    s.classList.toggle('active', sn === n);
+    s.classList.toggle('done', sn < n);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* STEP 1 — tipo */
+$$('.opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.kind = btn.dataset.kind;
+    $$('.opt').forEach(o => o.classList.remove('selected'));
+    btn.classList.add('selected');
+    $('#next-1').disabled = false;
+  });
+});
+$('#next-1').addEventListener('click', () => {
+  $$('.cls-fields').forEach(f => f.classList.add('hidden'));
+  $(`.cls-${state.kind}`).classList.remove('hidden');
+  $('#step2-title').textContent = ({
+    grain: 'Detalles del lote de granos',
+    carbon: 'Detalles del crédito de carbono',
+    harvest: 'Detalles de la fracción de cosecha',
+    investment: 'Detalles de la yield offering',
+  })[state.kind];
+  setStep(2);
+});
+
+/* STEP 2 — detalles */
+$('#back-2').addEventListener('click', () => setStep(1));
+$('#next-2').addEventListener('click', () => {
+  const totalSupply = Number($('#f-totalSupply').value);
+  if (!totalSupply || totalSupply < 1) return showToast('Total supply debe ser ≥ 1', 'error');
+  if (state.kind === 'grain' && !Number($('#f-tons').value)) return showToast('Toneladas requeridas', 'error');
+  if (state.kind === 'carbon') {
+    if (!Number($('#f-vintageYear').value) || !Number($('#f-kgCo2eq').value)) return showToast('Vintage year y kg CO2eq requeridos', 'error');
+  }
+  if (state.kind === 'harvest') {
+    if (!Number($('#f-hectares').value) || !Number($('#f-harvestYear').value)) return showToast('Hectáreas y año de cosecha requeridos', 'error');
+  }
+  if (state.kind === 'investment') {
+    if (!$('#f-productName').value.trim()) return showToast('Nombre del producto requerido', 'error');
+    const d = Number($('#f-durationMonths').value);
+    if (!d || d < 1 || d > 120) return showToast('Duración debe estar entre 1 y 120 meses', 'error');
+    const y = parseFloat($('#f-expectedYieldPct').value);
+    if (!(y >= 0) || y > 50) return showToast('ROI debe ser entre 0% y 50%', 'error');
+    if (!$('#f-maturityDate').value) return showToast('Fecha de maduración requerida', 'error');
+    const matTs = Math.floor(new Date($('#f-maturityDate').value).getTime() / 1000);
+    if (matTs <= Math.floor(Date.now()/1000)) return showToast('La maduración debe ser una fecha futura', 'error');
+  }
+  setStep(3);
+});
+
+/* STEP 3 — certificación */
+$('#back-3').addEventListener('click', () => setStep(2));
+$('#f-file').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) return showToast('Archivo > 20 MB', 'error');
+  state.file = file;
+  $('#f-fileHint').textContent = 'Calculando SHA-256…';
+  const hash = await sha256OfFile(file);
+  state.hash = hash;
+  const hex = '0x' + Array.from(hash).map(b => b.toString(16).padStart(2, '0')).join('');
+  $('#f-fileHint').innerHTML = `SHA-256: <code style="color:var(--neon);font-size:11px">${hex.slice(0,18)}…${hex.slice(-6)}</code>`;
+  validateStep3();
+});
+$('#f-whitePaper').addEventListener('input', validateStep3);
+function validateStep3() {
+  const ok = state.hash && $('#f-whitePaper').value.trim().length > 4;
+  $('#next-3').disabled = !ok;
+}
+$('#next-3').addEventListener('click', async () => {
+  setStep(4);
+  await renderReview();
+});
+
+/* STEP 4 — review + KYC gate + submit */
+$('#back-4').addEventListener('click', () => setStep(3));
+
+async function renderReview() {
+  const r = $('#review');
+  const f = collectForm();
+  const rows = [
+    ['Clase', { grain: 'Granos', carbon: 'Crédito de carbono', harvest: 'Fracción de cosecha', investment: 'Yield offering' }[f.kind]],
+    ['Total supply', f.totalSupply.toLocaleString('es-ES') + ' tokens'],
+  ];
+  if (f.kind === 'grain') rows.push(['Tipo', f.grainKind], ['Toneladas', f.tons]);
+  if (f.kind === 'carbon') rows.push(['Estándar', f.standard], ['Vintage', f.vintageYear], ['kg CO₂eq', f.kgCo2eq.toLocaleString('es-ES')]);
+  if (f.kind === 'harvest') rows.push(['Cultivo', f.crop], ['Hectáreas', f.hectares], ['Año cosecha', f.harvestYear]);
+  if (f.kind === 'investment') rows.push(['Producto', f.productName], ['Tipo', f.productKind], ['Duración', f.durationMonths + ' meses'], ['ROI esperado', (f.expectedYieldBps/100).toFixed(2) + '%'], ['Maduración', new Date(f.maturityUnixTs*1000).toLocaleDateString('es-ES')]);
+  rows.push(
+    ['White paper', f.whitePaperUri],
+    ['Metadata', f.metadataUri || '—'],
+    ['Cert. SHA-256', state.hash ? Array.from(state.hash).slice(0,4).map(b => b.toString(16).padStart(2,'0')).join('') + '…' : '—'],
+    ['Red', NETWORK],
+  );
+  r.innerHTML = rows.map(([k, v]) => `<div class="review-row"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  await renderKycBanner();
+}
+
+async function renderKycBanner() {
+  const b = $('#kyc-banner');
+  if (!isConnected()) {
+    b.innerHTML = `<div class="warn"><strong>Wallet no conectada.</strong> Conectá Phantom antes de firmar.</div>`;
+    $('#submit-tx').disabled = false;
+    return;
+  }
+  b.innerHTML = `<div class="warn">Verificando KYC on-chain…</div>`;
+  const kyc = await checkKyc(getPublicKey());
+  if (kyc.ok) {
+    b.innerHTML = `<div class="ok">✓ KYC verificado · Jurisdicción ${kyc.jurisdiction}</div>`;
+    $('#submit-tx').disabled = false;
+  } else {
+    b.innerHTML = `<div class="warn"><strong>KYC requerido.</strong> ${reasonToMessage(kyc.reason, kyc.jurisdiction)} <a href="contact.html?kyc=1" style="color:var(--neon)">Solicitar KYC</a></div>`;
+    $('#submit-tx').disabled = false; // permitimos intentar; el programa rechazará
+  }
+}
+
+window.addEventListener('wallet:connected', () => {
+  if (!$('[data-panel="4"]').classList.contains('hidden')) renderKycBanner();
+});
+
+function collectForm() {
+  const f = { kind: state.kind };
+  f.totalSupply = Number($('#f-totalSupply').value);
+  if (state.kind === 'grain') {
+    f.grainKind = $('#f-grainKind').value;
+    f.tons = Number($('#f-tons').value);
+  } else if (state.kind === 'carbon') {
+    f.standard = $('#f-standard').value;
+    f.vintageYear = Number($('#f-vintageYear').value);
+    f.kgCo2eq = Number($('#f-kgCo2eq').value);
+  } else if (state.kind === 'harvest') {
+    f.crop = $('#f-crop').value;
+    f.hectares = Number($('#f-hectares').value);
+    f.harvestYear = Number($('#f-harvestYear').value);
+  } else if (state.kind === 'investment') {
+    f.productName = $('#f-productName').value.trim();
+    f.productKind = $('#f-productKind').value;
+    f.durationMonths = Number($('#f-durationMonths').value);
+    f.expectedYieldBps = Math.round(parseFloat($('#f-expectedYieldPct').value) * 100);
+    f.maturityUnixTs = Math.floor(new Date($('#f-maturityDate').value).getTime() / 1000);
+  }
+  f.whitePaperUri = $('#f-whitePaper').value.trim();
+  f.metadataUri = $('#f-metadata').value.trim();
+  f.oracleAttestation = state.hash || new Uint8Array(32);
+  return f;
+}
+
+$('#submit-tx').addEventListener('click', async () => {
+  if (!isConnected()) {
+    const pk = await connectWallet();
+    if (!pk) return;
+  }
+  const btn = $('#submit-tx');
+  btn.disabled = true;
+  btn.textContent = 'Firmando…';
+  try {
+    const f = collectForm();
+    const { tx, assetRegistry, mint, index } = await registerAsset(f);
+    showToast('Activo tokenizado · ' + tx.slice(0, 8) + '…', 'success');
+    $('#result-card').classList.remove('hidden');
+    $('#result-body').innerHTML = `
+      <div class="review-row"><div class="k">Tx</div><div class="v"><a href="${txUrl(tx)}" target="_blank" style="color:var(--neon)">${tx.slice(0,12)}…${tx.slice(-6)} ↗</a></div></div>
+      <div class="review-row"><div class="k">Asset Registry</div><div class="v"><a href="${addrUrl(assetRegistry)}" target="_blank" style="color:var(--neon)">${assetRegistry.slice(0,12)}…</a></div></div>
+      <div class="review-row"><div class="k">Mint</div><div class="v"><a href="${addrUrl(mint)}" target="_blank" style="color:var(--neon)">${mint.slice(0,12)}…</a></div></div>
+      <div class="review-row"><div class="k">Index</div><div class="v">${index}</div></div>
+      <p style="margin-top:18px;font-size:13px;color:var(--t2)">Próximo paso: <a href="marketplace.html" style="color:var(--neon)">listalo en el marketplace</a> o seguí minteando contra este lote.</p>
+    `;
+    btn.textContent = 'Tokenizar otro';
+    btn.disabled = false;
+    btn.onclick = () => location.reload();
+  } catch (err) {
+    console.error(err);
+    showToast('Error: ' + (err.message || 'transacción rechazada'), 'error');
+    btn.disabled = false;
+    btn.textContent = 'Firmar y tokenizar';
+  }
+});
+</script>
+<script type="module" src="js/pwa-install.js"></script>
+</body>
+</html>

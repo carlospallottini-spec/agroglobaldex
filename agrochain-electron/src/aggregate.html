@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agregador (admin) — AgroGlobalDex</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<meta name="description" content="Pantalla admin: cura tokens RWA-agro de terceras plataformas para que aparezcan en el marketplace de AgroGlobalDex.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--red:#FF3D4A;--amb:#F0A020;--bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;--r:8px;--r2:14px;--fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);min-height:100vh}
+a{color:inherit;text-decoration:none}
+nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nlt{font-family:var(--fd);font-size:16px}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r)}
+.nav-links a.active,.nav-links a:hover{color:var(--neon)}
+.nav-r{margin-left:auto}
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.nwb.connected{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb.connected .wdot{background:var(--neon)}
+.demo-banner{background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px}
+main{max-width:1200px;margin:32px auto;padding:0 32px 80px}
+h1{font-family:var(--fd);font-size:36px;margin-bottom:6px}
+.sub{color:var(--t2);margin-bottom:24px;font-size:14px}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:24px;margin-bottom:18px}
+.tabs{display:flex;gap:0;margin-bottom:18px;border-bottom:1px solid var(--bd)}
+.tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--neon);border-bottom-color:var(--neon)}
+.field{margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px}
+.field input,.field select{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);color:var(--txt);font-family:var(--fb);font-size:13px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-p{padding:10px 18px;background:var(--neon);color:#000;border:none;border-radius:var(--r);font-weight:700;cursor:pointer;font-family:var(--fb);font-size:13px}
+.btn-p:hover{background:#00e55f}
+.btn-g{padding:8px 14px;background:transparent;color:var(--t2);border:1px solid var(--bd2);border-radius:var(--r);cursor:pointer;font-family:var(--fb);font-size:12px}
+.btn-g:hover{color:var(--neon);border-color:var(--nm)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 8px;color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--bd)}
+td{padding:14px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.tag{display:inline-block;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.tag-spl{background:var(--nd);color:var(--neon);border:1px solid var(--nm)}
+.tag-cross{background:#3A9EF515;color:#3A9EF5;border:1px solid #3A9EF555}
+.tag-ok{background:var(--nd);color:var(--neon)}
+.tag-no{background:#FF3D4A15;color:var(--red)}
+.warn{padding:12px 14px;background:#F0A02012;border:1px solid #F0A02055;border-radius:var(--r);color:#F4C078;font-size:13px;margin-bottom:18px}
+.empty{text-align:center;padding:40px;color:var(--t3)}
+</style>
+</head>
+<body>
+<div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Pantalla admin. Sólo accesible para la authority del marketplace en devnet.</div>
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html">Tokenizar</a>
+    <a href="invest.html">Invertir</a>
+    <a href="investors.html">Inversores</a>
+    <a href="aggregate.html" class="active">Agregador</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+  </div>
+</nav>
+
+<main>
+  <h1>Agregador</h1>
+  <div class="sub">Cura tokens RWA-agro de terceras plataformas (Agrotoken, Topaz, RIPE, Centrifuge…) para que aparezcan en el marketplace de AgroGlobalDex.</div>
+
+  <div id="auth-warn" class="warn" style="display:none">No tenés permisos. Sólo la <strong>authority del marketplace</strong> puede agregar/curar activos. Conectá la wallet correcta.</div>
+
+  <div class="card">
+    <h3 style="font-family:var(--fd);font-size:20px;margin-bottom:14px">Agregar nuevo</h3>
+    <div class="tabs">
+      <div class="tab active" data-tab="spl">SPL Solana</div>
+      <div class="tab" data-tab="cross">Cross-chain (display)</div>
+    </div>
+
+    <div class="tab-panel" data-panel="spl">
+      <div class="field"><label>Mint pubkey (Solana SPL)</label>
+        <input type="text" id="agg-mint" placeholder="Ejemplo: AGRO… (mint público del token a agregar)">
+      </div>
+    </div>
+    <div class="tab-panel" data-panel="cross" style="display:none">
+      <div class="row2">
+        <div class="field"><label>Chain ID</label>
+          <input type="text" id="agg-chainId" placeholder="ethereum, polygon, rsk, bsc…">
+        </div>
+        <div class="field"><label>Contract address</label>
+          <input type="text" id="agg-contract" placeholder="0x…">
+        </div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label>Plataforma origen</label>
+        <input type="text" id="agg-platform" placeholder="Agrotoken, Topaz, RIPE…">
+      </div>
+      <div class="field"><label>URL origen</label>
+        <input type="text" id="agg-url" placeholder="https://platform.com/asset/123">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label>Clase de activo</label>
+        <select id="agg-kind">
+          <option value="grain">Grain</option>
+          <option value="carbon">CarbonCredit</option>
+          <option value="harvest">HarvestFraction</option>
+        </select>
+      </div>
+      <div class="field"><label>Metadata URI (opcional)</label>
+        <input type="text" id="agg-meta" placeholder="ipfs://…">
+      </div>
+    </div>
+
+    <button class="btn-p" id="btn-add">Agregar</button>
+  </div>
+
+  <div class="card">
+    <h3 style="font-family:var(--fd);font-size:20px;margin-bottom:14px">Activos agregados</h3>
+    <div id="list-wrap"><div class="empty">Cargando…</div></div>
+  </div>
+</main>
+
+<div id="toast-stack" style="position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px"></div>
+
+<script type="module">
+import { connectWallet, getPublicKey, isConnected } from './js/wallet-adapter.js';
+import {
+  fetchAllExternalAssets, aggregateExternalAsset, updateExternalAsset, fetchMarketplace,
+} from './js/agroglobaldex-client.js';
+import { txUrl, addrUrl } from './js/network-config.js';
+
+const $ = s => document.querySelector(s);
+function toast(msg, kind='success'){
+  const t=document.createElement('div');
+  t.style.cssText='padding:14px 18px;background:#0A0F0C;border:1px solid '+(kind==='error'?'#FF3D4A55':'#00FF6A28')+';border-radius:8px;color:'+(kind==='error'?'#FF3D4A':'#00FF6A')+';font-size:13px;min-width:260px';
+  t.textContent=msg; $('#toast-stack').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},4000);
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.querySelector(`[data-panel="${t.dataset.tab}"]`).style.display = '';
+  });
+});
+
+async function checkAuth() {
+  if (!isConnected()) { $('#auth-warn').style.display = ''; return false; }
+  const mp = await fetchMarketplace(getPublicKey()).catch(() => null);
+  const ok = mp && mp.authority?.toString() === getPublicKey();
+  $('#auth-warn').style.display = ok ? 'none' : '';
+  return ok;
+}
+
+async function refresh() {
+  const wrap = $('#list-wrap');
+  wrap.innerHTML = '<div class="empty">Cargando…</div>';
+  const all = await fetchAllExternalAssets();
+  if (!all.length) {
+    wrap.innerHTML = '<div class="empty">Todavía no hay activos agregados. Empezá con Agrotoken (Solana SPL) o un cross-chain de Centrifuge.</div>';
+    return;
+  }
+  const rows = all.map(a => {
+    const kind = Object.keys(a.assetClass || {})[0] || '—';
+    const platform = a.sourcePlatform || '—';
+    const ref = a.mint ? a.mint.toString() : `${a.externalChainId}:${a.externalContract}`;
+    return `
+      <tr>
+        <td><span class="tag ${a.mint ? 'tag-spl' : 'tag-cross'}">${a.mint ? 'SPL' : 'CROSS'}</span></td>
+        <td>${platform}</td>
+        <td>${kind}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:11px">${ref.slice(0, 14)}…</td>
+        <td><span class="tag ${a.verified ? 'tag-ok' : 'tag-no'}">${a.verified ? 'Verificado' : 'No'}</span></td>
+        <td><span class="tag ${a.active ? 'tag-ok' : 'tag-no'}">${a.active ? 'Activo' : 'Inactivo'}</span></td>
+        <td>
+          <button class="btn-g" data-act="verify" data-pk="${a.publicKey}" data-v="${!a.verified}" data-a="${a.active}">${a.verified ? 'Quitar verif.' : 'Verificar'}</button>
+          <button class="btn-g" data-act="toggle" data-pk="${a.publicKey}" data-v="${a.verified}" data-a="${!a.active}">${a.active ? 'Desactivar' : 'Activar'}</button>
+          <a class="btn-g" href="${a.sourceUrl}" target="_blank">↗</a>
+        </td>
+      </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Tipo</th><th>Plataforma</th><th>Clase</th><th>Ref</th><th>Verificado</th><th>Activo</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+  wrap.querySelectorAll('button[data-act]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await updateExternalAsset(btn.dataset.pk, btn.dataset.v === 'true', btn.dataset.a === 'true');
+        toast('Actualizado');
+        refresh();
+      } catch (e) { toast(e.message || 'Error', 'error'); }
+    });
+  });
+}
+
+$('#btn-add').addEventListener('click', async () => {
+  if (!isConnected()) { await connectWallet(); }
+  const tab = document.querySelector('.tab.active').dataset.tab;
+  const form = {
+    kind: tab === 'spl' ? 'spl' : 'cross',
+    mint: $('#agg-mint').value.trim(),
+    chainId: $('#agg-chainId').value.trim(),
+    contract: $('#agg-contract').value.trim(),
+    sourcePlatform: $('#agg-platform').value.trim(),
+    sourceUrl: $('#agg-url').value.trim(),
+    metadataUri: $('#agg-meta').value.trim(),
+    assetClass: { kind: $('#agg-kind').value, tons: 0, kgCo2eq: 0, hectares: 0 }, // bare AssetClass
+  };
+  // Coherencia mínima
+  if (form.kind === 'spl' && !form.mint) return toast('Mint requerido', 'error');
+  if (form.kind === 'cross' && (!form.chainId || !form.contract)) return toast('Chain ID + contract requeridos', 'error');
+  if (!form.sourcePlatform) return toast('Plataforma origen requerida', 'error');
+
+  try {
+    const { tx, externalAsset } = await aggregateExternalAsset(form);
+    toast('Agregado · ' + tx.slice(0, 8) + '…');
+    refresh();
+  } catch (e) { console.error(e); toast(e.message || 'Error', 'error'); }
+});
+
+window.addEventListener('wallet:connected', () => { checkAuth(); refresh(); });
+checkAuth(); refresh();
+</script>
+<script type="module" src="js/pwa-install.js"></script>
+</body>
+</html>
