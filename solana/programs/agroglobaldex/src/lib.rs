@@ -100,8 +100,30 @@ pub mod agroglobaldex {
         instructions::list_asset::handler(ctx, price_usdc, amount)
     }
 
+    pub fn update_listing_price(
+        ctx: Context<UpdateListingPrice>,
+        new_price_usdc: u64,
+    ) -> Result<()> {
+        instructions::update_listing_price::handler(ctx, new_price_usdc)
+    }
+
+    pub fn cancel_listing(ctx: Context<CancelListing>) -> Result<()> {
+        instructions::cancel_listing::handler(ctx)
+    }
+
     pub fn buy_asset(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
         instructions::buy_asset::handler(ctx, amount)
+    }
+
+    /// Buy from a listing whose underlying mint is an EXTERNAL SPL token
+    /// curated through `aggregate_external_asset`. Compliance-checked.
+    pub fn buy_external_asset(ctx: Context<BuyExternalAsset>, amount: u64) -> Result<()> {
+        instructions::buy_external_asset::handler(ctx, amount)
+    }
+
+    /// Authority withdraws accumulated protocol fees (USDC) from the treasury.
+    pub fn treasury_withdraw(ctx: Context<TreasuryWithdraw>, amount: u64) -> Result<()> {
+        instructions::treasury_withdraw::handler(ctx, amount)
     }
 
     pub fn redeem(ctx: Context<Redeem>, amount: u64) -> Result<()> {

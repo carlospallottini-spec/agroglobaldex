@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agregador (admin) — AgroGlobalDex</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="Pantalla admin: cura tokens RWA-agro de terceras plataformas para que aparezcan en el marketplace de AgroGlobalDex.">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -237,5 +238,6 @@ $('#btn-add').addEventListener('click', async () => {
 window.addEventListener('wallet:connected', () => { checkAuth(); refresh(); });
 checkAuth(); refresh();
 </script>
+<script type="module" src="js/pwa-install.js"></script>
 </body>
 </html>

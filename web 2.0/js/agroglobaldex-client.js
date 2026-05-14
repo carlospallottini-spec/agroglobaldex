@@ -449,6 +449,115 @@ export async function updateExternalAsset(externalAssetPubkey, verified, active)
   return { tx };
 }
 
+/* ═══════ LISTING MANAGEMENT (seller-only) ═══════ */
+export async function cancelListing(listingPubkey) {
+  const program = await getProgram();
+  const seller = program.provider.wallet.publicKey;
+  const listing = new PublicKey(listingPubkey);
+  const listingAcc = await program.account.marketplaceListing.fetch(listing);
+  const tx = await program.methods
+    .cancelListing()
+    .accounts({
+      seller,
+      marketplace: listingAcc.marketplace,
+      assetRegistry: listingAcc.sourceRegistry,
+      listing,
+      escrow: listingAcc.escrow,
+      mint: listingAcc.mint,
+      buyerTokenAccount: undefined, // not needed by anchor inferred
+      sellerTokenAccount: getAssociatedTokenAddress(listingAcc.mint, seller, TOKEN_2022_PROGRAM_ID),
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  return { tx };
+}
+
+export async function updateListingPrice(listingPubkey, newPriceUsdc) {
+  const program = await getProgram();
+  const seller = program.provider.wallet.publicKey;
+  const listing = new PublicKey(listingPubkey);
+  const listingAcc = await program.account.marketplaceListing.fetch(listing);
+  const tx = await program.methods
+    .updateListingPrice(new BN(newPriceUsdc))
+    .accounts({
+      seller,
+      assetRegistry: listingAcc.sourceRegistry,
+      listing,
+    })
+    .rpc();
+  return { tx };
+}
+
+/* ═══════ TREASURY (authority-only) ═══════ */
+export async function treasuryWithdraw(destinationWallet, amount) {
+  const program = await getProgram();
+  const authority = program.provider.wallet.publicKey;
+  const auth = await firstMarketplaceAuthority(program);
+  const marketplace = findMarketplacePda(auth);
+  const mp = await fetchMarketplace(auth);
+  const treasury = findTreasuryPda(marketplace);
+  const usdcMint = mp.usdcMint;
+  const dest = new PublicKey(destinationWallet);
+  const tx = await program.methods
+    .treasuryWithdraw(new BN(amount))
+    .accounts({
+      authority,
+      marketplace,
+      treasury,
+      usdcMint,
+      treasuryUsdcAta: getAssociatedTokenAddress(usdcMint, treasury, TOKEN_PROGRAM_ID),
+      destination: dest,
+      destinationUsdcAta: getAssociatedTokenAddress(usdcMint, dest, TOKEN_PROGRAM_ID),
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  return { tx };
+}
+
+/* ═══════ BUY EXTERNAL (curated SPL) ═══════ */
+export async function buyExternalAsset({ listingPubkey, amount }) {
+  const program = await getProgram();
+  const buyer = program.provider.wallet.publicKey;
+  const listing = new PublicKey(listingPubkey);
+  const listingAcc = await program.account.marketplaceListing.fetch(listing);
+  const externalAsset = listingAcc.sourceRegistry;
+  const externalAcc = await program.account.externalAssetRegistry.fetch(externalAsset);
+  const marketplace = listingAcc.marketplace;
+  const mpAcc = await program.account.marketplace.fetch(marketplace);
+  const usdcMint = mpAcc.usdcMint;
+  const treasury = findTreasuryPda(marketplace);
+  const buyerCompliance = findComplianceRecordPda(marketplace, buyer);
+
+  const tx = await program.methods
+    .buyExternalAsset(new BN(amount))
+    .accounts({
+      buyer,
+      marketplace,
+      externalAsset,
+      listing,
+      escrow: listingAcc.escrow,
+      seller: listingAcc.seller,
+      mint: listingAcc.mint,
+      buyerTokenAccount: getAssociatedTokenAddress(listingAcc.mint, buyer, TOKEN_PROGRAM_ID),
+      buyerCompliance,
+      usdcMint,
+      buyerUsdcAta: getAssociatedTokenAddress(usdcMint, buyer, TOKEN_PROGRAM_ID),
+      sellerUsdcAta: getAssociatedTokenAddress(usdcMint, listingAcc.seller, TOKEN_PROGRAM_ID),
+      treasuryUsdcAta: getAssociatedTokenAddress(usdcMint, treasury, TOKEN_PROGRAM_ID),
+      treasury,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      usdcTokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  return { tx };
+}
+
 /* ═══════ ATA helper (sync, sin spl-token dep) ═══════ */
 function getAssociatedTokenAddress(mint, owner, tokenProgramId) {
   return PublicKey.findProgramAddressSync(
@@ -464,7 +573,8 @@ export default {
   fetchComplianceRecord,
   sha256OfFile, sha256OfBytes,
   registerAsset, registerGrainAsset, registerCarbonAsset, registerHarvestFraction, registerInvestmentOffering,
-  buyAsset,
+  buyAsset, buyExternalAsset,
+  cancelListing, updateListingPrice, treasuryWithdraw,
   aggregateExternalAsset, updateExternalAsset,
   findMarketplacePda, findAssetRegistryPda, findListingPda, findExternalAssetPda,
   findComplianceRecordPda,

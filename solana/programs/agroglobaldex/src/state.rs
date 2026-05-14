@@ -406,3 +406,16 @@ pub struct ExternalAssetUpdated {
     pub verified: bool,
     pub active: bool,
 }
+
+#[event]
+pub struct ListingPriceUpdated {
+    pub listing: Pubkey,
+    pub new_price_usdc: u64,
+}
+
+#[event]
+pub struct TreasuryWithdrawn {
+    pub marketplace: Pubkey,
+    pub destination: Pubkey,
+    pub amount: u64,
+}

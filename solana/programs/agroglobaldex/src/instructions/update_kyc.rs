@@ -70,15 +70,17 @@ pub fn handler(
 // ---------------------------------------------------------------------------
 
 /// Verify a wallet may receive or hold a regulated asset.
-///
-/// Policy (PoC, defense-in-depth alongside the on-chain `JurisdictionPolicy`
-/// enforced by the compliance-hook):
-/// - `kyc_verified` MUST be true.
-/// - Jurisdiction MUST NOT be on the hard-coded blocklist.
-/// - `HarvestFraction` and `InvestmentOffering` additionally require
-///   `accredited_investor == true` (both are speculative yield instruments
-///   and security tokens under MiCA/MiFID II).
 pub fn enforce_compliance(
+    record: &ComplianceRecord,
+    asset_class: &AssetClass,
+) -> Result<()> {
+    enforce_compliance_basic(record, asset_class)
+}
+
+/// Same as `enforce_compliance`. Kept under a separate name so call-sites
+/// (e.g. `buy_external_asset`) can express intent: the rules are the same
+/// for natives and curated externals.
+pub fn enforce_compliance_basic(
     record: &ComplianceRecord,
     asset_class: &AssetClass,
 ) -> Result<()> {
