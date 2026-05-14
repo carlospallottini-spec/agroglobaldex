@@ -153,6 +153,8 @@ pub struct Marketplace {
     pub asset_count: u64,
     /// Monotonic counter of external (aggregated) registered assets.
     pub external_asset_count: u64,
+    /// Circuit breaker. When `true`, all write paths abort with `Paused`.
+    pub paused: bool,
 }
 
 /// One per tokenized real-world asset lot. The mint of the SPL Token-2022 is
@@ -418,4 +420,11 @@ pub struct TreasuryWithdrawn {
     pub marketplace: Pubkey,
     pub destination: Pubkey,
     pub amount: u64,
+}
+
+#[event]
+pub struct PauseChanged {
+    pub marketplace: Pubkey,
+    pub was: bool,
+    pub now: bool,
 }

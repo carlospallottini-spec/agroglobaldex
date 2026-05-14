@@ -70,6 +70,7 @@ pub fn handler(ctx: Context<Initialize>, fee_bps: u16) -> Result<()> {
     marketplace.fee_bps = fee_bps;
     marketplace.asset_count = 0;
     marketplace.external_asset_count = 0;
+    marketplace.paused = false;
 
     msg!(
         "AgroGlobalDex marketplace initialized. authority={} compliance_signer={} usdc_mint={} fee_bps={}",

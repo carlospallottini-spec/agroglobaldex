@@ -9,12 +9,20 @@ use anchor_spl::token_2022::{
     },
     InitializeMint2, Token2022,
 };
+use anchor_spl::token_2022_extensions::{
+    metadata_pointer_initialize, token_metadata_initialize, MetadataPointerInitialize,
+    TokenMetadataInitialize,
+};
 
 use crate::errors::AgroError;
 use crate::state::*;
 
 /// Registers a new tokenized asset and creates its SPL Token-2022 mint
-/// with the `TransferHook` extension pointing at the compliance-hook program.
+/// with three extensions wired in order:
+///   1. TransferHook → compliance-hook program (enforces KYC on transfer)
+///   2. MetadataPointer → self (the mint stores its own TokenMetadata)
+///   3. TokenMetadata → name/symbol/uri so wallets (Phantom/Solflare/Backpack)
+///      render the token with a human label and image.
 #[derive(Accounts)]
 #[instruction(asset_class: AssetClass, total_supply: u64)]
 pub struct RegisterAsset<'info> {
@@ -24,7 +32,8 @@ pub struct RegisterAsset<'info> {
     #[account(
         mut,
         seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
-        bump = marketplace.bump
+        bump = marketplace.bump,
+        constraint = !marketplace.paused @ AgroError::Paused,
     )]
     pub marketplace: Account<'info, Marketplace>,
 
@@ -41,8 +50,6 @@ pub struct RegisterAsset<'info> {
     )]
     pub asset_registry: Account<'info, AssetRegistry>,
 
-    /// Token-2022 mint PDA. Created manually below with the TransferHook
-    /// extension wired to the compliance-hook program id.
     /// CHECK: validated by seeds + initialized via CPI inside the handler.
     #[account(
         mut,
@@ -51,12 +58,27 @@ pub struct RegisterAsset<'info> {
     )]
     pub mint: UncheckedAccount<'info>,
 
-    /// CHECK: passed in explicitly so deployments can rotate hooks if needed.
+    /// CHECK: passed in explicitly so deployments can rotate hooks.
     pub compliance_hook_program: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
+}
+
+/// Derive a short alphanumeric symbol (max 10) from the asset class.
+fn derive_symbol(asset_class: &AssetClass) -> String {
+    match asset_class {
+        AssetClass::Grain { kind, .. } => match kind {
+            GrainKind::Soy => "AGRO-SOY".to_string(),
+            GrainKind::Corn => "AGRO-CRN".to_string(),
+            GrainKind::Wheat => "AGRO-WHT".to_string(),
+            GrainKind::Other => "AGRO-GRN".to_string(),
+        },
+        AssetClass::CarbonCredit { .. } => "AGRO-CO2".to_string(),
+        AssetClass::HarvestFraction { .. } => "AGRO-HRV".to_string(),
+        AssetClass::InvestmentOffering { .. } => "AGRO-INV".to_string(),
+    }
 }
 
 pub fn handler(
@@ -78,8 +100,8 @@ pub fn handler(
         product_name.len() <= MAX_PRODUCT_NAME_LEN,
         AgroError::StringTooLong
     );
+    require!(!product_name.is_empty(), AgroError::InvalidAssetMetadata);
 
-    // Sanity-check class-specific metadata.
     match &asset_class {
         AssetClass::Grain { tons, .. } => {
             require!(*tons > 0, AgroError::InvalidAssetMetadata);
@@ -129,10 +151,28 @@ pub fn handler(
     let hook_program_id = ctx.accounts.compliance_hook_program.key();
     let registry_authority = registry_key;
 
-    // ---- Create mint account with space for the TransferHook extension ---
-    let extensions = [ExtensionType::TransferHook];
-    let mint_space = ExtensionType::try_calculate_account_len::<MintState>(&extensions)
+    let symbol = derive_symbol(&asset_class);
+    let name = product_name.clone();
+    let token_uri = if !metadata_uri.is_empty() {
+        metadata_uri.clone()
+    } else {
+        white_paper_uri.clone()
+    };
+
+    // ---- Compute mint space (base + TransferHook + MetadataPointer + room for TokenMetadata)
+    let extensions = [ExtensionType::TransferHook, ExtensionType::MetadataPointer];
+    let base_size = ExtensionType::try_calculate_account_len::<MintState>(&extensions)
         .map_err(|_| AgroError::InvalidAssetMetadata)?;
+    // TokenMetadata extension overhead: TLV header (4) + struct overhead.
+    // Body: update_authority(33) + mint(32) + name + symbol + uri + Vec<(...)>(4).
+    let metadata_extension_size = 4 // TLV header
+        + 33                                 // update_authority Option<Pubkey>
+        + 32                                 // mint pubkey
+        + (4 + name.len())                   // name
+        + (4 + symbol.len())                 // symbol
+        + (4 + token_uri.len())              // uri
+        + 4; // additional_metadata empty Vec
+    let mint_space = base_size + metadata_extension_size;
     let rent_lamports = Rent::get()?.minimum_balance(mint_space);
 
     let mint_bump = ctx.bumps.mint;
@@ -156,7 +196,7 @@ pub fn handler(
         &token_program_id,
     )?;
 
-    // ---- Initialize TransferHook extension (BEFORE initialize_mint2) -------
+    // ---- 1. TransferHook extension (BEFORE initialize_mint2) ---------------
     let ix = transfer_hook::instruction::initialize(
         &token_program_id,
         &mint_key,
@@ -172,7 +212,22 @@ pub fn handler(
         ],
     )?;
 
-    // ---- Initialize the mint itself --------------------------------------
+    // ---- 2. MetadataPointer extension --------------------------------------
+    // Authority = asset_registry PDA. Metadata target = the mint itself (the
+    // TokenMetadata extension lives in this same account).
+    metadata_pointer_initialize(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            MetadataPointerInitialize {
+                token_program_id: ctx.accounts.token_program.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
+            },
+        ),
+        Some(registry_authority),
+        Some(mint_key),
+    )?;
+
+    // ---- 3. Initialize the mint itself ------------------------------------
     initialize_mint2(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -183,6 +238,34 @@ pub fn handler(
         6, // decimals
         &registry_authority,
         Some(&registry_authority),
+    )?;
+
+    // ---- 4. TokenMetadata extension (after mint init) ---------------------
+    // Mint authority and update authority are both the asset_registry PDA.
+    let marketplace_key = marketplace.key();
+    let index_bytes = index.to_le_bytes();
+    let registry_bump = ctx.bumps.asset_registry;
+    let registry_signer_seeds: &[&[u8]] = &[
+        ASSET_REGISTRY_SEED,
+        marketplace_key.as_ref(),
+        &index_bytes,
+        std::slice::from_ref(&registry_bump),
+    ];
+    token_metadata_initialize(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            TokenMetadataInitialize {
+                program_id: ctx.accounts.token_program.to_account_info(),
+                metadata: ctx.accounts.mint.to_account_info(),
+                update_authority: ctx.accounts.asset_registry.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
+                mint_authority: ctx.accounts.asset_registry.to_account_info(),
+            },
+            &[registry_signer_seeds],
+        ),
+        name.clone(),
+        symbol,
+        token_uri,
     )?;
 
     // ---- Persist the AssetRegistry ---------------------------------------
@@ -197,8 +280,6 @@ pub fn handler(
     registry.white_paper_uri = white_paper_uri;
     registry.metadata_uri = metadata_uri;
     registry.product_name = product_name.clone();
-    // InvestmentOffering & HarvestFraction settle off-chain → not redeemable
-    // via burn. Carbon & Grain are.
     registry.redeemable = !matches!(
         asset_class,
         AssetClass::HarvestFraction { .. } | AssetClass::InvestmentOffering { .. }

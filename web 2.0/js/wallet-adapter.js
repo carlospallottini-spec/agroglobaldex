@@ -16,6 +16,7 @@
  * ═══════════════════════════════════════════════════════════ */
 
 import { truncateAddress } from './network-config.js';
+import { preferredMobilePath, openInWallet } from './mwa-helper.js';
 
 const STORAGE_KEY = 'agroglobaldex_wallet_v3';
 
@@ -173,6 +174,14 @@ export async function connectWallet({ provider, silent = false } = {}) {
 
   const providerObj = getProviderById(provider);
   if (!providerObj) {
+    // Mobile-web fallback: if the device is mobile and the wallet has a
+    // universal-link deep link, send the user into the wallet's in-app
+    // browser. Once there, window.solana etc. is injected and reconnect
+    // happens silently on next load.
+    if (!silent && preferredMobilePath() === 'deeplink') {
+      const opened = openInWallet(provider);
+      if (opened) return null;
+    }
     const w = findWallet(provider);
     if (!silent && w) {
       showWalletToast(`${w.name} no detectada. Abriendo descarga…`, 'error');

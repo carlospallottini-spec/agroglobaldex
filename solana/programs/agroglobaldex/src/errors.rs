@@ -82,4 +82,7 @@ pub enum AgroError {
 
     #[msg("Too many jurisdictions in the policy list (max 32)")]
     TooManyJurisdictions,
+
+    #[msg("Marketplace is paused — write operations are temporarily disabled")]
+    Paused,
 }

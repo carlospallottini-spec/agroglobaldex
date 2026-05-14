@@ -47,6 +47,11 @@ pub mod agroglobaldex {
         instructions::set_compliance_signer::handler(ctx)
     }
 
+    /// Pause/resume the marketplace circuit breaker. Authority-only.
+    pub fn set_paused(ctx: Context<SetPaused>, paused: bool) -> Result<()> {
+        instructions::set_paused::handler(ctx, paused)
+    }
+
     /// Create the on-chain mutable JurisdictionPolicy with conservative defaults.
     pub fn init_jurisdiction_policy(ctx: Context<InitJurisdictionPolicy>) -> Result<()> {
         instructions::init_jurisdiction_policy::handler(ctx)

@@ -1982,10 +1982,6 @@
         },
         {
           "name": "mint",
-          "docs": [
-            "Token-2022 mint PDA. Created manually below with the TransferHook",
-            "extension wired to the compliance-hook program id."
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -2117,6 +2113,63 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "set_paused",
+      "docs": [
+        "Pause/resume the marketplace circuit breaker. Authority-only."
+      ],
+      "discriminator": [
+        91,
+        60,
+        125,
+        192,
+        176,
+        225,
+        166,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
     },
     {
       "name": "treasury_withdraw",
@@ -2996,6 +3049,19 @@
       ]
     },
     {
+      "name": "PauseChanged",
+      "discriminator": [
+        238,
+        188,
+        213,
+        78,
+        134,
+        209,
+        178,
+        218
+      ]
+    },
+    {
       "name": "TokensMinted",
       "discriminator": [
         207,
@@ -3157,6 +3223,11 @@
       "code": 6026,
       "name": "TooManyJurisdictions",
       "msg": "Too many jurisdictions in the policy list (max 32)"
+    },
+    {
+      "code": 6027,
+      "name": "Paused",
+      "msg": "Marketplace is paused — write operations are temporarily disabled"
     }
   ],
   "types": [
@@ -4149,6 +4220,13 @@
               "Monotonic counter of external (aggregated) registered assets."
             ],
             "type": "u64"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Circuit breaker. When `true`, all write paths abort with `Paused`."
+            ],
+            "type": "bool"
           }
         ]
       }
@@ -4235,6 +4313,26 @@
             "docs": [
               "Whether the listing is still active."
             ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PauseChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "was",
+            "type": "bool"
+          },
+          {
+            "name": "now",
             "type": "bool"
           }
         ]
