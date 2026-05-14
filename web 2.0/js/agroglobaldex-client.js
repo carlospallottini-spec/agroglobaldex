@@ -279,6 +279,18 @@ export function buildAssetClass(form) {
           maturityUnixTs: new BN(form.maturityUnixTs || 0),
         },
       };
+    case 'commodity': {
+      const cc = (form.originCountry || 'AR').toUpperCase();
+      return {
+        commodity: {
+          sector: { [form.sector || 'other']: {} },
+          subKind: Number(form.subKind) || 0,
+          originCountry: [cc.charCodeAt(0), cc.charCodeAt(1)],
+          vintageYear: Number(form.vintageYear) || new Date().getFullYear(),
+          gramsPerToken: new BN(form.gramsPerToken || 1000),
+        },
+      };
+    }
     default:
       throw new Error('Tipo de activo desconocido: ' + form.kind);
   }
@@ -343,6 +355,20 @@ export const registerGrainAsset = (form) => registerAsset({ ...form, kind: 'grai
 export const registerCarbonAsset = (form) => registerAsset({ ...form, kind: 'carbon' });
 export const registerHarvestFraction = (form) => registerAsset({ ...form, kind: 'harvest' });
 export const registerInvestmentOffering = (form) => registerAsset({ ...form, kind: 'investment' });
+export const registerCommodity = (form) => registerAsset({ ...form, kind: 'commodity' });
+
+/** Catalog of commodity sub-kinds by sector. Frontend interpreta el sub_kind u8. */
+export const COMMODITY_SUB_KINDS = {
+  meat:        { 0: 'Beef',   1: 'Pork',     2: 'Poultry', 3: 'Lamb',    4: 'Fish',     255: 'Other' },
+  wine:        { 0: 'Red',    1: 'White',    2: 'Rose',    3: 'Sparkling',                255: 'Other' },
+  oil:         { 0: 'Olive',  1: 'Sunflower',2: 'Soy',     3: 'Palm',    4: 'Avocado',  255: 'Other' },
+  dairy:       { 0: 'Milk',   1: 'Cheese',   2: 'Butter',  3: 'Yogurt',                   255: 'Other' },
+  fruit:       { 0: 'Apple',  1: 'Citrus',   2: 'Banana',  3: 'Berry',   4: 'StoneFruit', 255: 'Other' },
+  vegetable:   { 0: 'Leafy',  1: 'Root',     2: 'Tomato',  3: 'Pepper',                   255: 'Other' },
+  fiber:       { 0: 'Cotton', 1: 'Wool',     2: 'Linen',   3: 'Hemp',                     255: 'Other' },
+  grainSpecial:{ 0: 'Rice',   1: 'Sorghum',  2: 'Sunflower',3:'Barley',  4: 'Oats',     255: 'Other' },
+  other:       { 0: 'Generic', 255: 'Other' },
+};
 
 /* ═══════ BUY ═══════ */
 /**
@@ -572,7 +598,8 @@ export default {
   fetchMarketplace, fetchAllListings, fetchAllAssets, fetchAllExternalAssets,
   fetchComplianceRecord,
   sha256OfFile, sha256OfBytes,
-  registerAsset, registerGrainAsset, registerCarbonAsset, registerHarvestFraction, registerInvestmentOffering,
+  registerAsset, registerGrainAsset, registerCarbonAsset, registerHarvestFraction, registerInvestmentOffering, registerCommodity,
+  COMMODITY_SUB_KINDS,
   buyAsset, buyExternalAsset,
   cancelListing, updateListingPrice, treasuryWithdraw,
   aggregateExternalAsset, updateExternalAsset,

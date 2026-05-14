@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inversores — AgroGlobalDex</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<meta name="description" content="AgroGlobalDex — pre-seed round USD 500k @ USD 5M cap SAFE. Marketplace compliance-first de RWA agropecuarios sobre Solana.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--gold:#C8A84B;--gd:#C8A84B0D;--gm:#C8A84B28;--txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--red:#FF3D4A;--amb:#F0A020;--blu:#3A9EF5;--bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;--r:8px;--r2:14px;--r3:20px;--fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh}
+a{color:inherit;text-decoration:none}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.4;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")}
+nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nlt{font-family:var(--fd);font-size:16px}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r)}
+.nav-links a.active,.nav-links a:hover{color:var(--neon)}
+.nav-r{margin-left:auto}
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.demo-banner{background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px}
+
+/* HERO */
+.hero{padding:90px 32px 60px;border-bottom:1px solid var(--bd);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 35% 50%,#00FF6A12 0%,transparent 65%),radial-gradient(ellipse 50% 40% at 80% 30%,#C8A84B08 0%,transparent 60%);pointer-events:none}
+.hero-c{position:relative;max-width:1100px;margin:0 auto}
+.tag{display:inline-flex;align-items:center;gap:8px;background:var(--nd);border:1px solid var(--nm);border-radius:24px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--neon);margin-bottom:20px;letter-spacing:.05em}
+.tag .dot{width:6px;height:6px;background:var(--neon);border-radius:50%;animation:pd 2s infinite}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.3}}
+.h1{font-family:var(--fd);font-size:clamp(36px,5.5vw,62px);line-height:1.04;margin-bottom:20px;letter-spacing:-.02em}
+.h1 em{color:var(--neon);font-style:italic}
+.h1 .gold{color:var(--gold)}
+.lead{font-size:17px;color:var(--t2);line-height:1.75;max-width:680px;margin-bottom:32px}
+
+/* HERO STATS */
+.h-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:34px;max-width:760px}
+@media(max-width:780px){.h-stats{grid-template-columns:1fr 1fr}}
+.h-stat{padding:18px 16px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2)}
+.h-stat-v{font-family:var(--fd);font-size:28px;color:var(--neon);line-height:1;margin-bottom:6px}
+.h-stat-l{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;line-height:1.4}
+
+main{max-width:1100px;margin:0 auto;padding:48px 32px 80px}
+
+/* SECTIONS */
+section.s{margin-bottom:64px}
+.s-h{font-family:var(--fd);font-size:32px;margin-bottom:8px;letter-spacing:-.01em}
+.s-h em{color:var(--neon);font-style:italic}
+.s-h .gold{color:var(--gold);font-style:italic}
+.s-sub{color:var(--t2);font-size:15px;line-height:1.65;margin-bottom:28px;max-width:760px}
+
+/* USE CASES */
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:780px){.cases{grid-template-columns:1fr}}
+.case{padding:28px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);position:relative;overflow:hidden}
+.case::before{content:'';position:absolute;top:-30px;right:-30px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,var(--nd) 0%,transparent 70%);pointer-events:none}
+.case.gold::before{background:radial-gradient(circle,var(--gd) 0%,transparent 70%)}
+.case-num{font-family:var(--fd);font-size:60px;color:var(--neon);line-height:.9;opacity:.5;margin-bottom:8px}
+.case.gold .case-num{color:var(--gold)}
+.case-t{font-family:var(--fd);font-size:24px;margin-bottom:10px}
+.case-d{color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:18px}
+.case-list{list-style:none;padding:0}
+.case-list li{padding:8px 0;border-top:1px solid var(--bd);display:flex;gap:10px;font-size:13px;color:var(--txt)}
+.case-list li::before{content:'→';color:var(--neon);font-weight:700;flex-shrink:0}
+.case.gold .case-list li::before{color:var(--gold)}
+
+/* MATH / TRACTION TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden}
+.tbl th,.tbl td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--bd)}
+.tbl th{background:var(--bg3);color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.v{font-family:ui-monospace,monospace;color:var(--neon);font-weight:700}
+
+/* CARDS GRID */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{padding:22px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2)}
+.card-h{font-family:var(--fd);font-size:18px;margin-bottom:8px}
+.card-v{font-family:var(--fd);font-size:34px;color:var(--neon);line-height:1;margin-bottom:6px}
+.card-l{font-size:12px;color:var(--t2);line-height:1.55}
+
+/* ROUND */
+.round-box{padding:40px;background:linear-gradient(135deg,var(--nd),var(--bg2));border:1px solid var(--nm);border-radius:var(--r3);text-align:center}
+.round-big{font-family:var(--fd);font-size:54px;color:var(--neon);line-height:1;margin-bottom:6px;letter-spacing:-.02em}
+.round-sub{font-size:14px;color:var(--t2);margin-bottom:24px}
+.round-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px;text-align:left}
+.round-grid > div{padding:14px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r)}
+.round-grid .k{font-size:10px;text-transform:uppercase;color:var(--t3);margin-bottom:4px;letter-spacing:.04em}
+.round-grid .v{font-family:var(--fd);font-size:18px;color:var(--txt)}
+.btn-p{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:var(--neon);color:#000;border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);text-decoration:none}
+.btn-p:hover{background:#00e55f}
+.btn-g{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:transparent;color:var(--t2);border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fb);text-decoration:none;margin-left:8px}
+.btn-g:hover{border-color:var(--neon);color:var(--neon)}
+
+/* FOOTER */
+footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;color:var(--t3);font-size:12px;line-height:1.7}
+footer.f a{color:var(--neon)}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--bd)}
+.tl-item{position:relative;padding:8px 0 18px;font-size:14px;color:var(--t2)}
+.tl-item::before{content:'';position:absolute;left:-25px;top:14px;width:10px;height:10px;border-radius:50%;background:var(--neon);box-shadow:0 0 0 3px var(--bg)}
+.tl-item strong{color:var(--txt);display:block;margin-bottom:3px;font-size:13px}
+
+/* USE OF FUNDS */
+.uof{display:grid;gap:8px}
+.uof-row{display:grid;grid-template-columns:60px 1fr 100px;gap:14px;align-items:center;padding:10px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r)}
+.uof-pct{font-family:var(--fd);font-size:22px;color:var(--neon);text-align:right}
+.uof-bar{height:6px;background:var(--bd);border-radius:3px;position:relative;overflow:hidden}
+.uof-bar::after{content:'';position:absolute;inset:0;background:var(--neon);width:var(--w,0%)}
+.uof-amt{color:var(--t2);font-size:12px;text-align:right;font-family:ui-monospace,monospace}
+
+/* DISCLAIMER */
+.disc{padding:18px 22px;background:#FF3D4A12;border:1px solid #FF3D4A55;border-radius:var(--r2);color:#FF8A93;font-size:12px;line-height:1.7;margin-top:40px}
+.disc strong{color:#FF3D4A}
+</style>
+</head>
+<body>
+
+<div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; AgroGlobalDex está en fase pre-seed. No constituye oferta de inversión. Las cifras son proyecciones, no pronósticos.</div>
+
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html">Tokenizar</a>
+    <a href="invest.html">Invertir</a>
+    <a href="investors.html" class="active">Inversores</a>
+    <a href="team.html">Equipo</a>
+    <a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-c">
+    <div class="tag"><div class="dot"></div>Pre-seed · Q2 2026 · SAFE post-money</div>
+    <h1 class="h1">Conectamos al productor agro<br>con <em>capital global</em>,<br>de forma <span class="gold">compliance-first</span>.</h1>
+    <p class="lead">AgroGlobalDex tokeniza commodities físicos (carnes, granos, vinos, aceites, lácteos) sobre Solana y agrega tokens RWA-agro de plataformas existentes en un solo marketplace cross-país, MiCA-aligned desde día uno.</p>
+    <div class="h-stats">
+      <div class="h-stat"><div class="h-stat-v">USD 12T</div><div class="h-stat-l">TAM agro global<br>(FAO 2024)</div></div>
+      <div class="h-stat"><div class="h-stat-v">17 ix</div><div class="h-stat-l">Instrucciones<br>on-chain Solana</div></div>
+      <div class="h-stat"><div class="h-stat-v">2 prog.</div><div class="h-stat-l">Marketplace +<br>compliance-hook</div></div>
+      <div class="h-stat"><div class="h-stat-v">Q3 2026</div><div class="h-stat-l">Mainnet<br>previsto</div></div>
+    </div>
+  </div>
+</section>
+
+<main>
+
+<!-- USE CASES -->
+<section class="s">
+  <h2 class="s-h">El producto en <em>dos casos de uso</em></h2>
+  <p class="s-sub">Caso 1 da pricing power directo al productor. Caso 2 da distribución global y network effects.</p>
+  <div class="cases">
+    <div class="case">
+      <div class="case-num">01</div>
+      <div class="case-t">Tokenización <em>directa</em></div>
+      <div class="case-d">El productor tokeniza kg de su producción física como tokens SPL Token-2022. Cada token = una unidad física verificable on-chain por SHA-256 del certificado off-chain.</div>
+      <ul class="case-list">
+        <li>Granos: soja, maíz, trigo, arroz, sorgo, girasol</li>
+        <li>Carnes: vacuno, porcino, aviar, ovino, pescado</li>
+        <li>Vinos & mostos: por DOC / DOP / IGP</li>
+        <li>Aceites: oliva, girasol, soja, palma</li>
+        <li>Lácteos, frutas, vegetales, fibras</li>
+        <li>Yield offerings (security tokens, accredited-only)</li>
+      </ul>
+    </div>
+    <div class="case gold">
+      <div class="case-num">02</div>
+      <div class="case-t">Agregador <span style="color:var(--gold);font-style:italic">global</span></div>
+      <div class="case-d">AgroGlobalDex lista tokens RWA-agro de otras plataformas (Agrotoken, Topaz, RIPE, Centrifuge…) en el mismo marketplace, organizado por sector y país. El inversor entra una vez, accede al mundo.</div>
+      <ul class="case-list">
+        <li>SPL Solana nativos: trading on-chain directo</li>
+        <li>Cross-chain (Ethereum, Polygon, RSK): display + deep-link</li>
+        <li>Curado por authority, verified flag on-chain</li>
+        <li>Rev-share con plataformas agregadas</li>
+        <li>Mismo wallet, misma KYC, mismas reglas MiCA</li>
+        <li>Cross-país: AR · BR · ES · UY · MX · CL · DE · FR</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- WHY NOW -->
+<section class="s">
+  <h2 class="s-h">Por qué <em>ahora</em></h2>
+  <p class="s-sub">Tres ventanas regulatorias y técnicas alineándose en los próximos 18 meses.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="card-h">MiCA en vigor</div>
+      <div class="card-l">Diciembre 2024. Por primera vez Europa tiene un framework regulatorio unificado para crypto-assets. Legitimidad institucional que pre-2024 no existía.</div>
+    </div>
+    <div class="card">
+      <div class="card-h">Token-2022 maduro</div>
+      <div class="card-l">Transfer Hook + Metadata Pointer + Permanent Delegate fuera de beta. Indispensables para compliance on-chain. Solo Solana las tiene production-ready.</div>
+    </div>
+    <div class="card">
+      <div class="card-h">ESG saturado de carbono</div>
+      <div class="card-l">Los fondos climate-tech buscan exposición agro real, no solo carbon credits. AgroGlobalDex es el primer marketplace cross-sector + cross-país MiCA-aligned.</div>
+    </div>
+  </div>
+</section>
+
+<!-- BUSINESS MODEL -->
+<section class="s">
+  <h2 class="s-h">Modelo de <em>negocio</em></h2>
+  <p class="s-sub">Tres revenue streams, todos ya implementados on-chain.</p>
+  <table class="tbl">
+    <thead><tr><th>Fuente</th><th>%</th><th>Quién paga</th><th>Cuándo</th></tr></thead>
+    <tbody>
+      <tr><td>Trading fee</td><td class="v">0.5%</td><td>Buyer</td><td>En cada <code>buy_asset</code> / <code>buy_external_asset</code></td></tr>
+      <tr><td>Listing fee (Y2+)</td><td class="v">Flat USD</td><td>Productor</td><td>Al <code>register_asset</code></td></tr>
+      <tr><td>Aggregator rev-share (Y3+)</td><td class="v">Rev-share %</td><td>Plataforma agregada</td><td>Mensual sobre volumen referido</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- FINANCIALS -->
+<section class="s">
+  <h2 class="s-h">Proyección <em>5 años</em></h2>
+  <p class="s-sub">Path a USD 2M ARR año 5 sobre GMV de USD 280M. Detalle de assumptions en data room → financials.</p>
+  <table class="tbl">
+    <thead><tr><th>Año</th><th>Pilots</th><th>Plataformas</th><th>GMV USD</th><th>Take-rate</th><th>Revenue USD</th><th>EBITDA</th></tr></thead>
+    <tbody>
+      <tr><td>Y1</td><td>3</td><td>1</td><td class="v">500k</td><td>0.5%</td><td class="v">2.5k</td><td>(497k)</td></tr>
+      <tr><td>Y2</td><td>12</td><td>3</td><td class="v">8M</td><td>0.6%</td><td class="v">48k</td><td>(852k)</td></tr>
+      <tr><td>Y3</td><td>30</td><td>5</td><td class="v">50M</td><td>0.7%</td><td class="v">350k</td><td>(1.05M)</td></tr>
+      <tr><td>Y4</td><td>60</td><td>8</td><td class="v">140M</td><td>0.7%</td><td class="v">980k</td><td>(820k)</td></tr>
+      <tr><td>Y5</td><td>100</td><td>12</td><td class="v">280M</td><td>0.7%</td><td class="v">1.96M</td><td>~0 breakeven</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ROADMAP -->
+<section class="s">
+  <h2 class="s-h">Roadmap a <em>mainnet</em></h2>
+  <p class="s-sub">9 meses post-funding hasta primer GMV real.</p>
+  <div class="timeline">
+    <div class="tl-item"><strong>Mes 1-2 · Audit profesional</strong>Trail of Bits / OtterSec. USD 30-80k del round.</div>
+    <div class="tl-item"><strong>Mes 2-4 · CASP filing en Francia (AMF/ACPR)</strong>Documentación, capital regulatorio, hire MLRO + DPO.</div>
+    <div class="tl-item"><strong>Mes 3 · Devnet pública + primer piloto productor</strong>URL accesible, LOI firmada con cooperativa.</div>
+    <div class="tl-item"><strong>Mes 4-6 · Onboarding 3-5 cooperativas (Caso 1)</strong>España + Argentina + Brasil + Uruguay.</div>
+    <div class="tl-item"><strong>Mes 5-7 · Partnerships 2-3 plataformas (Caso 2)</strong>Agrotoken, Topaz, Centrifuge.</div>
+    <div class="tl-item"><strong>Mes 6-9 · Squads multisig + Immunefi bug bounty</strong>Pre-mainnet hardening.</div>
+    <div class="tl-item"><strong>Mes 9 · Mainnet launch</strong>Primer GMV real.</div>
+    <div class="tl-item"><strong>Mes 10-12 · Apps móviles en stores</strong>Google Play primero, App Store después.</div>
+  </div>
+</section>
+
+<!-- ROUND -->
+<section class="s">
+  <h2 class="s-h">El <em>round</em></h2>
+  <p class="s-sub">Pre-seed para construir tracción real antes del seed Q1 2027.</p>
+  <div class="round-box">
+    <div class="round-big">USD 500k</div>
+    <div class="round-sub">Pre-seed · SAFE post-money · cap USD 5M · ticket USD 25k–100k</div>
+    <div class="round-grid">
+      <div><div class="k">Cierre target</div><div class="v">90 días</div></div>
+      <div><div class="k">Vehicle</div><div class="v">SAFE YC v1.1</div></div>
+      <div><div class="k">Runway</div><div class="v">12-15 meses</div></div>
+      <div><div class="k">Próximo round</div><div class="v">Seed Q1 2027</div></div>
+    </div>
+    <a class="btn-p" href="mailto:carlos@agroglobaldex.io?subject=Pre-seed%20AgroGlobalDex">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contactar al founder
+    </a>
+    <a class="btn-g" href="contact.html">Schedule call</a>
+  </div>
+</section>
+
+<!-- USE OF FUNDS -->
+<section class="s">
+  <h2 class="s-h">Uso de <em>fondos</em></h2>
+  <p class="s-sub">USD 500k a 12-15 meses, optimizado para product-market fit con cooperativas reales.</p>
+  <div class="uof">
+    <div class="uof-row"><div class="uof-pct">40%</div><div><div style="font-weight:700;margin-bottom:4px">Team</div><div class="uof-bar" style="--w:40%"></div></div><div class="uof-amt">USD 200k</div></div>
+    <div class="uof-row"><div class="uof-pct">30%</div><div><div style="font-weight:700;margin-bottom:4px">Legal CASP + capital regulatorio</div><div class="uof-bar" style="--w:30%"></div></div><div class="uof-amt">USD 150k</div></div>
+    <div class="uof-row"><div class="uof-pct">16%</div><div><div style="font-weight:700;margin-bottom:4px">Audit + security</div><div class="uof-bar" style="--w:16%"></div></div><div class="uof-amt">USD 80k</div></div>
+    <div class="uof-row"><div class="uof-pct">6%</div><div><div style="font-weight:700;margin-bottom:4px">Mobile stores + design</div><div class="uof-bar" style="--w:6%"></div></div><div class="uof-amt">USD 30k</div></div>
+    <div class="uof-row"><div class="uof-pct">4%</div><div><div style="font-weight:700;margin-bottom:4px">Marketing + ops</div><div class="uof-bar" style="--w:4%"></div></div><div class="uof-amt">USD 20k</div></div>
+    <div class="uof-row"><div class="uof-pct">4%</div><div><div style="font-weight:700;margin-bottom:4px">Contingencia</div><div class="uof-bar" style="--w:4%"></div></div><div class="uof-amt">USD 20k</div></div>
+  </div>
+</section>
+
+<!-- LINKS -->
+<section class="s">
+  <h2 class="s-h">Materiales de <em>due diligence</em></h2>
+  <p class="s-sub">Pre-meeting: one-pager + deck. Post-meeting: acceso a data room completo.</p>
+  <div class="cards">
+    <div class="card"><div class="card-h">📊 Pitch Deck</div><div class="card-l">14 slides PDF — completo con financials, competition, ask.</div><br><a class="btn-g" href="../marketing/pitch-deck-full.md">Ver →</a></div>
+    <div class="card"><div class="card-h">📄 One-pager</div><div class="card-l">Resumen en 300 palabras + key numbers, listo para mail/DM.</div><br><a class="btn-g" href="../marketing/one-pager.md">Ver →</a></div>
+    <div class="card"><div class="card-h">💰 Financials 5y</div><div class="card-l">Modelo con assumptions, sensitivity table, comparables.</div><br><a class="btn-g" href="../marketing/financials-5y.md">Ver →</a></div>
+    <div class="card"><div class="card-h">❓ FAQ inversores</div><div class="card-l">Las 20 preguntas más frecuentes con respuestas honestas.</div><br><a class="btn-g" href="../marketing/faq-investors.md">Ver →</a></div>
+    <div class="card"><div class="card-h">📋 Cap table</div><div class="card-l">Pre-seed → seed → Series A scenarios.</div><br><a class="btn-g" href="../marketing/cap-table-template.md">Ver →</a></div>
+    <div class="card"><div class="card-h">🎬 Demo video script</div><div class="card-l">90 segundos, listo para grabar.</div><br><a class="btn-g" href="../marketing/demo-video-script.md">Ver →</a></div>
+    <div class="card"><div class="card-h">⚖️ Análisis legal MiCA</div><div class="card-l">10 documentos cubriendo todo el regulatory perimeter UE.</div><br><a class="btn-g" href="../legal/">Carpeta /legal</a></div>
+    <div class="card"><div class="card-h">💻 GitHub repo</div><div class="card-l">Código 100% open. 17 instrucciones Solana + compliance hook + frontend.</div><br><a class="btn-g" href="https://github.com/carlospallottini-spec/agroglobaldex" target="_blank">Abrir GitHub ↗</a></div>
+  </div>
+</section>
+
+<div class="disc"><strong>Disclaimer.</strong> AgroGlobalDex es un proof-of-concept en fase pre-seed. No constituye oferta de inversión ni asesoramiento financiero. Las cifras son proyecciones, no pronósticos. Cualquier inversión en pre-seed conlleva riesgo de pérdida total del capital. El protocolo on-chain no está auditado y no debe usarse en mainnet con valor real hasta completar el audit profesional documentado en el roadmap. AgroGlobalDex no está autorizado como CASP bajo MiCA al día de hoy.</div>
+</main>
+
+<footer class="f">© 2026 AgroGlobalDex · Demo/PoC · <a href="mailto:carlos@agroglobaldex.io">carlos@agroglobaldex.io</a></footer>
+
+<script type="module" src="js/pwa-install.js"></script>
+</body>
+</html>

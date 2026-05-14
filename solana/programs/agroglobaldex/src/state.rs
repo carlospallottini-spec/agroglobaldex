@@ -77,6 +77,34 @@ pub enum AssetClass {
         /// expected to settle. MUST be > `Clock::now` at registration.
         maturity_unix_ts: i64,
     },
+
+    /// **Commodity** — physical-backed tokenization of any agricultural unit
+    /// (kg of meat, liters of wine, kg of olive oil, liters of milk, kg of
+    /// fruit, etc.). One token = a fixed amount of the physical commodity
+    /// declared by `grams_per_token`. This is the most general bucket for
+    /// "tokenize kg de X" use cases beyond Grain.
+    ///
+    /// Examples:
+    /// - 1 token = 1 kg de carne vacuna AR · vintage 2026
+    /// - 1 token = 1 liter de vino Malbec Mendoza · vintage 2024
+    /// - 1 token = 1 kg de aceite de oliva extra virgen ES · vintage 2025
+    Commodity {
+        /// Top-level sector classification (Meat, Wine, Oil, Dairy, ...).
+        sector: Sector,
+        /// Opaque sub-classification within the sector. Interpreted by the
+        /// frontend. E.g. for `Meat`: 0=Beef, 1=Pork, 2=Poultry, 3=Lamb,
+        /// 4=Fish, 255=Other. For `Wine`: 0=Red, 1=White, 2=Rose, 3=Sparkling.
+        sub_kind: u8,
+        /// ISO-3166 alpha-2 country code of origin (e.g. "AR", "ES", "BR").
+        origin_country: [u8; 2],
+        /// Year of production / vintage.
+        vintage_year: u16,
+        /// How many grams of the physical commodity each token base unit
+        /// represents. e.g. `1000` = each token (1 base unit at 6 decimals,
+        /// so 1.000000) is 1 kg. For liquids (wine/oil/milk) use grams equiv
+        /// or convert in the certificate.
+        grams_per_token: u64,
+    },
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
@@ -92,6 +120,32 @@ pub enum CarbonStandard {
     Vcs,
     GoldStandard,
     EuEts,
+    Other,
+}
+
+/// Top-level sectors for `AssetClass::Commodity`. Cubre los casos de uso 1
+/// del modelo de negocio: tokenizar kg/litros de cualquier producto agro
+/// físico.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
+pub enum Sector {
+    /// Granos especiales no cubiertos por AssetClass::Grain (rice, sorghum,
+    /// sunflower, barley, etc.). Permite expandir sin tocar GrainKind.
+    GrainSpecial,
+    /// Carnes: vacuno, porcino, aviar, ovino, pescado.
+    Meat,
+    /// Vinos y mostos de uva.
+    Wine,
+    /// Aceites: oliva, girasol, soja, palma.
+    Oil,
+    /// Lácteos: leche, queso, manteca.
+    Dairy,
+    /// Frutas frescas o procesadas.
+    Fruit,
+    /// Vegetales / hortalizas.
+    Vegetable,
+    /// Fibras: lana, algodón, lino, cáñamo.
+    Fiber,
+    /// Otros (catch-all extensible).
     Other,
 }
 

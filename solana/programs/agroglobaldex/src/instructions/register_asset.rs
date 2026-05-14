@@ -78,6 +78,17 @@ fn derive_symbol(asset_class: &AssetClass) -> String {
         AssetClass::CarbonCredit { .. } => "AGRO-CO2".to_string(),
         AssetClass::HarvestFraction { .. } => "AGRO-HRV".to_string(),
         AssetClass::InvestmentOffering { .. } => "AGRO-INV".to_string(),
+        AssetClass::Commodity { sector, .. } => match sector {
+            Sector::Meat => "AGRO-MEAT".to_string(),
+            Sector::Wine => "AGRO-WINE".to_string(),
+            Sector::Oil => "AGRO-OIL".to_string(),
+            Sector::Dairy => "AGRO-MILK".to_string(),
+            Sector::Fruit => "AGRO-FRT".to_string(),
+            Sector::Vegetable => "AGRO-VEG".to_string(),
+            Sector::Fiber => "AGRO-FIB".to_string(),
+            Sector::GrainSpecial => "AGRO-GRN2".to_string(),
+            Sector::Other => "AGRO-CMDT".to_string(),
+        },
     }
 }
 
@@ -139,6 +150,24 @@ pub fn handler(
             require!(*expected_yield_bps <= 5000, AgroError::InvalidYield);
             let now = Clock::get()?.unix_timestamp;
             require!(*maturity_unix_ts > now, AgroError::InvalidMaturity);
+        }
+        AssetClass::Commodity {
+            vintage_year,
+            grams_per_token,
+            origin_country,
+            ..
+        } => {
+            require!(
+                *vintage_year >= 2000 && *vintage_year <= 2100,
+                AgroError::InvalidAssetMetadata
+            );
+            require!(*grams_per_token > 0, AgroError::InvalidAssetMetadata);
+            // Sanity: ISO-3166 alpha-2 must be uppercase ASCII letters.
+            require!(
+                origin_country[0].is_ascii_uppercase()
+                    && origin_country[1].is_ascii_uppercase(),
+                AgroError::InvalidAssetMetadata
+            );
         }
     }
 
