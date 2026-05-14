@@ -99,20 +99,23 @@
 
 ## Slide 8 — Traction
 
-**Headline:** Producto técnico listo, primer piloto en negociación.
+**Headline:** Producto técnico listo, pilotos reales en hot.
 
-**Demostrado (al cierre de pre-seed):**
-- Programa on-chain con **17 instrucciones** auditables (en GitHub público).
+**Demostrado:**
+- Programa on-chain con **17 instrucciones** auditables (GitHub público).
 - 2 programas Anchor (agroglobaldex + compliance-hook) compilando contra Solana 3.0 / Anchor 0.31.1.
 - Web instalable como PWA, APK Android via Capacitor.
 - Aggregator funcional: ya prueba listar Agrotoken (SPL Solana) + Centrifuge (cross-chain) en seed.
 - Análisis legal MiCA completo (carpeta `/legal` en repo).
-- 30 targets de outreach priorizados (carpeta `/marketing`).
+- **Colosseum Solana Hackathon: aplicación enviada** (Q2 2026).
 
-**[VERIFICAR antes de presentar — al menos 1 de:]**
-- LOI firmada con cooperativa.
-- Solana Foundation grant aplicada / aprobada.
-- Hackathon win.
+**Pilotos en negociación (LOIs en proceso):**
+- 🇪🇸 **Vinos DOC España** — bodega/cooperativa en negociación. Tokenización de litros/botellas de vino reserva con D.O.P. verificada.
+- 🇻🇪 **Carnes Venezuela** — finca pecuaria en negociación. Tokenización de kg de carne vacuna con certificación INSAI, dirigida a inversores internacionales acreditados.
+
+**[Actualizar a "LOIs firmadas" cuando se cierren]**
+
+**Por qué importa:** dos pilotos en países distintos (UE + LATAM), sectores distintos (Wine + Meat), validan el modelo cross-país + cross-sector desde día uno.
 
 ---
 
