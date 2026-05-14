@@ -1,17 +1,24 @@
 pub mod aggregate;
 pub mod buy_asset;
 pub mod initialize;
+pub mod init_jurisdiction_policy;
 pub mod list_asset;
 pub mod mint_token;
 pub mod redeem;
 pub mod register_asset;
+pub mod set_compliance_signer;
+pub mod update_external_asset_handlers;
+pub mod update_jurisdiction_policy;
 pub mod update_kyc;
 
 pub use aggregate::*;
 pub use buy_asset::*;
+pub use init_jurisdiction_policy::*;
 pub use initialize::*;
 pub use list_asset::*;
 pub use mint_token::*;
 pub use redeem::*;
 pub use register_asset::*;
+pub use set_compliance_signer::*;
+pub use update_jurisdiction_policy::*;
 pub use update_kyc::*;

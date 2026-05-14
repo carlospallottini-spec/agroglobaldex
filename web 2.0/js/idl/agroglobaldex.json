@@ -9,11 +9,6 @@
   "instructions": [
     {
       "name": "aggregate_external_asset",
-      "docs": [
-        "Aggregator: register an externally-minted RWA-agro asset for display.",
-        "Authority-only. Either `mint` is `Some` (Solana SPL) or",
-        "`external_chain_id`/`external_contract` must be non-empty (cross-chain)."
-      ],
       "discriminator": [
         162,
         113,
@@ -113,9 +108,6 @@
     },
     {
       "name": "buy_asset",
-      "docs": [
-        "Buy a native listing in USDC. Compliance-checked."
-      ],
       "discriminator": [
         197,
         37,
@@ -519,6 +511,98 @@
       ]
     },
     {
+      "name": "init_jurisdiction_policy",
+      "docs": [
+        "Create the on-chain mutable JurisdictionPolicy with conservative defaults."
+      ],
+      "discriminator": [
+        56,
+        34,
+        166,
+        61,
+        11,
+        12,
+        78,
+        157
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  117,
+                  114,
+                  105,
+                  115,
+                  100,
+                  105,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize",
       "docs": [
         "Initialize the marketplace global config."
@@ -538,6 +622,13 @@
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "compliance_signer",
+          "docs": [
+            "Distinct from `authority` so compliance ops can be delegated to a",
+            "service account without touching treasury funds. Can equal authority."
+          ]
         },
         {
           "name": "marketplace",
@@ -569,10 +660,6 @@
         },
         {
           "name": "compliance_authority",
-          "docs": [
-            "the marketplace so other instructions can require it as `Signer` via",
-            "`seeds`/`bump` when stamping `ComplianceRecord`s."
-          ],
           "pda": {
             "seeds": [
               {
@@ -632,16 +719,10 @@
           }
         },
         {
-          "name": "usdc_mint",
-          "docs": [
-            "USDC mint (devnet or mainnet — caller passes the correct address)."
-          ]
+          "name": "usdc_mint"
         },
         {
           "name": "treasury_usdc_ata",
-          "docs": [
-            "Treasury USDC ATA, created here so fees can flow on the very first buy."
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -756,9 +837,6 @@
     },
     {
       "name": "list_asset",
-      "docs": [
-        "List a native asset at a USDC price (6 decimals per token base unit)."
-      ],
       "discriminator": [
         11,
         25,
@@ -987,10 +1065,6 @@
     },
     {
       "name": "mint_token",
-      "docs": [
-        "Mint tokens against a registered asset. Issuer-only, capped at",
-        "`total_supply`."
-      ],
       "discriminator": [
         172,
         137,
@@ -1160,9 +1234,6 @@
     },
     {
       "name": "redeem",
-      "docs": [
-        "Burn tokens to redeem the underlying off-chain commodity."
-      ],
       "discriminator": [
         184,
         12,
@@ -1258,9 +1329,8 @@
     {
       "name": "register_asset",
       "docs": [
-        "Register a new tokenizable asset (one `AssetRegistry` per real-world lot).",
-        "`oracle_attestation` is the SHA-256 hash of the off-chain certificate.",
-        "`white_paper_uri` is required by MiCA Art. 6."
+        "Register a new tokenizable asset. `product_name` is the human label",
+        "e.g. \"Viñedo Rioja 2026 Reserva\"."
       ],
       "discriminator": [
         21,
@@ -1347,8 +1417,7 @@
           "name": "mint",
           "docs": [
             "Token-2022 mint PDA. Created manually below with the TransferHook",
-            "extension wired to the compliance-hook program id.",
-            ""
+            "extension wired to the compliance-hook program id."
           ],
           "writable": true,
           "pda": {
@@ -1376,11 +1445,7 @@
           }
         },
         {
-          "name": "compliance_hook_program",
-          "docs": [
-            "The compliance-hook program id. Stored inside the TransferHook",
-            "extension so every transfer of the mint CPIs into it."
-          ]
+          "name": "compliance_hook_program"
         },
         {
           "name": "token_program",
@@ -1424,14 +1489,70 @@
         {
           "name": "metadata_uri",
           "type": "string"
+        },
+        {
+          "name": "product_name",
+          "type": "string"
         }
       ]
     },
     {
-      "name": "update_external_asset",
+      "name": "set_compliance_signer",
       "docs": [
-        "Aggregator: toggle `verified` / `active` flags on an aggregated asset."
+        "Rotate the wallet allowed to stamp KYC. Authority-only."
       ],
+      "discriminator": [
+        74,
+        3,
+        67,
+        45,
+        161,
+        205,
+        126,
+        51
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_signer"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_external_asset",
       "discriminator": [
         121,
         42,
@@ -1524,29 +1645,23 @@
       ]
     },
     {
-      "name": "update_kyc",
+      "name": "update_jurisdiction_policy",
       "docs": [
-        "Stamp / update KYC + jurisdiction flags for a wallet. Authority-only."
+        "Replace both jurisdiction lists in JurisdictionPolicy. Authority-only."
       ],
       "discriminator": [
-        61,
+        113,
+        168,
+        135,
+        105,
         184,
-        181,
-        178,
-        233,
-        174,
-        248,
-        182
+        132,
+        253,
+        136
       ],
       "accounts": [
         {
-          "name": "compliance_signer",
-          "docs": [
-            "The human / service wallet permitted to manage compliance. Currently",
-            "equal to `marketplace.authority` — production deployments should",
-            "separate this role."
-          ],
-          "writable": true,
+          "name": "authority",
           "signer": true
         },
         {
@@ -1578,37 +1693,109 @@
           }
         },
         {
-          "name": "compliance_authority",
+          "name": "policy",
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  99,
-                  111,
-                  109,
-                  112,
-                  108,
-                  105,
-                  97,
-                  110,
-                  99,
-                  101,
-                  95,
-                  97,
+                  106,
                   117,
-                  116,
-                  104,
-                  111,
                   114,
                   105,
+                  115,
+                  100,
+                  105,
+                  99,
                   116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
                   121
                 ]
               },
               {
                 "kind": "account",
                 "path": "marketplace"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "blocked",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                2
+              ]
+            }
+          }
+        },
+        {
+          "name": "requires_accredited",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                2
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_kyc",
+      "discriminator": [
+        61,
+        184,
+        181,
+        178,
+        233,
+        174,
+        248,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "compliance_signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
               }
             ]
           }
@@ -1721,6 +1908,19 @@
       ]
     },
     {
+      "name": "JurisdictionPolicy",
+      "discriminator": [
+        63,
+        121,
+        124,
+        194,
+        172,
+        129,
+        209,
+        132
+      ]
+    },
+    {
       "name": "Marketplace",
       "discriminator": [
         70,
@@ -1801,6 +2001,19 @@
       ]
     },
     {
+      "name": "ComplianceSignerRotated",
+      "discriminator": [
+        161,
+        186,
+        242,
+        194,
+        203,
+        179,
+        59,
+        66
+      ]
+    },
+    {
       "name": "ComplianceUpdated",
       "discriminator": [
         196,
@@ -1840,6 +2053,32 @@
       ]
     },
     {
+      "name": "InvestmentOfferingRegistered",
+      "discriminator": [
+        44,
+        111,
+        158,
+        52,
+        129,
+        27,
+        222,
+        119
+      ]
+    },
+    {
+      "name": "JurisdictionPolicyUpdated",
+      "discriminator": [
+        113,
+        159,
+        190,
+        1,
+        242,
+        63,
+        82,
+        249
+      ]
+    },
+    {
       "name": "TokensMinted",
       "discriminator": [
         207,
@@ -1862,7 +2101,7 @@
     {
       "code": 6001,
       "name": "UnauthorizedComplianceAuthority",
-      "msg": "Caller is not the compliance authority"
+      "msg": "Caller is not the compliance signer"
     },
     {
       "code": 6002,
@@ -1968,6 +2207,26 @@
       "code": 6022,
       "name": "InvalidAggregatorPayload",
       "msg": "Aggregator payload incomplete or inconsistent"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidYield",
+      "msg": "Expected yield must be <= 5000 bps (50%)"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidMaturity",
+      "msg": "Maturity must be a future Unix timestamp"
+    },
+    {
+      "code": 6025,
+      "name": "InvalidDuration",
+      "msg": "Duration must be between 1 and 120 months"
+    },
+    {
+      "code": 6026,
+      "name": "TooManyJurisdictions",
+      "msg": "Too many jurisdictions in the policy list (max 32)"
     }
   ],
   "types": [
@@ -2020,9 +2279,9 @@
     {
       "name": "AssetClass",
       "docs": [
-        "Three top-level asset classes supported by the marketplace.",
-        "Each carries class-specific metadata that the off-chain certificate",
-        "(referenced through `oracle_attestation`) must back."
+        "Top-level asset classes supported by the marketplace. Each carries",
+        "class-specific metadata that the off-chain certificate (referenced through",
+        "`oracle_attestation`) must back."
       ],
       "type": {
         "kind": "enum",
@@ -2083,6 +2342,46 @@
               {
                 "name": "harvest_year",
                 "type": "u16"
+              }
+            ]
+          },
+          {
+            "name": "InvestmentOffering",
+            "fields": [
+              {
+                "name": "product_kind",
+                "docs": [
+                  "What is being tokenized (vineyard, olive grove, livestock…)."
+                ],
+                "type": {
+                  "defined": {
+                    "name": "ProductKind"
+                  }
+                }
+              },
+              {
+                "name": "duration_months",
+                "docs": [
+                  "Investment lock-up in months. Bounded 1..=120."
+                ],
+                "type": "u16"
+              },
+              {
+                "name": "expected_yield_bps",
+                "docs": [
+                  "Expected yield in basis points (e.g. 900 = 9% target ROI).",
+                  "Capped at 5000 bps (50%) — anything higher is almost certainly",
+                  "a misconfigured input and would invite obvious abuse."
+                ],
+                "type": "u16"
+              },
+              {
+                "name": "maturity_unix_ts",
+                "docs": [
+                  "Unix timestamp (seconds) at which the off-chain redemption is",
+                  "expected to settle. MUST be > `Clock::now` at registration."
+                ],
+                "type": "i64"
               }
             ]
           }
@@ -2220,8 +2519,8 @@
     {
       "name": "AssetRegistry",
       "docs": [
-        "One per tokenized real-world asset lot. The mint of the SPL Token-2022",
-        "is derived from this registry as a PDA so the program is its mint authority."
+        "One per tokenized real-world asset lot. The mint of the SPL Token-2022 is",
+        "derived from this registry as a PDA so the program is its mint authority."
       ],
       "type": {
         "kind": "struct",
@@ -2299,18 +2598,26 @@
             "type": "string"
           },
           {
+            "name": "product_name",
+            "docs": [
+              "Human-friendly product label, e.g. \"Viñedo Rioja 2026 Reserva\"."
+            ],
+            "type": "string"
+          },
+          {
             "name": "redeemable",
             "docs": [
               "Whether burning tokens redeems the underlying off-chain commodity.",
-              "Carbon credits, for example, are typically redeemable (retirement)."
+              "Carbon credits, for example, are typically redeemable (retirement).",
+              "For `InvestmentOffering` this is `false` (settlement is off-chain)."
             ],
             "type": "bool"
           },
           {
             "name": "frozen_metadata",
             "docs": [
-              "True once the issuer has minted at least once and no more changes",
-              "to immutable fields are allowed."
+              "True once the issuer has minted at least once and no more changes to",
+              "immutable fields are allowed."
             ],
             "type": "bool"
           },
@@ -2356,7 +2663,7 @@
     {
       "name": "ComplianceRecord",
       "docs": [
-        "One per wallet. Stamped by the marketplace `compliance_authority`."
+        "One per wallet. Stamped by the marketplace `compliance_signer`."
       ],
       "type": {
         "kind": "struct",
@@ -2415,6 +2722,26 @@
               "Bump for this PDA."
             ],
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ComplianceSignerRotated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_signer",
+            "type": "pubkey"
           }
         ]
       }
@@ -2486,8 +2813,7 @@
       "name": "ExternalAssetRegistry",
       "docs": [
         "One per third-party (aggregated) token. Curated by the marketplace",
-        "authority. `mint` is `Some` if the token is a Solana SPL token tradable",
-        "on-chain; if it is on another chain we only store metadata and link out."
+        "authority."
       ],
       "type": {
         "kind": "struct",
@@ -2509,8 +2835,7 @@
           {
             "name": "mint",
             "docs": [
-              "Solana SPL mint, if the token is native to Solana. When `None` the",
-              "asset is cross-chain and only display metadata is stored."
+              "Solana SPL mint, if the token is native to Solana."
             ],
             "type": {
               "option": "pubkey"
@@ -2519,8 +2844,7 @@
           {
             "name": "external_chain_id",
             "docs": [
-              "Free-form chain identifier for cross-chain assets (\"ethereum\",",
-              "\"polygon\", \"bsc\", \"rsk\", ...). Empty if `mint` is set."
+              "Free-form chain identifier for cross-chain assets."
             ],
             "type": "string"
           },
@@ -2545,8 +2869,7 @@
           {
             "name": "source_platform",
             "docs": [
-              "Short label for the upstream platform (\"Agrotoken\", \"Topaz\", \"RIPE\",",
-              "\"AgroToken\", \"Centrifuge\")."
+              "Short label for the upstream platform."
             ],
             "type": "string"
           },
@@ -2560,7 +2883,7 @@
           {
             "name": "metadata_uri",
             "docs": [
-              "Off-chain JSON metadata URI (image, full description)."
+              "Off-chain JSON metadata URI."
             ],
             "type": "string"
           },
@@ -2588,7 +2911,7 @@
           {
             "name": "index",
             "docs": [
-              "Sequential index assigned at aggregation time (for PDA seeds)."
+              "Sequential index assigned at aggregation time."
             ],
             "type": "u64"
           },
@@ -2643,16 +2966,138 @@
       }
     },
     {
+      "name": "InvestmentOfferingRegistered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "product_kind",
+            "type": {
+              "defined": {
+                "name": "ProductKind"
+              }
+            }
+          },
+          {
+            "name": "duration_months",
+            "type": "u16"
+          },
+          {
+            "name": "expected_yield_bps",
+            "type": "u16"
+          },
+          {
+            "name": "maturity_unix_ts",
+            "type": "i64"
+          },
+          {
+            "name": "product_name",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JurisdictionPolicy",
+      "docs": [
+        "On-chain mutable jurisdiction policy. One per marketplace. Authority-only.",
+        "",
+        "The compliance-hook program and `buy_asset` both read this account to",
+        "determine which jurisdictions are blocked outright and which additionally",
+        "require accredited-investor status (irrespective of asset class)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "blocked",
+            "docs": [
+              "Hard-blocked ISO-3166-alpha-2 codes (e.g. \"KP\", \"IR\", \"SY\", \"CU\").",
+              "Wallets in these jurisdictions cannot transact at all."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "requires_accredited",
+            "docs": [
+              "Jurisdictions that require `accredited_investor == true` regardless",
+              "of asset class."
+            ],
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JurisdictionPolicyUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "blocked",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "requires_accredited",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  2
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "ListingSource",
       "docs": [
         "A listing in the marketplace can either reference a native `AssetRegistry`",
         "(tokens minted by this program) or an aggregated `ExternalAssetRegistry`",
-        "(tokens minted by another platform but listed here for trading).",
-        "",
-        "In both cases `source` points at the registry account so the buy_asset",
-        "instruction can dispatch correctly. Cross-chain externals are display-only",
-        "and cannot be listed (the `aggregate_external_asset` instruction enforces",
-        "that listing requires a Solana SPL mint)."
+        "(tokens minted by another platform but listed here for trading)."
       ],
       "type": {
         "kind": "enum",
@@ -2677,15 +3122,28 @@
           {
             "name": "authority",
             "docs": [
-              "Wallet that can update marketplace parameters."
+              "Wallet that controls marketplace parameters: fee_bps, treasury",
+              "withdrawals, aggregator entries. Can be a human wallet OR a Squads",
+              "(or any other) multisig PDA — the program is agnostic."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "compliance_signer",
+            "docs": [
+              "Wallet permitted to stamp `ComplianceRecord`s. Distinct from",
+              "`authority` so a compliance bot / service account can operate",
+              "without ever touching treasury funds. Rotated via",
+              "`set_compliance_signer` (authority-only)."
             ],
             "type": "pubkey"
           },
           {
             "name": "compliance_authority",
             "docs": [
-              "PDA derived from [COMPLIANCE_AUTHORITY_SEED, marketplace] — the only",
-              "signer authorized to write `ComplianceRecord`s."
+              "PDA derived from [COMPLIANCE_AUTHORITY_SEED, marketplace] — kept for",
+              "backwards compatibility / future use as a CPI signer over hook",
+              "programs. Currently informational."
             ],
             "type": "pubkey"
           },
@@ -2752,11 +3210,7 @@
     {
       "name": "MarketplaceListing",
       "docs": [
-        "A fixed-price USDC listing of `remaining` tokens of the underlying mint.",
-        "",
-        "`source` discriminates whether `source_registry` points at an",
-        "`AssetRegistry` (native, minted by us) or an `ExternalAssetRegistry`",
-        "(aggregated SPL token from another platform, e.g. Agrotoken)."
+        "A fixed-price USDC listing of `remaining` tokens of the underlying mint."
       ],
       "type": {
         "kind": "struct",
@@ -2836,6 +3290,35 @@
               "Whether the listing is still active."
             ],
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProductKind",
+      "docs": [
+        "Kinds of `InvestmentOffering` products the marketplace tokenizes."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Vineyard"
+          },
+          {
+            "name": "Olive"
+          },
+          {
+            "name": "Dairy"
+          },
+          {
+            "name": "Livestock"
+          },
+          {
+            "name": "Crops"
+          },
+          {
+            "name": "Other"
           }
         ]
       }

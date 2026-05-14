@@ -15,12 +15,6 @@ use crate::state::*;
 
 /// Registers a new tokenized asset and creates its SPL Token-2022 mint
 /// with the `TransferHook` extension pointing at the compliance-hook program.
-///
-/// We do the mint init manually (rather than via Anchor's `init` constraint)
-/// because Token-2022 extensions must be initialized in a precise order:
-///   1. `create_account` with enough space for the extension(s).
-///   2. `transfer_hook::initialize` to wire the hook program id.
-///   3. `initialize_mint2` to write the mint state itself.
 #[derive(Accounts)]
 #[instruction(asset_class: AssetClass, total_supply: u64)]
 pub struct RegisterAsset<'info> {
@@ -49,7 +43,6 @@ pub struct RegisterAsset<'info> {
 
     /// Token-2022 mint PDA. Created manually below with the TransferHook
     /// extension wired to the compliance-hook program id.
-    ///
     /// CHECK: validated by seeds + initialized via CPI inside the handler.
     #[account(
         mut,
@@ -58,8 +51,6 @@ pub struct RegisterAsset<'info> {
     )]
     pub mint: UncheckedAccount<'info>,
 
-    /// The compliance-hook program id. Stored inside the TransferHook
-    /// extension so every transfer of the mint CPIs into it.
     /// CHECK: passed in explicitly so deployments can rotate hooks if needed.
     pub compliance_hook_program: UncheckedAccount<'info>,
 
@@ -75,11 +66,16 @@ pub fn handler(
     oracle_attestation: [u8; 32],
     white_paper_uri: String,
     metadata_uri: String,
+    product_name: String,
 ) -> Result<()> {
     require!(total_supply > 0, AgroError::InvalidAmount);
     require!(!white_paper_uri.is_empty(), AgroError::MissingWhitePaper);
     require!(
         white_paper_uri.len() <= MAX_URI_LEN && metadata_uri.len() <= MAX_URI_LEN,
+        AgroError::StringTooLong
+    );
+    require!(
+        product_name.len() <= MAX_PRODUCT_NAME_LEN,
         AgroError::StringTooLong
     );
 
@@ -107,6 +103,20 @@ pub fn handler(
                 *hectares > 0 && *harvest_year >= 2024 && *harvest_year <= 2100,
                 AgroError::InvalidAssetMetadata
             );
+        }
+        AssetClass::InvestmentOffering {
+            duration_months,
+            expected_yield_bps,
+            maturity_unix_ts,
+            ..
+        } => {
+            require!(
+                *duration_months >= 1 && *duration_months <= 120,
+                AgroError::InvalidDuration
+            );
+            require!(*expected_yield_bps <= 5000, AgroError::InvalidYield);
+            let now = Clock::get()?.unix_timestamp;
+            require!(*maturity_unix_ts > now, AgroError::InvalidMaturity);
         }
     }
 
@@ -147,8 +157,6 @@ pub fn handler(
     )?;
 
     // ---- Initialize TransferHook extension (BEFORE initialize_mint2) -------
-    // Authority over the hook config = the asset_registry PDA, so only this
-    // program (via signer seeds) can rotate the hook program id later.
     let ix = transfer_hook::instruction::initialize(
         &token_program_id,
         &mint_key,
@@ -188,7 +196,13 @@ pub fn handler(
     registry.oracle_attestation = oracle_attestation;
     registry.white_paper_uri = white_paper_uri;
     registry.metadata_uri = metadata_uri;
-    registry.redeemable = !matches!(asset_class, AssetClass::HarvestFraction { .. });
+    registry.product_name = product_name.clone();
+    // InvestmentOffering & HarvestFraction settle off-chain → not redeemable
+    // via burn. Carbon & Grain are.
+    registry.redeemable = !matches!(
+        asset_class,
+        AssetClass::HarvestFraction { .. } | AssetClass::InvestmentOffering { .. }
+    );
     registry.frozen_metadata = false;
     registry.index = index;
     registry.bump = ctx.bumps.asset_registry;
@@ -205,6 +219,24 @@ pub fn handler(
         mint: mint_key,
         index,
     });
+
+    if let AssetClass::InvestmentOffering {
+        product_kind,
+        duration_months,
+        expected_yield_bps,
+        maturity_unix_ts,
+    } = asset_class
+    {
+        emit!(InvestmentOfferingRegistered {
+            asset_registry: registry.key(),
+            mint: mint_key,
+            product_kind,
+            duration_months,
+            expected_yield_bps,
+            maturity_unix_ts,
+            product_name,
+        });
+    }
 
     Ok(())
 }

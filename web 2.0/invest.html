@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invertir — Yield Offerings — AgroGlobalDex</title>
+<meta name="description" content="AgroGlobalDex (Demo/PoC) — Yield offerings agropecuarios tokenizados. Solo para inversores acreditados bajo MiCA/MiFID II.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--gold:#C8A84B;--gd:#C8A84B0D;--gm:#C8A84B28;--txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--red:#FF3D4A;--amb:#F0A020;--blu:#3A9EF5;--pur:#8A78F0;--bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;--r:8px;--r2:14px;--r3:20px;--fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh;font-weight:400}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.4;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")}
+a{color:inherit;text-decoration:none}
+nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nlt{font-family:var(--fd);font-size:16px}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r)}
+.nav-links a.active,.nav-links a:hover{color:var(--neon)}
+.nav-r{margin-left:auto}
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.nwb.connected{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb.connected .wdot{background:var(--neon)}
+.demo-banner{background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px;line-height:1.55}
+.page-hero{padding:64px 32px 32px;border-bottom:1px solid var(--bd);position:relative}
+.page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 40% 50%,#C8A84B0F 0%,transparent 65%);pointer-events:none}
+.page-hero-content{position:relative;max-width:1100px;margin:0 auto}
+.page-tag{display:inline-flex;align-items:center;gap:8px;background:var(--gd);border:1px solid var(--gm);border-radius:24px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--gold);margin-bottom:16px;letter-spacing:.05em}
+.page-tag .dot{width:6px;height:6px;background:var(--gold);border-radius:50%;animation:pd 2s infinite}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.3}}
+.page-title{font-family:var(--fd);font-size:clamp(28px,4vw,48px);line-height:1.08;margin-bottom:14px}
+.page-title em{color:var(--gold);font-style:italic}
+.page-subtitle{font-size:15px;color:var(--t2);line-height:1.7;max-width:660px}
+.warn-mica{margin-top:18px;padding:14px 18px;background:#FF3D4A12;border:1px solid #FF3D4A55;border-radius:var(--r2);color:#FF8A93;font-size:13px;line-height:1.6;max-width:760px}
+.warn-mica strong{color:#FF3D4A}
+main{max-width:1200px;margin:32px auto;padding:0 32px 80px}
+.filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.filt{padding:8px 14px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--bd2);font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--fb);font-weight:600}
+.filt.active,.filt:hover{color:var(--gold);border-color:var(--gm);background:var(--gd)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:18px}
+.offer{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:20px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.offer:hover{border-color:var(--gm);transform:translateY(-2px)}
+.offer-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:14px;gap:10px}
+.offer-kind{font-size:10px;font-weight:700;color:var(--gold);background:var(--gd);border:1px solid var(--gm);padding:3px 9px;border-radius:12px;text-transform:uppercase;letter-spacing:.04em}
+.offer-name{font-family:var(--fd);font-size:20px;margin-bottom:6px;line-height:1.2}
+.offer-issuer{font-size:11px;color:var(--t3);margin-bottom:14px;font-family:ui-monospace,monospace}
+.offer-roi{font-family:var(--fd);font-size:36px;color:var(--gold);line-height:1;margin-bottom:4px}
+.offer-roi span{font-size:14px;color:var(--t2);font-family:var(--fb);margin-left:6px}
+.offer-row{display:flex;justify-content:space-between;font-size:12px;color:var(--t2);padding:8px 0;border-top:1px solid var(--bd)}
+.offer-row .v{color:var(--txt);font-weight:600}
+.offer-cta{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:10px}
+.btn-p{padding:10px 18px;background:var(--gold);color:#000;border:none;border-radius:var(--r);font-weight:700;cursor:pointer;font-family:var(--fb);font-size:13px}
+.btn-p:hover{background:#dab656}
+.acc-tag{font-size:10px;font-weight:700;color:#FF8A93;background:#FF3D4A12;border:1px solid #FF3D4A55;padding:3px 9px;border-radius:12px}
+.empty{text-align:center;padding:80px 20px;color:var(--t3);font-size:14px}
+.empty h3{font-family:var(--fd);color:var(--txt);font-size:22px;margin-bottom:8px}
+/* MODAL */
+#modal{position:fixed;inset:0;background:rgba(5,8,10,.85);backdrop-filter:blur(8px);z-index:500;display:none;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity .2s}
+#modal.open{display:flex;opacity:1}
+.modal-inner{background:var(--bg2);border:1px solid var(--bd);border-radius:18px;padding:28px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;transform:scale(.96);transition:transform .25s}
+#modal.open .modal-inner{transform:scale(1)}
+.modal-close{position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--bd);color:var(--t2);font-size:14px;cursor:pointer}
+.modal-title{font-family:var(--fd);font-size:24px;margin-bottom:6px}
+.modal-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd);font-size:13px;gap:10px}
+.modal-row .k{color:var(--t2)}
+.modal-row .v{color:var(--txt);font-weight:600;text-align:right}
+footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;color:var(--t3);font-size:12px}
+#toast-stack{position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px}
+.toast{padding:14px 18px;background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);display:flex;gap:10px;align-items:center;min-width:280px;animation:slideIn .25s ease}
+.toast.success{border-color:var(--gm)}
+.toast.error{border-color:#FF3D4A55}
+.toast-ico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.toast.success .toast-ico{background:var(--gold);color:#000}
+.toast.error .toast-ico{background:var(--red);color:#fff}
+.toast-txt{font-size:13px;color:var(--txt)}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Yield offerings son security tokens bajo MiCA/MiFID II. AgroGlobalDex no opera y no cuenta con autorización de investment firm al día de hoy.</div>
+
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="about.html">Nosotros</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html">Tokenizar</a>
+    <a href="invest.html" class="active">Invertir</a>
+    <a href="team.html">Equipo</a>
+    <a href="contact.html">Contacto</a>
+  </div>
+  <div class="nav-r">
+    <button class="nwb">
+      <div class="wdot"></div>
+      <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      <span>Conectar Wallet</span>
+    </button>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="page-hero-content">
+    <div class="page-tag"><div class="dot"></div>Inversor · Yield Offerings</div>
+    <h1 class="page-title">Invertí en <em>producción agro real</em></h1>
+    <p class="page-subtitle">Tokens que representan una participación en un producto agropecuario tangible — viñedos, olivares, ganado, cultivos. El productor declara un retorno esperado y un plazo. La liquidación del principal + yield ocurre off-chain por contrato legal al vencimiento.</p>
+    <div class="warn-mica"><strong>Aviso regulatorio.</strong> Las yield offerings son <strong>instrumentos financieros</strong> bajo MiCA/MiFID II. Sólo accesibles a inversores acreditados / profesionales con KYC verificado. Los retornos NO están garantizados — dependen de la performance del activo subyacente. Esto es un PoC; no constituye oferta de inversión.</div>
+  </div>
+</section>
+
+<main>
+  <div class="filters">
+    <div class="filt active" data-f="all">Todas</div>
+    <div class="filt" data-f="vineyard">Viñedos</div>
+    <div class="filt" data-f="olive">Olivar</div>
+    <div class="filt" data-f="dairy">Lácteos</div>
+    <div class="filt" data-f="livestock">Ganado</div>
+    <div class="filt" data-f="crops">Cultivos</div>
+    <div class="filt" data-f="other">Otros</div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">
+    <h3>Sin ofertas activas todavía</h3>
+    <p>Los productores están preparando las primeras tokenizaciones. Volvé pronto.<br><br>¿Sos productor? <a href="tokenize.html" style="color:var(--gold)">Tokenizá tu activo →</a></p>
+  </div>
+</main>
+
+<div id="modal" role="dialog"><div class="modal-inner" style="position:relative">
+  <button class="modal-close" id="modal-close">✕</button>
+  <div id="modal-body"></div>
+</div></div>
+
+<footer class="f">© 2026 AgroGlobalDex — Demo/PoC. Yield offerings son security tokens. No operativo en mainnet.</footer>
+
+<div id="toast-stack"></div>
+
+<script type="module">
+import { connectWallet, getPublicKey, isConnected } from './js/wallet-adapter.js';
+import { fetchAllAssets, fetchAllListings, buyAsset } from './js/agroglobaldex-client.js';
+import { txUrl, addrUrl, formatUsdc, NETWORK } from './js/network-config.js';
+import { checkKyc, reasonToMessage } from './js/kyc-gate.js';
+
+const $ = s => document.querySelector(s);
+function toast(msg, kind='success'){
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt">${msg}</div>`;
+  $('#toast-stack').appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; setTimeout(() => t.remove(), 350); }, 4000);
+}
+window.showToast = toast;
+
+const KIND_LABEL = { vineyard:'Viñedo', olive:'Olivar', dairy:'Lácteos', livestock:'Ganado', crops:'Cultivos', other:'Otro' };
+let _state = { offerings: [], listings: [], filter: 'all' };
+
+function fmtRoi(bps) { return (Number(bps)/100).toFixed(2) + '%'; }
+function fmtDate(unix) { return new Date(Number(unix)*1000).toLocaleDateString('es-ES', { year:'numeric', month:'short', day:'numeric' }); }
+function fmtMonths(m) { return Number(m) + ' meses'; }
+
+function isInvestmentOffering(asset) {
+  return asset?.account?.assetClass?.investmentOffering != null
+      || asset?.assetClass?.investmentOffering != null;
+}
+function getInvestmentMeta(asset) {
+  const a = asset.account || asset;
+  return a.assetClass.investmentOffering;
+}
+
+async function load() {
+  const all = await fetchAllAssets();
+  _state.offerings = all.filter(isInvestmentOffering);
+  _state.listings = await fetchAllListings();
+  render();
+}
+
+function render() {
+  const grid = $('#grid');
+  const empty = $('#empty');
+  const filtered = _state.filter === 'all'
+    ? _state.offerings
+    : _state.offerings.filter(o => {
+        const k = Object.keys(getInvestmentMeta(o).productKind || {})[0];
+        return k === _state.filter;
+      });
+
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(o => {
+    const m = getInvestmentMeta(o);
+    const kind = Object.keys(m.productKind || {})[0] || 'other';
+    const productName = o.productName || (o.account?.productName) || '—';
+    const issuer = (o.issuer || o.account?.issuer || '').toString();
+    const listing = _state.listings.find(l => {
+      const reg = l.sourceRegistry || l.source_registry;
+      return reg && reg.toString() === o.publicKey;
+    });
+    return `
+      <div class="offer" data-pk="${o.publicKey}">
+        <div class="offer-head">
+          <span class="offer-kind">${KIND_LABEL[kind] || kind}</span>
+          <span class="acc-tag">Acreditados</span>
+        </div>
+        <div class="offer-name">${productName || 'Sin nombre'}</div>
+        <div class="offer-issuer">Emisor ${issuer.slice(0,6)}…${issuer.slice(-4)}</div>
+        <div class="offer-roi">${fmtRoi(m.expectedYieldBps)}<span>ROI esperado</span></div>
+        <div class="offer-row"><div>Plazo</div><div class="v">${fmtMonths(m.durationMonths)}</div></div>
+        <div class="offer-row"><div>Maduración</div><div class="v">${fmtDate(m.maturityUnixTs)}</div></div>
+        <div class="offer-row"><div>Supply</div><div class="v">${Number(o.totalSupply || o.account?.totalSupply || 0).toLocaleString('es-ES')}</div></div>
+        <div class="offer-row"><div>Precio</div><div class="v">${listing ? formatUsdc(listing.priceUsdc) : 'Sin listing'}</div></div>
+        <div class="offer-cta">
+          <a class="btn-p" data-buy="${listing?.publicKey || ''}" data-meta="${o.publicKey}">${listing ? 'Invertir' : 'Detalles'}</a>
+        </div>
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.offer').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('btn-p')) return;
+      openDetail(el.dataset.pk);
+    });
+  });
+  grid.querySelectorAll('.btn-p').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const listingPk = btn.dataset.buy;
+      const offerPk = btn.dataset.meta;
+      if (!listingPk) { openDetail(offerPk); return; }
+      handleInvest(listingPk, offerPk);
+    });
+  });
+}
+
+document.querySelectorAll('.filt').forEach(f => {
+  f.addEventListener('click', () => {
+    document.querySelectorAll('.filt').forEach(x => x.classList.remove('active'));
+    f.classList.add('active');
+    _state.filter = f.dataset.f;
+    render();
+  });
+});
+
+function openDetail(pk) {
+  const offer = _state.offerings.find(o => o.publicKey === pk);
+  if (!offer) return;
+  const m = getInvestmentMeta(offer);
+  const listing = _state.listings.find(l => (l.sourceRegistry || l.source_registry || '').toString() === pk);
+  const productName = offer.productName || offer.account?.productName || '—';
+  const issuer = (offer.issuer || offer.account?.issuer || '').toString();
+  const kind = Object.keys(m.productKind || {})[0] || 'other';
+  const wp = offer.whitePaperUri || offer.account?.whitePaperUri || '';
+  const mu = offer.metadataUri || offer.account?.metadataUri || '';
+
+  $('#modal-body').innerHTML = `
+    <div class="modal-title">${productName}</div>
+    <div style="color:var(--t2);font-size:13px;margin-bottom:18px">${KIND_LABEL[kind] || kind}</div>
+    <div class="modal-row"><div class="k">ROI esperado</div><div class="v" style="color:var(--gold);font-size:18px">${fmtRoi(m.expectedYieldBps)}</div></div>
+    <div class="modal-row"><div class="k">Duración</div><div class="v">${fmtMonths(m.durationMonths)}</div></div>
+    <div class="modal-row"><div class="k">Maduración</div><div class="v">${fmtDate(m.maturityUnixTs)}</div></div>
+    <div class="modal-row"><div class="k">Emisor</div><div class="v" style="font-family:ui-monospace,monospace;font-size:11px"><a href="${addrUrl(issuer)}" target="_blank" style="color:var(--gold)">${issuer.slice(0,12)}…</a></div></div>
+    ${listing ? `<div class="modal-row"><div class="k">Precio por token</div><div class="v">${formatUsdc(listing.priceUsdc)}</div></div>` : ''}
+    ${listing ? `<div class="modal-row"><div class="k">Tokens disponibles</div><div class="v">${Number(listing.remaining).toLocaleString('es-ES')}</div></div>` : ''}
+    ${wp ? `<div class="modal-row"><div class="k">White paper (MiCA)</div><div class="v"><a href="${wp.startsWith('ipfs://') ? wp.replace('ipfs://','https://ipfs.io/ipfs/') : wp}" target="_blank" style="color:var(--gold)">Abrir ↗</a></div></div>` : ''}
+    ${mu ? `<div class="modal-row"><div class="k">Metadata</div><div class="v"><a href="${mu.startsWith('ipfs://') ? mu.replace('ipfs://','https://ipfs.io/ipfs/') : mu}" target="_blank" style="color:var(--gold)">Abrir ↗</a></div></div>` : ''}
+    <div style="background:#FF3D4A12;border:1px solid #FF3D4A55;padding:12px 14px;border-radius:10px;margin-top:18px;font-size:12px;color:#FF8A93;line-height:1.6">
+      <strong style="color:#FF3D4A">Riesgo.</strong> ROI es una expectativa, no garantía. Performance depende del activo subyacente (clima, mercado, gestión). Possible pérdida del 100%. Liquidación off-chain por contrato. Leé el white paper.
+    </div>
+    ${listing ? `<div style="display:flex;gap:10px;margin-top:18px">
+      <input type="number" id="amount" min="1" placeholder="Cantidad" style="flex:1;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:8px;color:var(--txt);font-family:var(--fb);font-size:13px">
+      <button class="btn-p" id="invest-btn">Invertir</button>
+    </div>` : '<div style="text-align:center;color:var(--t3);font-size:13px;margin-top:18px">Esta oferta todavía no está listada en el marketplace.</div>'}
+  `;
+
+  if (listing) {
+    document.getElementById('invest-btn').addEventListener('click', () => {
+      const amt = Number(document.getElementById('amount').value);
+      if (!amt || amt < 1) return toast('Cantidad inválida', 'error');
+      handleInvest(listing.publicKey, pk, amt);
+    });
+  }
+  $('#modal').classList.add('open');
+}
+
+$('#modal-close').addEventListener('click', () => $('#modal').classList.remove('open'));
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') $('#modal').classList.remove('open'); });
+
+async function handleInvest(listingPk, offerPk, amount = 1) {
+  if (!isConnected()) {
+    await connectWallet();
+    if (!isConnected()) return;
+  }
+  // KYC gate
+  const k = await checkKyc(getPublicKey());
+  if (!k.ok) return toast(reasonToMessage(k.reason, k.jurisdiction), 'error');
+  if (!k.record.accreditedInvestor && !k.record.accredited_investor) {
+    return toast('Yield offerings requieren ser inversor acreditado. Pediile al operador la acreditación.', 'error');
+  }
+  try {
+    const { tx } = await buyAsset({ listingPubkey: listingPk, amount });
+    toast('Inversión registrada · ' + tx.slice(0,8) + '…');
+    $('#modal').classList.remove('open');
+    load();
+  } catch (e) {
+    console.error(e);
+    toast('Error: ' + (e.message || 'tx rechazada'), 'error');
+  }
+}
+
+window.addEventListener('wallet:connected', () => load());
+load();
+</script>
+</body>
+</html>

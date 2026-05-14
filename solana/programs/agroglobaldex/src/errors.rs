@@ -5,7 +5,7 @@ pub enum AgroError {
     #[msg("Caller is not the marketplace authority")]
     UnauthorizedMarketplaceAuthority,
 
-    #[msg("Caller is not the compliance authority")]
+    #[msg("Caller is not the compliance signer")]
     UnauthorizedComplianceAuthority,
 
     #[msg("Caller is not the asset issuer")]
@@ -70,4 +70,16 @@ pub enum AgroError {
 
     #[msg("Aggregator payload incomplete or inconsistent")]
     InvalidAggregatorPayload,
+
+    #[msg("Expected yield must be <= 5000 bps (50%)")]
+    InvalidYield,
+
+    #[msg("Maturity must be a future Unix timestamp")]
+    InvalidMaturity,
+
+    #[msg("Duration must be between 1 and 120 months")]
+    InvalidDuration,
+
+    #[msg("Too many jurisdictions in the policy list (max 32)")]
+    TooManyJurisdictions,
 }

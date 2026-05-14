@@ -270,6 +270,15 @@ export function buildAssetClass(form) {
           harvestYear: Number(form.harvestYear) || 0,
         },
       };
+    case 'investment':
+      return {
+        investmentOffering: {
+          productKind: { [form.productKind || 'other']: {} },
+          durationMonths: Number(form.durationMonths) || 12,
+          expectedYieldBps: Number(form.expectedYieldBps) || 0,
+          maturityUnixTs: new BN(form.maturityUnixTs || 0),
+        },
+      };
     default:
       throw new Error('Tipo de activo desconocido: ' + form.kind);
   }
@@ -308,6 +317,7 @@ export async function registerAsset(form) {
       attestation,
       form.whitePaperUri || '',
       form.metadataUri || '',
+      form.productName || '',
     )
     .accounts({
       issuer,
@@ -332,6 +342,7 @@ export async function registerAsset(form) {
 export const registerGrainAsset = (form) => registerAsset({ ...form, kind: 'grain' });
 export const registerCarbonAsset = (form) => registerAsset({ ...form, kind: 'carbon' });
 export const registerHarvestFraction = (form) => registerAsset({ ...form, kind: 'harvest' });
+export const registerInvestmentOffering = (form) => registerAsset({ ...form, kind: 'investment' });
 
 /* ═══════ BUY ═══════ */
 /**
@@ -452,7 +463,7 @@ export default {
   fetchMarketplace, fetchAllListings, fetchAllAssets, fetchAllExternalAssets,
   fetchComplianceRecord,
   sha256OfFile, sha256OfBytes,
-  registerAsset, registerGrainAsset, registerCarbonAsset, registerHarvestFraction,
+  registerAsset, registerGrainAsset, registerCarbonAsset, registerHarvestFraction, registerInvestmentOffering,
   buyAsset,
   aggregateExternalAsset, updateExternalAsset,
   findMarketplacePda, findAssetRegistryPda, findListingPda, findExternalAssetPda,
