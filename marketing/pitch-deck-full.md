@@ -230,3 +230,30 @@ Carlos Pallottini · carlos@agroglobaldex.io · [LinkedIn] · [Calendly link]
 - **A3 — Risk factors.** Smart contract, regulatory, counterparty, market.
 - **A4 — Exit landscape.** Comparables M&A en RWA / agritech (precios y múltiplos).
 - **A5 — Pipeline de pilotos.** Lista de cooperativas/empresas en contacto.
+- **A6 — Risk Mitigation.** Cómo cubrimos cada riesgo (detallado abajo).
+
+---
+
+## Slide A6 — Risk Mitigation (slide profundo para preguntas de DD)
+
+**Headline:** Para cada riesgo identificable, tenemos un plan concreto de mitigación.
+
+**Tabla principal:**
+
+| Riesgo | Probabilidad | Impacto | Mitigación |
+|---|:-:|:-:|---|
+| **Smart-contract exploit** | Media | Crítico | Audit profesional (Trail of Bits / OtterSec, USD 30-80k) + Squads multisig como upgrade authority + bug bounty Immunefi USD 5-25k pool + circuit breaker on-chain (`set_paused`) ya implementado |
+| **Regulatorio MiCA** | Media | Alto | Diseño MiCA-first desde día uno. CASP filing en Francia (AMF) en mes 2-4 post-funding. `JurisdictionPolicy` mutable on-chain para adaptarnos sin redeploy. Análisis legal completo (`/legal`) firmado por counsel UE |
+| **Counterparty (productor fraude)** | Baja | Medio | SPV legal española propietaria del activo físico (no el productor) + warehouse receipt notariado on-chain (SHA-256) + curator network para tokens externos + KYC enforced on-chain en cada transfer |
+| **Market price commodity** | Alta | Bajo (en take-rate) | **No garantizamos retornos** — somos marketplace, no fondo. El riesgo de precio lo asume el comprador del token, no AgroGlobalDex. Transparencia 100% on-chain |
+| **Liquidez secundaria** | Alta | Medio | Empezamos illiquid (hold-to-redeem). Plan Y2-Y3: integración con Whirlpool/Raydium AMMs para mercado secundario. Y aggregator hace que el universo de tokens listados sea grande desde día uno |
+| **FX / Cambiario** | Media | Bajo | Settlement 100% en USDC (no fiat local). Productores y compradores quedan en stablecoin. Off-ramp a EUR/local vía Circle USDC ↔ banking integration (mes 6-12 post-funding) |
+| **Operational (server / RPC down)** | Baja | Bajo | Helius + Triton One como RPCs dedicados con SLA. Monitoreo on-chain con tx confirmation tracking. Pause-flag para incidentes |
+| **Key compromise (authority)** | Baja | Crítico | Squads multisig 3-of-5 desde mainnet day-1. `compliance_signer` separado de `authority` ya implementado (rotación sin tocar fees / treasury) |
+| **Founder key-person** | Media | Alto | Hire de co-founder agro/regulatorio en mes 1-3. Documentación técnica + legal 100% open source. Capital regulatorio en banco UE (no en wallet) |
+| **Competencia (Agrotoken/etc.)** | Alta | Medio | Estrategia aggregator NO competimos head-to-head: los listamos. Network effect bilateral los hace mejores partners que competidores |
+| **Sanciones internacionales (Venezuela)** | Media | Crítico para esa jurisdicción | OFAC/EU/ONU screening on-chain en cada KYC stamp. `JurisdictionPolicy` mutable permite bloquear país en segundos. LOI Venezuela tiene Cláusula CUARTA específica de riesgos sancionatorios |
+
+**Resumen para el inversor:** los 3 riesgos materiales (audit + regulatorio + key-person) están en el roadmap explícito con plazos y costos. Los demás son mitigables vía diseño on-chain ya implementado.
+
+**Lo que NO mitigamos:** el riesgo de precio del commodity subyacente. Eso es del comprador del token, no nuestro. Y no podemos eliminar el riesgo regulatorio macro — si MiCA cambia drásticamente, adaptamos.
