@@ -65,10 +65,18 @@ function createWindow() {
       sandbox: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
-      // Permitir Web Crypto, WebAssembly (necesarios para Solana/anchor)
       experimentalFeatures: false,
+      // SW se rompe en file:// → lo deshabilitamos en Electron.
+      // El SW está condicionalmente skipped en js/pwa-install.js también.
+      serviceWorkers: false,
+      partition: 'persist:agroglobaldex', // partition propio para limpiar caches
     },
   });
+
+  // Limpiar caches viejos al arrancar (por si el SW había quedado cacheado de v1)
+  mainWindow.webContents.session.clearStorageData({
+    storages: ['serviceworkers', 'cachestorage'],
+  }).catch(() => {});
 
   if (saved.maximized) mainWindow.maximize();
 
@@ -179,10 +187,8 @@ function buildMenu() {
         { role: 'zoomOut', label: 'Zoom out', accelerator: `${accel}+-` },
         { type: 'separator' },
         { role: 'togglefullscreen', label: 'Pantalla completa' },
-        ...(process.env.NODE_ENV === 'development' ? [
-          { type: 'separator' },
-          { role: 'toggleDevTools', label: 'DevTools', accelerator: `${accel}+Shift+I` },
-        ] : []),
+        { type: 'separator' },
+        { role: 'toggleDevTools', label: 'DevTools (debug)', accelerator: `${accel}+Shift+I` },
       ],
     },
     {

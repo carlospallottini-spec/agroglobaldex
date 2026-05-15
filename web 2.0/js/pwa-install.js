@@ -2,11 +2,33 @@
  * Inyectado en cada página vía <script type="module" src="js/pwa-install.js">
  */
 
+// ─── Environment detection ────────────────────────────────────────────────
+// El service worker tiene sentido en navegador (PWA installable + offline).
+// En Electron/Capacitor desktop el SW rompe la navegación file:// porque
+// intercepta fetch() y file:// no es fetcheable. Detectamos el host y
+// desactivamos / des-registramos el SW si estamos en Electron.
+const IS_ELECTRON = navigator.userAgent.includes('Electron') ||
+                    !!window.process?.versions?.electron ||
+                    location.protocol === 'file:';
+const IS_CAPACITOR = !!window.Capacitor;
+const SKIP_SW = IS_ELECTRON || IS_CAPACITOR;
+
 // ─── Service worker ──────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  if (SKIP_SW) {
+    // Si había un SW registrado de una visita anterior en el navegador, kill it.
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      regs.forEach((r) => r.unregister().catch(() => {}));
+    }).catch(() => {});
+    // Vaciar caches anteriores también.
+    if (window.caches) {
+      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+    }
+  } else {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
 }
 
 // ─── Install prompt (Chrome/Edge/Android) ────────────────────────────────
