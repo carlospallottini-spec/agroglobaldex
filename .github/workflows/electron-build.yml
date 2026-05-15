@@ -1,0 +1,168 @@
+name: Build AgroGlobalDex (.exe Windows + macOS .dmg + Linux .AppImage)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:    # también permite disparar manual desde la UI de GitHub
+
+permissions:
+  contents: write       # necesario para crear releases
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────
+  # WINDOWS .exe (portable + NSIS installer)
+  # ──────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sync web 2.0/ into agrochain-electron/src/
+        shell: pwsh
+        run: |
+          if (Test-Path agrochain-electron\src) {
+            Remove-Item -Recurse -Force agrochain-electron\src
+          }
+          New-Item -ItemType Directory -Path agrochain-electron\src | Out-Null
+          Copy-Item -Recurse "web 2.0\*" agrochain-electron\src\
+
+      - name: Install dependencies
+        working-directory: agrochain-electron
+        run: npm install
+
+      - name: Build Windows installers
+        working-directory: agrochain-electron
+        run: npm run build
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgroGlobalDex-Windows
+          path: |
+            agrochain-electron/dist/*.exe
+            agrochain-electron/dist/latest.yml
+
+  # ──────────────────────────────────────────────────────────────────
+  # macOS .dmg (Intel + Apple Silicon)
+  # ──────────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    continue-on-error: true     # macOS sin signing puede fallar; no bloquea el resto
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: Sync web 2.0/ into agrochain-electron/src/
+        run: |
+          rm -rf agrochain-electron/src
+          mkdir -p agrochain-electron/src
+          cp -r "web 2.0/." agrochain-electron/src/
+
+      - name: Install dependencies
+        working-directory: agrochain-electron
+        run: npm install
+
+      - name: Build macOS .dmg
+        working-directory: agrochain-electron
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder --mac --x64 --arm64 -c.mac.identity=null
+        continue-on-error: true
+
+      - name: Upload macOS artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgroGlobalDex-macOS
+          path: |
+            agrochain-electron/dist/*.dmg
+            agrochain-electron/dist/*.zip
+
+  # ──────────────────────────────────────────────────────────────────
+  # Linux .AppImage + .deb
+  # ──────────────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: Sync web 2.0/ into agrochain-electron/src/
+        run: |
+          rm -rf agrochain-electron/src
+          mkdir -p agrochain-electron/src
+          cp -r "web 2.0/." agrochain-electron/src/
+
+      - name: Install dependencies
+        working-directory: agrochain-electron
+        run: npm install
+
+      - name: Build Linux .AppImage
+        working-directory: agrochain-electron
+        run: npx electron-builder --linux AppImage --x64
+        continue-on-error: true
+
+      - name: Upload Linux artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgroGlobalDex-Linux
+          path: |
+            agrochain-electron/dist/*.AppImage
+            agrochain-electron/dist/*.deb
+
+  # ──────────────────────────────────────────────────────────────────
+  # PUBLICAR RELEASE — junta los 3 artifacts y los pega como un release
+  # ──────────────────────────────────────────────────────────────────
+  release:
+    needs: [ build-windows, build-macos, build-linux ]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/AgroGlobalDex-Windows/**
+            dist/AgroGlobalDex-macOS/**
+            dist/AgroGlobalDex-Linux/**
+          body: |
+            ## AgroGlobalDex — Release ${{ github.ref_name }}
+
+            **Marketplace de RWA agropecuarios sobre Solana · MiCA-first · Demo/PoC**
+
+            ### 📦 Descargar la app desktop
+            - **Windows**: `AgroGlobalDex-Setup-*.exe` (instalador) o `*-portable.exe` (sin instalar)
+            - **macOS**: `AgroGlobalDex-*.dmg` (Intel + Apple Silicon)
+            - **Linux**: `AgroGlobalDex-*.AppImage`
+
+            ### 🌐 Probar en el navegador
+            Cloná el repo y serví `web 2.0/`:
+            ```bash
+            git clone https://github.com/carlospallottini-spec/agroglobaldex
+            cd agroglobaldex
+            python3 -m http.server 8000 --directory "web 2.0"
+            # http://localhost:8000
+            ```
+
+            ### 🔗 Smart contracts
+            - 17 instrucciones · 2 programas Anchor compilando contra Solana 3.0
+            - Audit pendiente · NO usar en mainnet con valor real
+
+            ### ⚖️ Disclaimer
+            Demo/PoC. Sin autorización CASP MiCA al día de hoy. No constituye oferta de inversión.

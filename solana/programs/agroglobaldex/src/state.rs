@@ -9,6 +9,7 @@ pub const MAX_PLATFORM_LEN: usize = 32;
 pub const MAX_CONTRACT_LEN: usize = 96;
 pub const MAX_CHAIN_LEN: usize = 24;
 pub const MAX_JURISDICTIONS: usize = 32;
+pub const MAX_PRODUCT_NAME_LEN: usize = 64;
 
 // PDA seeds (keep in one place so client + program agree).
 pub const MARKETPLACE_SEED: &[u8] = b"marketplace";
@@ -21,18 +22,18 @@ pub const LISTING_ESCROW_SEED: &[u8] = b"listing_escrow";
 pub const LISTING_USDC_ESCROW_SEED: &[u8] = b"listing_usdc_escrow";
 pub const TREASURY_SEED: &[u8] = b"treasury";
 pub const EXTERNAL_ASSET_SEED: &[u8] = b"external_asset";
+pub const JURISDICTION_POLICY_SEED: &[u8] = b"jurisdiction_policy";
 
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
 
-/// Three top-level asset classes supported by the marketplace.
-/// Each carries class-specific metadata that the off-chain certificate
-/// (referenced through `oracle_attestation`) must back.
+/// Top-level asset classes supported by the marketplace. Each carries
+/// class-specific metadata that the off-chain certificate (referenced through
+/// `oracle_attestation`) must back.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
 pub enum AssetClass {
     /// Physical grain commodity (soy, corn, wheat).
-    /// `metadata.amount_units` = tons.
     Grain { kind: GrainKind, tons: u64 },
 
     /// Voluntary or compliance carbon credit, agro-sourced.
@@ -48,6 +49,61 @@ pub enum AssetClass {
         crop: GrainKind,
         hectares: u32,
         harvest_year: u16,
+    },
+
+    /// **InvestmentOffering** — yield-bearing tokenized investment product.
+    ///
+    /// Examples:
+    /// - "Viñedo Rioja 2026 Reserva — 12 months @ 9% expected ROI"
+    /// - "Olive grove olive-oil yield share — 18 months @ 7% ROI"
+    ///
+    /// REGULATORY FOOTNOTE: this is unambiguously a **security** under
+    /// MiCA / MiFID II — any wallet receiving these tokens MUST be an
+    /// accredited / professional investor (enforced in `enforce_compliance`
+    /// and in `register_asset`). The principal + yield redemption is
+    /// settled **off-chain** by a legal contract referenced from
+    /// `metadata_uri` and the `white_paper_uri`. On-chain `redeemable` is
+    /// therefore set to `false` for this class.
+    InvestmentOffering {
+        /// What is being tokenized (vineyard, olive grove, livestock…).
+        product_kind: ProductKind,
+        /// Investment lock-up in months. Bounded 1..=120.
+        duration_months: u16,
+        /// Expected yield in basis points (e.g. 900 = 9% target ROI).
+        /// Capped at 5000 bps (50%) — anything higher is almost certainly
+        /// a misconfigured input and would invite obvious abuse.
+        expected_yield_bps: u16,
+        /// Unix timestamp (seconds) at which the off-chain redemption is
+        /// expected to settle. MUST be > `Clock::now` at registration.
+        maturity_unix_ts: i64,
+    },
+
+    /// **Commodity** — physical-backed tokenization of any agricultural unit
+    /// (kg of meat, liters of wine, kg of olive oil, liters of milk, kg of
+    /// fruit, etc.). One token = a fixed amount of the physical commodity
+    /// declared by `grams_per_token`. This is the most general bucket for
+    /// "tokenize kg de X" use cases beyond Grain.
+    ///
+    /// Examples:
+    /// - 1 token = 1 kg de carne vacuna AR · vintage 2026
+    /// - 1 token = 1 liter de vino Malbec Mendoza · vintage 2024
+    /// - 1 token = 1 kg de aceite de oliva extra virgen ES · vintage 2025
+    Commodity {
+        /// Top-level sector classification (Meat, Wine, Oil, Dairy, ...).
+        sector: Sector,
+        /// Opaque sub-classification within the sector. Interpreted by the
+        /// frontend. E.g. for `Meat`: 0=Beef, 1=Pork, 2=Poultry, 3=Lamb,
+        /// 4=Fish, 255=Other. For `Wine`: 0=Red, 1=White, 2=Rose, 3=Sparkling.
+        sub_kind: u8,
+        /// ISO-3166 alpha-2 country code of origin (e.g. "AR", "ES", "BR").
+        origin_country: [u8; 2],
+        /// Year of production / vintage.
+        vintage_year: u16,
+        /// How many grams of the physical commodity each token base unit
+        /// represents. e.g. `1000` = each token (1 base unit at 6 decimals,
+        /// so 1.000000) is 1 kg. For liquids (wine/oil/milk) use grams equiv
+        /// or convert in the certificate.
+        grams_per_token: u64,
     },
 }
 
@@ -67,14 +123,46 @@ pub enum CarbonStandard {
     Other,
 }
 
+/// Top-level sectors for `AssetClass::Commodity`. Cubre los casos de uso 1
+/// del modelo de negocio: tokenizar kg/litros de cualquier producto agro
+/// físico.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
+pub enum Sector {
+    /// Granos especiales no cubiertos por AssetClass::Grain (rice, sorghum,
+    /// sunflower, barley, etc.). Permite expandir sin tocar GrainKind.
+    GrainSpecial,
+    /// Carnes: vacuno, porcino, aviar, ovino, pescado.
+    Meat,
+    /// Vinos y mostos de uva.
+    Wine,
+    /// Aceites: oliva, girasol, soja, palma.
+    Oil,
+    /// Lácteos: leche, queso, manteca.
+    Dairy,
+    /// Frutas frescas o procesadas.
+    Fruit,
+    /// Vegetales / hortalizas.
+    Vegetable,
+    /// Fibras: lana, algodón, lino, cáñamo.
+    Fiber,
+    /// Otros (catch-all extensible).
+    Other,
+}
+
+/// Kinds of `InvestmentOffering` products the marketplace tokenizes.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
+pub enum ProductKind {
+    Vineyard,
+    Olive,
+    Dairy,
+    Livestock,
+    Crops,
+    Other,
+}
+
 /// A listing in the marketplace can either reference a native `AssetRegistry`
 /// (tokens minted by this program) or an aggregated `ExternalAssetRegistry`
 /// (tokens minted by another platform but listed here for trading).
-///
-/// In both cases `source` points at the registry account so the buy_asset
-/// instruction can dispatch correctly. Cross-chain externals are display-only
-/// and cannot be listed (the `aggregate_external_asset` instruction enforces
-/// that listing requires a Solana SPL mint).
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
 pub enum ListingSource {
     Native,
@@ -89,10 +177,18 @@ pub enum ListingSource {
 #[account]
 #[derive(InitSpace)]
 pub struct Marketplace {
-    /// Wallet that can update marketplace parameters.
+    /// Wallet that controls marketplace parameters: fee_bps, treasury
+    /// withdrawals, aggregator entries. Can be a human wallet OR a Squads
+    /// (or any other) multisig PDA — the program is agnostic.
     pub authority: Pubkey,
-    /// PDA derived from [COMPLIANCE_AUTHORITY_SEED, marketplace] — the only
-    /// signer authorized to write `ComplianceRecord`s.
+    /// Wallet permitted to stamp `ComplianceRecord`s. Distinct from
+    /// `authority` so a compliance bot / service account can operate
+    /// without ever touching treasury funds. Rotated via
+    /// `set_compliance_signer` (authority-only).
+    pub compliance_signer: Pubkey,
+    /// PDA derived from [COMPLIANCE_AUTHORITY_SEED, marketplace] — kept for
+    /// backwards compatibility / future use as a CPI signer over hook
+    /// programs. Currently informational.
     pub compliance_authority: Pubkey,
     /// USDC SPL mint used to settle trades. Stored on the marketplace so we
     /// can swap mainnet/devnet without changing program code.
@@ -111,10 +207,12 @@ pub struct Marketplace {
     pub asset_count: u64,
     /// Monotonic counter of external (aggregated) registered assets.
     pub external_asset_count: u64,
+    /// Circuit breaker. When `true`, all write paths abort with `Paused`.
+    pub paused: bool,
 }
 
-/// One per tokenized real-world asset lot. The mint of the SPL Token-2022
-/// is derived from this registry as a PDA so the program is its mint authority.
+/// One per tokenized real-world asset lot. The mint of the SPL Token-2022 is
+/// derived from this registry as a PDA so the program is its mint authority.
 #[account]
 #[derive(InitSpace)]
 pub struct AssetRegistry {
@@ -138,11 +236,15 @@ pub struct AssetRegistry {
     /// Off-chain JSON metadata URI (image, full description).
     #[max_len(MAX_URI_LEN)]
     pub metadata_uri: String,
+    /// Human-friendly product label, e.g. "Viñedo Rioja 2026 Reserva".
+    #[max_len(MAX_PRODUCT_NAME_LEN)]
+    pub product_name: String,
     /// Whether burning tokens redeems the underlying off-chain commodity.
     /// Carbon credits, for example, are typically redeemable (retirement).
+    /// For `InvestmentOffering` this is `false` (settlement is off-chain).
     pub redeemable: bool,
-    /// True once the issuer has minted at least once and no more changes
-    /// to immutable fields are allowed.
+    /// True once the issuer has minted at least once and no more changes to
+    /// immutable fields are allowed.
     pub frozen_metadata: bool,
     /// Sequential index assigned by the marketplace at registration time.
     /// Used as a seed component so PDA seeds are deterministically
@@ -152,7 +254,7 @@ pub struct AssetRegistry {
     pub bump: u8,
 }
 
-/// One per wallet. Stamped by the marketplace `compliance_authority`.
+/// One per wallet. Stamped by the marketplace `compliance_signer`.
 #[account]
 #[derive(InitSpace)]
 pub struct ComplianceRecord {
@@ -173,11 +275,27 @@ pub struct ComplianceRecord {
     pub bump: u8,
 }
 
-/// A fixed-price USDC listing of `remaining` tokens of the underlying mint.
+/// On-chain mutable jurisdiction policy. One per marketplace. Authority-only.
 ///
-/// `source` discriminates whether `source_registry` points at an
-/// `AssetRegistry` (native, minted by us) or an `ExternalAssetRegistry`
-/// (aggregated SPL token from another platform, e.g. Agrotoken).
+/// The compliance-hook program and `buy_asset` both read this account to
+/// determine which jurisdictions are blocked outright and which additionally
+/// require accredited-investor status (irrespective of asset class).
+#[account]
+#[derive(InitSpace)]
+pub struct JurisdictionPolicy {
+    pub marketplace: Pubkey,
+    /// Hard-blocked ISO-3166-alpha-2 codes (e.g. "KP", "IR", "SY", "CU").
+    /// Wallets in these jurisdictions cannot transact at all.
+    #[max_len(MAX_JURISDICTIONS)]
+    pub blocked: Vec<[u8; 2]>,
+    /// Jurisdictions that require `accredited_investor == true` regardless
+    /// of asset class.
+    #[max_len(MAX_JURISDICTIONS)]
+    pub requires_accredited: Vec<[u8; 2]>,
+    pub bump: u8,
+}
+
+/// A fixed-price USDC listing of `remaining` tokens of the underlying mint.
 #[account]
 #[derive(InitSpace)]
 pub struct MarketplaceListing {
@@ -205,8 +323,7 @@ pub struct MarketplaceListing {
 }
 
 /// One per third-party (aggregated) token. Curated by the marketplace
-/// authority. `mint` is `Some` if the token is a Solana SPL token tradable
-/// on-chain; if it is on another chain we only store metadata and link out.
+/// authority.
 #[account]
 #[derive(InitSpace)]
 pub struct ExternalAssetRegistry {
@@ -214,11 +331,9 @@ pub struct ExternalAssetRegistry {
     pub marketplace: Pubkey,
     /// Wallet that submitted the curation (normally `marketplace.authority`).
     pub curator: Pubkey,
-    /// Solana SPL mint, if the token is native to Solana. When `None` the
-    /// asset is cross-chain and only display metadata is stored.
+    /// Solana SPL mint, if the token is native to Solana.
     pub mint: Option<Pubkey>,
-    /// Free-form chain identifier for cross-chain assets ("ethereum",
-    /// "polygon", "bsc", "rsk", ...). Empty if `mint` is set.
+    /// Free-form chain identifier for cross-chain assets.
     #[max_len(MAX_CHAIN_LEN)]
     pub external_chain_id: String,
     /// Contract address on the foreign chain. Empty if `mint` is set.
@@ -226,14 +341,13 @@ pub struct ExternalAssetRegistry {
     pub external_contract: String,
     /// Reuse the same asset taxonomy as native assets.
     pub asset_class: AssetClass,
-    /// Short label for the upstream platform ("Agrotoken", "Topaz", "RIPE",
-    /// "AgroToken", "Centrifuge").
+    /// Short label for the upstream platform.
     #[max_len(MAX_PLATFORM_LEN)]
     pub source_platform: String,
     /// URL pointing at the upstream platform listing / explorer.
     #[max_len(MAX_URI_LEN)]
     pub source_url: String,
-    /// Off-chain JSON metadata URI (image, full description).
+    /// Off-chain JSON metadata URI.
     #[max_len(MAX_URI_LEN)]
     pub metadata_uri: String,
     /// Curator-verified flag (independent of on-chain validation).
@@ -242,14 +356,14 @@ pub struct ExternalAssetRegistry {
     pub active: bool,
     /// Creation timestamp.
     pub created_at: i64,
-    /// Sequential index assigned at aggregation time (for PDA seeds).
+    /// Sequential index assigned at aggregation time.
     pub index: u64,
     /// Bump for this PDA.
     pub bump: u8,
 }
 
 // ---------------------------------------------------------------------------
-// Events (consumed by the off-chain indexer / web frontend)
+// Events
 // ---------------------------------------------------------------------------
 
 #[event]
@@ -259,6 +373,17 @@ pub struct AssetRegistered {
     pub issuer: Pubkey,
     pub mint: Pubkey,
     pub index: u64,
+}
+
+#[event]
+pub struct InvestmentOfferingRegistered {
+    pub asset_registry: Pubkey,
+    pub mint: Pubkey,
+    pub product_kind: ProductKind,
+    pub duration_months: u16,
+    pub expected_yield_bps: u16,
+    pub maturity_unix_ts: i64,
+    pub product_name: String,
 }
 
 #[event]
@@ -274,6 +399,20 @@ pub struct ComplianceUpdated {
     pub kyc_verified: bool,
     pub jurisdiction: [u8; 2],
     pub accredited_investor: bool,
+}
+
+#[event]
+pub struct ComplianceSignerRotated {
+    pub marketplace: Pubkey,
+    pub old_signer: Pubkey,
+    pub new_signer: Pubkey,
+}
+
+#[event]
+pub struct JurisdictionPolicyUpdated {
+    pub marketplace: Pubkey,
+    pub blocked: Vec<[u8; 2]>,
+    pub requires_accredited: Vec<[u8; 2]>,
 }
 
 #[event]
@@ -322,4 +461,24 @@ pub struct ExternalAssetUpdated {
     pub external_asset: Pubkey,
     pub verified: bool,
     pub active: bool,
+}
+
+#[event]
+pub struct ListingPriceUpdated {
+    pub listing: Pubkey,
+    pub new_price_usdc: u64,
+}
+
+#[event]
+pub struct TreasuryWithdrawn {
+    pub marketplace: Pubkey,
+    pub destination: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct PauseChanged {
+    pub marketplace: Pubkey,
+    pub was: bool,
+    pub now: bool,
 }

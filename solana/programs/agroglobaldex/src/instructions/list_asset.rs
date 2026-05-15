@@ -19,7 +19,8 @@ pub struct ListAsset<'info> {
 
     #[account(
         seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
-        bump = marketplace.bump
+        bump = marketplace.bump,
+    constraint = !marketplace.paused @ AgroError::Paused,
     )]
     pub marketplace: Account<'info, Marketplace>,
 

@@ -55,12 +55,17 @@ Marketplace[authority]                       seeds: marketplace, authority
 ├── ComplianceAuthority                       seeds: compliance_authority, marketplace
 ├── Treasury                                   seeds: treasury, marketplace
 │   └── treasury_usdc_ata                     ATA USDC, owner=treasury
+├── JurisdictionPolicy                         seeds: jurisdiction_policy, marketplace  ← mutable blocklist
 ├── AssetRegistry[index]                       seeds: asset_registry, marketplace, index_le
 │   └── Mint[asset]                           seeds: asset_mint, asset_registry  ← Token-2022 + TransferHook
 │       └── MarketplaceListing[seller]        seeds: listing, asset_registry, seller
 │           └── escrow ATA                    ATA Token-2022, owner=listing PDA
 ├── ExternalAssetRegistry[index]               seeds: external_asset, marketplace, index_le
 └── ComplianceRecord[wallet]                   seeds: compliance_record, marketplace, wallet
+
+compliance-hook program (SEPARATE, GFFp2bTh…CL8tL)
+├── HookConfig[mint]                           seeds: hook_config, mint
+└── ExtraAccountMetaList[mint]                 seeds: extra-account-metas, mint  ← Token-2022 TLV
 ```
 
 ## Buildear y deployar
@@ -68,6 +73,11 @@ Marketplace[authority]                       seeds: marketplace, authority
 Toolchain validado: **Solana 3.0.0 + Anchor 0.31.1 + platform-tools v1.54**
 (cargo 1.89, rustc 1.89). Versiones más viejas (Solana ≤ 2.2, platform-tools
 ≤ 1.53) fallan al compilar deps con `edition2024`.
+
+> **Importante: `ulimit -n 65536`** antes de correr el validator local.
+> El default (4096) hace que el validator muera silenciosamente en
+> "Waiting for fees to stabilize 3...". Esto se documentó tras corregir
+> el problema en este sandbox.
 
 ```bash
 # Instalar Solana 3.0
@@ -78,43 +88,64 @@ cargo install --git https://github.com/coral-xyz/anchor --tag v0.31.1 anchor-cli
 cd solana
 
 anchor keys sync           # primera vez: alinea declare_id! con target/deploy/*-keypair.json
-anchor build               # genera target/deploy/agroglobaldex.so + target/idl/ + target/types/
+anchor build               # genera 2 .so + IDLs en target/
 
 # Local validator (rápido para probar todo end-to-end)
-solana-test-validator --reset --quiet &
+ulimit -n 65536            # CRÍTICO — sin esto el validator muere
+solana-test-validator --reset --rpc-port 8899 --faucet-port 9900 &
 solana config set --url http://127.0.0.1:8899
-solana airdrop 100
-solana program deploy --program-id target/deploy/agroglobaldex-keypair.json \
-                     target/deploy/agroglobaldex.so
+solana airdrop 200
+solana program deploy --program-id target/deploy/agroglobaldex-keypair.json target/deploy/agroglobaldex.so
+solana program deploy --program-id target/deploy/compliance_hook-keypair.json target/deploy/compliance_hook.so
+npm install
 npx ts-node --project tsconfig.seed.json scripts/seed-localnet.ts
 
 # Deploy a devnet (requiere wallet con SOL devnet)
 ./scripts/deploy-devnet.sh
 ```
 
-### Seed run validado (output real del seed-localnet.ts)
+### Seed run validado (output REAL del seed-localnet.ts contra validator local)
 
 ```
-Program ID: G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a
-[1] USDC mint creado
-[2] Marketplace inicializado (fee_bps=50)
-[3] KYC stamped (AR, accredited=true)
-[4] register_asset Grain (100 ton soja) — mint Token-2022 con TransferHook
-[5] mint_token 50 ton
-[6] aggregate_external_asset SPL (Agrotoken)
-[7] aggregate_external_asset cross-chain (Centrifuge / Ethereum)
-[VERIFY] Marketplace assetCount=1, externalAssetCount=2, feeBps=50
-         AssetRegistry rows: 1
-         ExternalAssetRegistry rows: 2 (Agrotoken, Centrifuge)
-         ComplianceRecord rows: 1
-✓ Seed completo
+Program ID         : G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a
+Hook program ID    : GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL
+Authority          : BCFbE1nawxJxPTce48w2jMsgT8Dsuoiz7jesvwseNbZU
+Compliance signer  : vdDXdseynoQch2HYwK73cHHPPDvvMHCDZELy3EharEa  (SEPARATE)
+
+[1]  fake USDC mint creado
+[2]  initialize marketplace (authority y compliance_signer separados) ✓
+[3]  init_jurisdiction_policy (defaults KP/IR/SY/CU) ✓
+[4]  update_kyc firmado por compliance_signer (no authority) ✓
+[5]  register_asset Grain (Soja 100 ton, mint Token-2022 + TransferHook → compliance-hook real) ✓
+[6]  mint_token 50 ton ✓
+[7]  register_asset InvestmentOffering "Viñedo Rioja 2026 Reserva" — 12 meses, 9% ROI ✓
+[8]  aggregate_external_asset SPL (Agrotoken) ✓
+[9]  aggregate_external_asset cross-chain (Centrifuge / Ethereum) ✓
+[10] update_jurisdiction_policy (agregar AF al blocklist) ✓
+[11] set_compliance_signer (rotate) ✓
+
+[VERIFY] Estado on-chain:
+  Marketplace assetCount=2, externalAssetCount=2, feeBps=50
+  JurisdictionPolicy blocked: KP, IR, SY, CU, AF
+  AssetRegistry: "Viñedo Rioja 2026 Reserva" (investmentOffering) + "Soja AR 2026 Q1" (grain)
+  ExternalAssetRegistry: Agrotoken + Centrifuge
+  ComplianceRecord: 1
+  Marketplace.complianceSigner ROTADO a la nueva pubkey ✓
 ```
 
 ## Decisiones de diseño relevantes
 
-- **Token-2022 con TransferHook**. La única manera de imponer KYC on-chain en
-  *cada* transferencia, no sólo en `buy_asset`. El hook se deploya como
-  programa separado (TODO).
+- **compliance-hook como programa Anchor SEPARADO** (`programs/compliance-hook/`).
+  Implementa SPL Transfer Hook Interface y se ejecuta en cada transfer de
+  Token-2022 para verificar KYC + jurisdicción de source y destination
+  contra `JurisdictionPolicy`. Sin esto, cualquier holder podía transferir
+  libremente tras el primer mint — el hook cierra ese agujero.
+- **Token-2022 con TransferHook**. Único mecanismo para enforce compliance
+  en *cada* transferencia, no sólo en `buy_asset`.
+- **`compliance_signer` separado de `authority`**. Service account para
+  stampar KYC sin tocar treasury. Rotable via `set_compliance_signer`.
+- **`JurisdictionPolicy` mutable on-chain**. Sin redeploy para agregar/quitar
+  países bloqueados.
 - **USDC para settlement** (no SOL). `price_usdc` en base units (6 decimales).
   Fee va a un PDA treasury en USDC.
 - **Index reconstruible**. `AssetRegistry` y `ExternalAssetRegistry` guardan

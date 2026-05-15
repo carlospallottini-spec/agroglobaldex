@@ -1,0 +1,379 @@
+{
+  "address": "GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL",
+  "metadata": {
+    "name": "compliance_hook",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "AgroGlobalDex Token-2022 Transfer Hook enforcing KYC + jurisdiction policy"
+  },
+  "instructions": [
+    {
+      "name": "execute",
+      "docs": [
+        "Token-2022 transfer hook entrypoint. Verifies both source and",
+        "destination wallets have valid `ComplianceRecord`s and that neither",
+        "jurisdiction is in the policy blocklist."
+      ],
+      "discriminator": [
+        130,
+        221,
+        242,
+        154,
+        13,
+        193,
+        189,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "source"
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "hook_config"
+          ]
+        },
+        {
+          "name": "destination"
+        },
+        {
+          "name": "owner"
+        },
+        {
+          "name": "extra_account_meta_list",
+          "docs": [
+            "ExtraAccountMetaList — Token-2022 ALWAYS appends this account at index",
+            "4 of the Execute instruction. Validation that the resolved extra",
+            "accounts match the TLV layout happens implicitly via Token-2022's",
+            "resolver before we get here."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  114,
+                  97,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hook_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  111,
+                  107,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketplace",
+          "docs": [
+            "The marketplace account — only its key is checked against hook_config."
+          ]
+        },
+        {
+          "name": "agroglobaldex_program",
+          "docs": [
+            "The agroglobaldex program — needed by the TLV resolver so PDA seeds",
+            "resolve against it."
+          ]
+        },
+        {
+          "name": "jurisdiction_policy",
+          "docs": [
+            "JurisdictionPolicy account, owned by `agroglobaldex_program`."
+          ]
+        },
+        {
+          "name": "source_compliance",
+          "docs": [
+            "Source's ComplianceRecord, owned by `agroglobaldex_program`."
+          ]
+        },
+        {
+          "name": "destination_compliance",
+          "docs": [
+            "Destination's ComplianceRecord, owned by `agroglobaldex_program`."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_extra_account_meta_list",
+      "docs": [
+        "Wire up the per-mint validation data. Called once per AgroGlobalDex",
+        "mint, right after the mint itself is created. The caller is the main",
+        "program (signing for the `asset_registry` PDA acting as the mint",
+        "authority) — but for Anchor IDL friendliness the signer is the",
+        "`authority` account, which we validate to be the mint authority on the",
+        "client side (Token-2022 only checks the signature; the seeds bind the",
+        "account to the mint)."
+      ],
+      "discriminator": [
+        92,
+        197,
+        174,
+        197,
+        41,
+        124,
+        19,
+        3
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "The Token-2022 mint these metas apply to."
+          ]
+        },
+        {
+          "name": "hook_config",
+          "docs": [
+            "Per-mint config carrying marketplace pubkey + the agroglobaldex program id."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  111,
+                  107,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "extra_account_meta_list",
+          "docs": [
+            "The ExtraAccountMetaList account. Created manually below to avoid the",
+            "fixed-size limitation of Anchor `init`."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  114,
+                  97,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "marketplace",
+          "type": "pubkey"
+        },
+        {
+          "name": "agroglobaldex_program",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "HookConfig",
+      "discriminator": [
+        137,
+        155,
+        101,
+        95,
+        138,
+        72,
+        8,
+        182
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "SourceKycNotVerified",
+      "msg": "Source wallet has not passed KYC"
+    },
+    {
+      "code": 6001,
+      "name": "DestKycNotVerified",
+      "msg": "Destination wallet has not passed KYC"
+    },
+    {
+      "code": 6002,
+      "name": "SourceJurisdictionBlocked",
+      "msg": "Source jurisdiction is blocked by the marketplace policy"
+    },
+    {
+      "code": 6003,
+      "name": "DestJurisdictionBlocked",
+      "msg": "Destination jurisdiction is blocked by the marketplace policy"
+    },
+    {
+      "code": 6004,
+      "name": "AccountMetaConstructionFailed",
+      "msg": "Failed to construct extra-account-meta entry"
+    },
+    {
+      "code": 6005,
+      "name": "AccountMetaListInitFailed",
+      "msg": "Failed to initialize the ExtraAccountMetaList"
+    },
+    {
+      "code": 6006,
+      "name": "HookConfigMintMismatch",
+      "msg": "HookConfig mint mismatch"
+    },
+    {
+      "code": 6007,
+      "name": "MarketplaceMismatch",
+      "msg": "Marketplace mismatch"
+    },
+    {
+      "code": 6008,
+      "name": "ProgramMismatch",
+      "msg": "AgroGlobalDex program mismatch"
+    },
+    {
+      "code": 6009,
+      "name": "AccountOwnerMismatch",
+      "msg": "Account is not owned by the agroglobaldex program"
+    },
+    {
+      "code": 6010,
+      "name": "DeserializationFailed",
+      "msg": "Failed to deserialize the compliance/policy account"
+    }
+  ],
+  "types": [
+    {
+      "name": "HookConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "docs": [
+              "Mint this config refers to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "marketplace",
+            "docs": [
+              "AgroGlobalDex marketplace account this mint lives under. Used as a",
+              "seed component when resolving compliance/policy PDAs."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "agroglobaldex_program",
+            "docs": [
+              "AgroGlobalDex main program id — used to resolve external PDAs."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

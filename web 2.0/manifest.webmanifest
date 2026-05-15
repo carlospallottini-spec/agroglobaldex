@@ -1,0 +1,24 @@
+{
+  "name": "AgroGlobalDex",
+  "short_name": "AgroGlobal",
+  "description": "Marketplace de RWA agropecuarios tokenizados sobre Solana — granos, carbono, cosechas y yield offerings.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#00FF6A",
+  "background_color": "#05080A",
+  "lang": "es",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Marketplace", "short_name": "Market", "url": "/marketplace.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] },
+    { "name": "Tokenizar", "short_name": "Tokenizar", "url": "/tokenize.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] },
+    { "name": "Invertir", "short_name": "Invertir", "url": "/invest.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] }
+  ]
+}

@@ -11,6 +11,11 @@ pub struct Initialize<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
+    /// CHECK: any pubkey — the wallet permitted to stamp ComplianceRecords.
+    /// Distinct from `authority` so compliance ops can be delegated to a
+    /// service account without touching treasury funds. Can equal authority.
+    pub compliance_signer: UncheckedAccount<'info>,
+
     #[account(
         init,
         payer = authority,
@@ -20,26 +25,22 @@ pub struct Initialize<'info> {
     )]
     pub marketplace: Account<'info, Marketplace>,
 
-    /// CHECK: PDA — never read or written here, only its address is stored on
-    /// the marketplace so other instructions can require it as `Signer` via
-    /// `seeds`/`bump` when stamping `ComplianceRecord`s.
+    /// CHECK: PDA — informational only (legacy).
     #[account(
         seeds = [COMPLIANCE_AUTHORITY_SEED, marketplace.key().as_ref()],
         bump
     )]
     pub compliance_authority: UncheckedAccount<'info>,
 
-    /// CHECK: PDA that owns the USDC treasury ATA. Validated by seeds.
+    /// CHECK: PDA that owns the USDC treasury ATA.
     #[account(
         seeds = [TREASURY_SEED, marketplace.key().as_ref()],
         bump
     )]
     pub treasury: UncheckedAccount<'info>,
 
-    /// USDC mint (devnet or mainnet — caller passes the correct address).
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
-    /// Treasury USDC ATA, created here so fees can flow on the very first buy.
     #[account(
         init,
         payer = authority,
@@ -59,6 +60,7 @@ pub fn handler(ctx: Context<Initialize>, fee_bps: u16) -> Result<()> {
 
     let marketplace = &mut ctx.accounts.marketplace;
     marketplace.authority = ctx.accounts.authority.key();
+    marketplace.compliance_signer = ctx.accounts.compliance_signer.key();
     marketplace.compliance_authority = ctx.accounts.compliance_authority.key();
     marketplace.usdc_mint = ctx.accounts.usdc_mint.key();
     marketplace.treasury = ctx.accounts.treasury.key();
@@ -68,10 +70,12 @@ pub fn handler(ctx: Context<Initialize>, fee_bps: u16) -> Result<()> {
     marketplace.fee_bps = fee_bps;
     marketplace.asset_count = 0;
     marketplace.external_asset_count = 0;
+    marketplace.paused = false;
 
     msg!(
-        "AgroGlobalDex marketplace initialized. authority={} usdc_mint={} fee_bps={}",
+        "AgroGlobalDex marketplace initialized. authority={} compliance_signer={} usdc_mint={} fee_bps={}",
         marketplace.authority,
+        marketplace.compliance_signer,
         marketplace.usdc_mint,
         fee_bps
     );

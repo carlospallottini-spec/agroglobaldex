@@ -8,9 +8,11 @@ skip-lint = false
 
 [programs.localnet]
 agroglobaldex = "G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a"
+compliance_hook = "GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL"
 
 [programs.devnet]
 agroglobaldex = "G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a"
+compliance_hook = "GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL"
 
 [registry]
 url = "https://api.apr.dev"
@@ -30,4 +32,4 @@ url = "https://api.mainnet-beta.solana.com"
 address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 
 [workspace]
-members = ["programs/agroglobaldex"]
+members = ["programs/agroglobaldex", "programs/compliance-hook"]

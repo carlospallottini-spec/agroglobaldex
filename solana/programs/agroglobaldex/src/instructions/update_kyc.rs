@@ -3,35 +3,24 @@ use anchor_lang::prelude::*;
 use crate::errors::AgroError;
 use crate::state::*;
 
-/// Stamp / update the `ComplianceRecord` for a wallet. Only the marketplace's
-/// `compliance_authority` PDA may sign — in practice this means only an
-/// instruction routed through `update_kyc` with the marketplace authority as
-/// the human signer, since the PDA is derived from the marketplace.
+/// Stamp / update the `ComplianceRecord` for a wallet.
+///
+/// Authorization model: only `marketplace.compliance_signer` may sign. This
+/// is intentionally separate from `marketplace.authority` so compliance ops
+/// can be delegated to a service account without touching treasury funds.
 #[derive(Accounts)]
 #[instruction(kyc_verified: bool, jurisdiction: [u8; 2])]
 pub struct UpdateKyc<'info> {
-    /// The human / service wallet permitted to manage compliance. Currently
-    /// equal to `marketplace.authority` — production deployments should
-    /// separate this role.
     #[account(mut)]
     pub compliance_signer: Signer<'info>,
 
     #[account(
         seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
         bump = marketplace.bump,
-        constraint = marketplace.authority == compliance_signer.key()
+        constraint = marketplace.compliance_signer == compliance_signer.key()
             @ AgroError::UnauthorizedComplianceAuthority
     )]
     pub marketplace: Account<'info, Marketplace>,
-
-    /// CHECK: only used to derive PDA & assert the address stored on marketplace.
-    #[account(
-        seeds = [COMPLIANCE_AUTHORITY_SEED, marketplace.key().as_ref()],
-        bump = marketplace.compliance_bump,
-        constraint = compliance_authority.key() == marketplace.compliance_authority
-            @ AgroError::UnauthorizedComplianceAuthority
-    )]
-    pub compliance_authority: UncheckedAccount<'info>,
 
     /// CHECK: any wallet — does not need to sign, the record is about them.
     pub wallet: UncheckedAccount<'info>,
@@ -81,31 +70,36 @@ pub fn handler(
 // ---------------------------------------------------------------------------
 
 /// Verify a wallet may receive or hold a regulated asset.
-///
-/// Policy (PoC):
-/// - `kyc_verified` MUST be true.
-/// - Jurisdiction MUST NOT be on a hard-coded blocklist (sanctioned regions).
-/// - `HarvestFraction` additionally requires `accredited_investor == true`
-///   because it is a yield-bearing speculative instrument.
 pub fn enforce_compliance(
+    record: &ComplianceRecord,
+    asset_class: &AssetClass,
+) -> Result<()> {
+    enforce_compliance_basic(record, asset_class)
+}
+
+/// Same as `enforce_compliance`. Kept under a separate name so call-sites
+/// (e.g. `buy_external_asset`) can express intent: the rules are the same
+/// for natives and curated externals.
+pub fn enforce_compliance_basic(
     record: &ComplianceRecord,
     asset_class: &AssetClass,
 ) -> Result<()> {
     require!(record.kyc_verified, AgroError::KycNotVerified);
 
-    // Hard-coded sanctioned jurisdictions for the PoC. Replace with an
-    // on-chain mutable allow/block-list owned by `compliance_authority`.
-    const BLOCKED: &[[u8; 2]] = &[*b"KP", *b"IR", *b"SY"];
+    const BLOCKED: &[[u8; 2]] = &[*b"KP", *b"IR", *b"SY", *b"CU"];
     require!(
         !BLOCKED.contains(&record.jurisdiction),
         AgroError::JurisdictionNotAllowed
     );
 
-    if matches!(asset_class, AssetClass::HarvestFraction { .. }) {
-        require!(
-            record.accredited_investor,
-            AgroError::AccreditedInvestorRequired
-        );
+    match asset_class {
+        AssetClass::HarvestFraction { .. } | AssetClass::InvestmentOffering { .. } => {
+            require!(
+                record.accredited_investor,
+                AgroError::AccreditedInvestorRequired
+            );
+        }
+        _ => {}
     }
     Ok(())
 }
