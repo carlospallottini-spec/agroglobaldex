@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write       # necesario para crear releases
 
+# Silencia la advertencia de Node 20 → Node 24 que GitHub muestra en runs viejos.
+# Las actions @v4 ya soportan Node 24 por env var.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   # ──────────────────────────────────────────────────────────────────
   # WINDOWS .exe (portable + NSIS installer)
