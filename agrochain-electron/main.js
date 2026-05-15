@@ -255,7 +255,24 @@ app.on('second-instance', () => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // CRÍTICO: limpiar service workers y caches de instalaciones previas
+  // ANTES de crear la ventana. Sin esto, el SW de v2.0.0/2.0.1 puede
+  // seguir interceptando fetch y dejar la pantalla en negro al navegar.
+  try {
+    const { session } = require('electron');
+    await session.defaultSession.clearStorageData({
+      storages: ['serviceworkers', 'cachestorage', 'shadercache'],
+    });
+    await session.defaultSession.clearCache();
+    // También la partition propia (por si quedó algo)
+    const part = session.fromPartition('persist:agroglobaldex');
+    await part.clearStorageData({
+      storages: ['serviceworkers', 'cachestorage', 'shadercache'],
+    }).catch(() => {});
+    await part.clearCache().catch(() => {});
+  } catch (e) {}
+
   buildMenu();
   createWindow();
 });
