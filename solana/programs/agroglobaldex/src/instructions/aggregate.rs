@@ -112,7 +112,7 @@ pub fn aggregate_handler(
     external.source_url = payload.source_url;
     external.metadata_uri = payload.metadata_uri;
     external.verified = false; // curator must explicitly verify
-    external.active = true;
+    external.active = false; // curator must explicitly activate after verification
     external.created_at = Clock::get()?.unix_timestamp;
     external.index = index;
     external.bump = ctx.bumps.external_asset;

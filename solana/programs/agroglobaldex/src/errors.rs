@@ -91,4 +91,10 @@ pub enum AgroError {
 
     #[msg("JurisdictionPolicy account does not match the expected PDA for this marketplace")]
     JurisdictionPolicyMismatch,
+
+    #[msg("Asset metadata is frozen — the first mint has already happened")]
+    MetadataFrozen,
+
+    #[msg("This instruction only applies to AssetClass::InvestmentOffering")]
+    NotInvestmentOffering,
 }

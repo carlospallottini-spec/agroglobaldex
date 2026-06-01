@@ -2281,6 +2281,105 @@
       ]
     },
     {
+      "name": "revoke_kyc",
+      "docs": [
+        "Revoke a wallet's KYC. Compliance-signer-only. Used for sanctions hits,",
+        "fraud, or regulatory directives. Emits `ComplianceRevoked`."
+      ],
+      "discriminator": [
+        170,
+        100,
+        20,
+        190,
+        192,
+        242,
+        236,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "compliance_signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "compliance_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "reason_code",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "set_compliance_signer",
       "docs": [
         "Rotate the wallet allowed to stamp KYC. Authority-only."
@@ -2389,6 +2488,80 @@
         {
           "name": "paused",
           "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "settle_investment_offering",
+      "docs": [
+        "Record an off-chain yield distribution for an `InvestmentOffering`.",
+        "Issuer-only. Settlement of USDC is OFF-CHAIN; this is the on-chain",
+        "receipt. Emits `InvestmentSettlementRecorded`."
+      ],
+      "discriminator": [
+        26,
+        198,
+        127,
+        82,
+        39,
+        138,
+        194,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "issuer",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u32"
+        },
+        {
+          "name": "yield_paid_usdc",
+          "type": "u64"
+        },
+        {
+          "name": "attestation",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
@@ -3043,6 +3216,117 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "update_metadata",
+      "docs": [
+        "Update mutable asset metadata BEFORE the first mint. Issuer-only.",
+        "After `mint_token`, `frozen_metadata=true` and this reverts."
+      ],
+      "discriminator": [
+        170,
+        182,
+        43,
+        239,
+        97,
+        78,
+        225,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "issuer",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "TokenMetadata target."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "product_name",
+          "type": "string"
+        },
+        {
+          "name": "metadata_uri",
+          "type": "string"
+        },
+        {
+          "name": "white_paper_uri",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -3140,6 +3424,19 @@
       ]
     },
     {
+      "name": "AssetMetadataUpdated",
+      "discriminator": [
+        89,
+        212,
+        27,
+        20,
+        122,
+        184,
+        164,
+        241
+      ]
+    },
+    {
       "name": "AssetPurchased",
       "discriminator": [
         221,
@@ -3176,6 +3473,19 @@
         180,
         249,
         254
+      ]
+    },
+    {
+      "name": "ComplianceRevoked",
+      "discriminator": [
+        192,
+        145,
+        0,
+        174,
+        195,
+        92,
+        9,
+        222
       ]
     },
     {
@@ -3241,6 +3551,19 @@
         27,
         222,
         119
+      ]
+    },
+    {
+      "name": "InvestmentSettlementRecorded",
+      "discriminator": [
+        120,
+        237,
+        222,
+        212,
+        4,
+        28,
+        145,
+        12
       ]
     },
     {
@@ -3459,6 +3782,16 @@
       "code": 6029,
       "name": "JurisdictionPolicyMismatch",
       "msg": "JurisdictionPolicy account does not match the expected PDA for this marketplace"
+    },
+    {
+      "code": 6030,
+      "name": "MetadataFrozen",
+      "msg": "Asset metadata is frozen — the first mint has already happened"
+    },
+    {
+      "code": 6031,
+      "name": "NotInvestmentOffering",
+      "msg": "This instruction only applies to AssetClass::InvestmentOffering"
     }
   ],
   "types": [
@@ -3710,6 +4043,35 @@
           {
             "name": "amount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetMetadataUpdated",
+      "docs": [
+        "Emitted when the issuer updates metadata before the first mint. After the",
+        "first `mint_token`, `frozen_metadata` flips to true and this becomes a",
+        "no-op (will revert)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "product_name",
+            "type": "string"
+          },
+          {
+            "name": "metadata_uri",
+            "type": "string"
+          },
+          {
+            "name": "white_paper_uri",
+            "type": "string"
           }
         ]
       }
@@ -4013,6 +4375,38 @@
       }
     },
     {
+      "name": "ComplianceRevoked",
+      "docs": [
+        "Emitted when the compliance signer revokes a wallet's KYC, typically due",
+        "to a sanctions hit, fraud detection or regulatory request. Off-chain",
+        "surveillance MUST act on this event (freeze listings, surface to MLRO)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "reason_code",
+            "docs": [
+              "0=manual, 1=sanctions, 2=fraud, 3=regulatory, 4=request"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "revoked_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ComplianceSignerRotated",
       "type": {
         "kind": "struct",
@@ -4287,6 +4681,58 @@
           {
             "name": "product_name",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InvestmentSettlementRecorded",
+      "docs": [
+        "Emitted when the issuer of an `InvestmentOffering` records an off-chain",
+        "yield distribution for an epoch. Used by the marketplace UI and auditors",
+        "to reconcile on-chain promise vs off-chain payout. Settlement of the",
+        "underlying yield (bank wire) is OFF-CHAIN; this event is the on-chain",
+        "receipt."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "issuer",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u32"
+          },
+          {
+            "name": "yield_paid_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "attestation",
+            "docs": [
+              "SHA-256 of the off-chain payout attestation (SWIFT confirmation,",
+              "notary acta, etc.). Mirrors the discipline of `oracle_attestation`."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "recorded_at",
+            "type": "i64"
           }
         ]
       }
