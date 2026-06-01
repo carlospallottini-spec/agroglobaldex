@@ -1,16 +1,17 @@
-/* AgroGlobalDex — Service Worker (PWA shell + network-first fallback)
- * Estrategia:
- *   - install: precachea el shell mínimo (HTML + JS + manifest)
- *   - fetch:   network-first para HTML/JS/JSON (siempre data fresca on-chain),
- *              cache-first para assets estáticos (fuentes, iconos, imágenes)
+/* AgroGlobalDex — Service Worker (PWA shell + kill-switch para Electron)
+ * v5 — Detecta protocolo file:// (Electron / Capacitor desktop) y se
+ * auto-destruye limpiando caches. En navegador web real (https://) se
+ * comporta como PWA shell normal.
  */
-const CACHE = 'agroglobaldex-v3';
+const CACHE = 'agroglobaldex-v5';
+const IS_FILE = location.protocol === 'file:';
 const SHELL = [
   '/',
   '/index.html',
   '/marketplace.html',
   '/tokenize.html',
   '/invest.html',
+  '/investors.html',
   '/aggregate.html',
   '/about.html',
   '/contact.html',
@@ -20,24 +21,36 @@ const SHELL = [
   '/js/agroglobaldex-client.js',
   '/js/network-config.js',
   '/js/kyc-gate.js',
+  '/js/mwa-helper.js',
+  '/js/pwa-install.js',
   '/js/idl/agroglobaldex.json',
 ];
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
+  if (IS_FILE) return; // no precachear en Electron
   e.waitUntil(
     caches.open(CACHE).then((c) => c.addAll(SHELL).catch(() => {}))
   );
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    (async () => {
+  e.waitUntil((async () => {
+    // Kill switch en Electron/Capacitor desktop (file://)
+    if (IS_FILE) {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
-      await self.clients.claim();
-    })()
-  );
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      await self.registration.unregister().catch(() => {});
+      // Refrescar todos los clients para que vean la versión sin SW
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach((c) => { try { c.navigate(c.url); } catch (_) {} });
+      return;
+    }
+    // Navegador: borrar caches viejos pero quedarse con el actual
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
 function isStaticAsset(url) {
@@ -45,15 +58,16 @@ function isStaticAsset(url) {
 }
 
 self.addEventListener('fetch', (e) => {
+  // En Electron: NO interceptar absolutamente nada. Dejar que el browser
+  // engine cargue file:// directamente. Sin esto, navegación = black screen.
+  if (IS_FILE) return;
+
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-
-  // Bypass RPC + esm.sh + cross-origin live data
   if (url.origin !== location.origin) return;
 
   if (isStaticAsset(url)) {
-    // cache-first
     e.respondWith(
       caches.match(req).then((cached) => cached || fetch(req).then((res) => {
         const clone = res.clone();
@@ -62,7 +76,6 @@ self.addEventListener('fetch', (e) => {
       }).catch(() => caches.match('/icons/icon-192.png')))
     );
   } else {
-    // network-first, fallback al shell cacheado
     e.respondWith(
       fetch(req).then((res) => {
         const clone = res.clone();

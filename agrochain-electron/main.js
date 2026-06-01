@@ -65,10 +65,18 @@ function createWindow() {
       sandbox: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
-      // Permitir Web Crypto, WebAssembly (necesarios para Solana/anchor)
       experimentalFeatures: false,
+      // SW se rompe en file:// → lo deshabilitamos en Electron.
+      // El SW está condicionalmente skipped en js/pwa-install.js también.
+      serviceWorkers: false,
+      partition: 'persist:agroglobaldex', // partition propio para limpiar caches
     },
   });
+
+  // Limpiar caches viejos al arrancar (por si el SW había quedado cacheado de v1)
+  mainWindow.webContents.session.clearStorageData({
+    storages: ['serviceworkers', 'cachestorage'],
+  }).catch(() => {});
 
   if (saved.maximized) mainWindow.maximize();
 
@@ -179,10 +187,8 @@ function buildMenu() {
         { role: 'zoomOut', label: 'Zoom out', accelerator: `${accel}+-` },
         { type: 'separator' },
         { role: 'togglefullscreen', label: 'Pantalla completa' },
-        ...(process.env.NODE_ENV === 'development' ? [
-          { type: 'separator' },
-          { role: 'toggleDevTools', label: 'DevTools', accelerator: `${accel}+Shift+I` },
-        ] : []),
+        { type: 'separator' },
+        { role: 'toggleDevTools', label: 'DevTools (debug)', accelerator: `${accel}+Shift+I` },
       ],
     },
     {
@@ -249,7 +255,24 @@ app.on('second-instance', () => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // CRÍTICO: limpiar service workers y caches de instalaciones previas
+  // ANTES de crear la ventana. Sin esto, el SW de v2.0.0/2.0.1 puede
+  // seguir interceptando fetch y dejar la pantalla en negro al navegar.
+  try {
+    const { session } = require('electron');
+    await session.defaultSession.clearStorageData({
+      storages: ['serviceworkers', 'cachestorage', 'shadercache'],
+    });
+    await session.defaultSession.clearCache();
+    // También la partition propia (por si quedó algo)
+    const part = session.fromPartition('persist:agroglobaldex');
+    await part.clearStorageData({
+      storages: ['serviceworkers', 'cachestorage', 'shadercache'],
+    }).catch(() => {});
+    await part.clearCache().catch(() => {});
+  } catch (e) {}
+
   buildMenu();
   createWindow();
 });
