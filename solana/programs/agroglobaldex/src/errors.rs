@@ -85,4 +85,10 @@ pub enum AgroError {
 
     #[msg("Marketplace is paused — write operations are temporarily disabled")]
     Paused,
+
+    #[msg("Provided compliance hook program does not match the configured one")]
+    ComplianceHookMismatch,
+
+    #[msg("JurisdictionPolicy account does not match the expected PDA for this marketplace")]
+    JurisdictionPolicyMismatch,
 }

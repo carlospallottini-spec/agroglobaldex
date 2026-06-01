@@ -338,6 +338,21 @@
       "code": 6010,
       "name": "DeserializationFailed",
       "msg": "Failed to deserialize the compliance/policy account"
+    },
+    {
+      "code": 6011,
+      "name": "JurisdictionPolicyMismatch",
+      "msg": "JurisdictionPolicy account is not the expected PDA for this marketplace"
+    },
+    {
+      "code": 6012,
+      "name": "SourceComplianceMismatch",
+      "msg": "Source ComplianceRecord is not the expected PDA for the source owner"
+    },
+    {
+      "code": 6013,
+      "name": "DestComplianceMismatch",
+      "msg": "Destination ComplianceRecord is not the expected PDA for the destination owner"
     }
   ],
   "types": [

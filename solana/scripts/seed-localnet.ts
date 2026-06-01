@@ -142,6 +142,8 @@ async function main() {
     programId,
   );
   let assetMint = findPda([Buffer.from("asset_mint"), assetRegistry.toBuffer()], programId);
+  let hookConfig = findPda([Buffer.from("hook_config"), assetMint.toBuffer()], HOOK_PROGRAM_ID);
+  let extraMetas = findPda([Buffer.from("extra-account-metas"), assetMint.toBuffer()], HOOK_PROGRAM_ID);
   const att1 = Array.from(createHash("sha256").update("warehouse-receipt-AR-2026-demo").digest());
 
   tx = await program.methods
@@ -159,6 +161,8 @@ async function main() {
       assetRegistry,
       mint: assetMint,
       complianceHookProgram: HOOK_PROGRAM_ID,
+      hookConfig,
+      extraAccountMetaList: extraMetas,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -192,6 +196,8 @@ async function main() {
     programId,
   );
   const investMint = findPda([Buffer.from("asset_mint"), investRegistry.toBuffer()], programId);
+  const investHookConfig = findPda([Buffer.from("hook_config"), investMint.toBuffer()], HOOK_PROGRAM_ID);
+  const investExtraMetas = findPda([Buffer.from("extra-account-metas"), investMint.toBuffer()], HOOK_PROGRAM_ID);
   const att2 = Array.from(createHash("sha256").update("vineyard-rioja-2026-spv-contract").digest());
   const maturity = Math.floor(Date.now() / 1000) + 365 * 24 * 3600;
 
@@ -217,6 +223,8 @@ async function main() {
       assetRegistry: investRegistry,
       mint: investMint,
       complianceHookProgram: HOOK_PROGRAM_ID,
+      hookConfig: investHookConfig,
+      extraAccountMetaList: investExtraMetas,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,

@@ -90,6 +90,14 @@ pub struct BuyAsset<'info> {
     )]
     pub buyer_compliance: Account<'info, ComplianceRecord>,
 
+    #[account(
+        seeds = [JURISDICTION_POLICY_SEED, marketplace.key().as_ref()],
+        bump = jurisdiction_policy.bump,
+        constraint = jurisdiction_policy.marketplace == marketplace.key()
+            @ AgroError::JurisdictionPolicyMismatch,
+    )]
+    pub jurisdiction_policy: Account<'info, JurisdictionPolicy>,
+
     // ---- USDC side ---------------------------------------------------------
     #[account(
         address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint,
@@ -145,6 +153,7 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
     enforce_compliance(
         &ctx.accounts.buyer_compliance,
         &ctx.accounts.asset_registry.asset_class,
+        &ctx.accounts.jurisdiction_policy,
     )?;
 
     // ---- Settlement math ---------------------------------------------------

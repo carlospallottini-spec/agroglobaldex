@@ -235,6 +235,70 @@ pub mod compliance_hook {
     /// destination wallets have valid `ComplianceRecord`s and that neither
     /// jurisdiction is in the policy blocklist.
     pub fn execute(ctx: Context<Execute>, _amount: u64) -> Result<()> {
+        // ---- Validate external PDAs (defense in depth) ------------------------
+        // The Execute accounts struct only owner-checks jurisdiction_policy,
+        // source_compliance and destination_compliance. An attacker could pass
+        // a different `JurisdictionPolicy` (e.g. from another marketplace) or
+        // somebody else's `ComplianceRecord` (e.g. a KYC'd user's record to
+        // bypass the source's own KYC). We defend by re-deriving each PDA from
+        // the trusted inputs (marketplace pubkey, agroglobaldex program id,
+        // source owner, destination token account owner) and asserting key
+        // equality.
+        let marketplace = ctx.accounts.marketplace.key();
+        let agroglobaldex = ctx.accounts.agroglobaldex_program.key();
+
+        // jurisdiction_policy = PDA([JURISDICTION_POLICY_SEED, marketplace], agroglobaldex)
+        let (expected_policy, _) = Pubkey::find_program_address(
+            &[JURISDICTION_POLICY_SEED, marketplace.as_ref()],
+            &agroglobaldex,
+        );
+        require_keys_eq!(
+            ctx.accounts.jurisdiction_policy.key(),
+            expected_policy,
+            HookError::JurisdictionPolicyMismatch
+        );
+
+        // source_compliance = PDA([COMPLIANCE_RECORD_SEED, marketplace, source_owner], agroglobaldex)
+        let source_owner = ctx.accounts.owner.key();
+        let (expected_src, _) = Pubkey::find_program_address(
+            &[
+                COMPLIANCE_RECORD_SEED,
+                marketplace.as_ref(),
+                source_owner.as_ref(),
+            ],
+            &agroglobaldex,
+        );
+        require_keys_eq!(
+            ctx.accounts.source_compliance.key(),
+            expected_src,
+            HookError::SourceComplianceMismatch
+        );
+
+        // destination_compliance is keyed by the DESTINATION TOKEN ACCOUNT's
+        // owner (the wallet), not by the destination token account pubkey.
+        // Read the owner field (offset 32, len 32) from the SPL token account
+        // raw data.
+        let dest_owner = {
+            let data = ctx.accounts.destination.try_borrow_data()?;
+            require!(data.len() >= 64, HookError::DeserializationFailed);
+            let mut buf = [0u8; 32];
+            buf.copy_from_slice(&data[32..64]);
+            Pubkey::new_from_array(buf)
+        };
+        let (expected_dest, _) = Pubkey::find_program_address(
+            &[
+                COMPLIANCE_RECORD_SEED,
+                marketplace.as_ref(),
+                dest_owner.as_ref(),
+            ],
+            &agroglobaldex,
+        );
+        require_keys_eq!(
+            ctx.accounts.destination_compliance.key(),
+            expected_dest,
+            HookError::DestComplianceMismatch
+        );
+
         // ---- Read jurisdiction policy ----------------------------------------
         // The policy account belongs to the agroglobaldex program — Anchor
         // can't deserialize it as a typed `Account<JurisdictionPolicy>` from
@@ -412,6 +476,12 @@ pub enum HookError {
     AccountOwnerMismatch,
     #[msg("Failed to deserialize the compliance/policy account")]
     DeserializationFailed,
+    #[msg("JurisdictionPolicy account is not the expected PDA for this marketplace")]
+    JurisdictionPolicyMismatch,
+    #[msg("Source ComplianceRecord is not the expected PDA for the source owner")]
+    SourceComplianceMismatch,
+    #[msg("Destination ComplianceRecord is not the expected PDA for the destination owner")]
+    DestComplianceMismatch,
 }
 
 // ---------------------------------------------------------------------------

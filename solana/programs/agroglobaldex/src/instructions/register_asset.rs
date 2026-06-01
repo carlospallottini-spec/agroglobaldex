@@ -58,8 +58,33 @@ pub struct RegisterAsset<'info> {
     )]
     pub mint: UncheckedAccount<'info>,
 
-    /// CHECK: passed in explicitly so deployments can rotate hooks.
+    /// CHECK: passed in explicitly so deployments can rotate hooks. Validated
+    /// at runtime: must be the configured compliance hook program.
+    #[account(address = compliance_hook::ID @ AgroError::ComplianceHookMismatch)]
     pub compliance_hook_program: UncheckedAccount<'info>,
+
+    /// HookConfig PDA on the compliance_hook program, created via CPI in the
+    /// handler. Keyed by the mint so each asset has its own config.
+    /// CHECK: PDA validated by compliance_hook during CPI.
+    #[account(
+        mut,
+        seeds = [compliance_hook::HOOK_CONFIG_SEED, mint.key().as_ref()],
+        bump,
+        seeds::program = compliance_hook::ID,
+    )]
+    pub hook_config: UncheckedAccount<'info>,
+
+    /// ExtraAccountMetaList PDA on the compliance_hook program. Created via CPI
+    /// in the handler. WITHOUT this account the mint is unusable: every Token-
+    /// 2022 transfer would revert at the hook resolution step.
+    /// CHECK: PDA validated by compliance_hook during CPI.
+    #[account(
+        mut,
+        seeds = [compliance_hook::EXTRA_ACCOUNT_METAS_SEED, mint.key().as_ref()],
+        bump,
+        seeds::program = compliance_hook::ID,
+    )]
+    pub extra_account_meta_list: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
@@ -295,6 +320,24 @@ pub fn handler(
         name.clone(),
         symbol,
         token_uri,
+    )?;
+
+    // ---- 5. Initialize compliance hook for this mint ----------------------
+    // CRITICAL: without this CPI, Token-2022 cannot resolve the extra accounts
+    // needed by `compliance_hook::execute`, and every transfer would revert.
+    compliance_hook::cpi::initialize_extra_account_meta_list(
+        CpiContext::new(
+            ctx.accounts.compliance_hook_program.to_account_info(),
+            compliance_hook::cpi::accounts::InitializeExtraAccountMetaList {
+                payer: ctx.accounts.issuer.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
+                hook_config: ctx.accounts.hook_config.to_account_info(),
+                extra_account_meta_list: ctx.accounts.extra_account_meta_list.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+            },
+        ),
+        marketplace_key,
+        crate::ID,
     )?;
 
     // ---- Persist the AssetRegistry ---------------------------------------

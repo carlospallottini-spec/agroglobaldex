@@ -290,6 +290,41 @@
           }
         },
         {
+          "name": "jurisdiction_policy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  117,
+                  114,
+                  105,
+                  115,
+                  100,
+                  105,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
           "name": "usdc_mint"
         },
         {
@@ -693,6 +728,41 @@
               {
                 "kind": "account",
                 "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "jurisdiction_policy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  117,
+                  114,
+                  105,
+                  115,
+                  100,
+                  105,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
               }
             ]
           }
@@ -2008,7 +2078,158 @@
           }
         },
         {
-          "name": "compliance_hook_program"
+          "name": "compliance_hook_program",
+          "docs": [
+            "at runtime: must be the configured compliance hook program."
+          ],
+          "address": "GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL"
+        },
+        {
+          "name": "hook_config",
+          "docs": [
+            "HookConfig PDA on the compliance_hook program, created via CPI in the",
+            "handler. Keyed by the mint so each asset has its own config."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  111,
+                  107,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                226,
+                134,
+                46,
+                142,
+                238,
+                37,
+                23,
+                25,
+                105,
+                5,
+                175,
+                185,
+                31,
+                18,
+                100,
+                198,
+                54,
+                9,
+                218,
+                212,
+                10,
+                248,
+                217,
+                37,
+                126,
+                129,
+                25,
+                191,
+                211,
+                237,
+                153,
+                69
+              ]
+            }
+          }
+        },
+        {
+          "name": "extra_account_meta_list",
+          "docs": [
+            "ExtraAccountMetaList PDA on the compliance_hook program. Created via CPI",
+            "in the handler. WITHOUT this account the mint is unusable: every Token-",
+            "2022 transfer would revert at the hook resolution step."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  114,
+                  97,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                226,
+                134,
+                46,
+                142,
+                238,
+                37,
+                23,
+                25,
+                105,
+                5,
+                175,
+                185,
+                31,
+                18,
+                100,
+                198,
+                54,
+                9,
+                218,
+                212,
+                10,
+                248,
+                217,
+                37,
+                126,
+                129,
+                25,
+                191,
+                211,
+                237,
+                153,
+                69
+              ]
+            }
+          }
         },
         {
           "name": "token_program",
@@ -3228,6 +3449,16 @@
       "code": 6027,
       "name": "Paused",
       "msg": "Marketplace is paused — write operations are temporarily disabled"
+    },
+    {
+      "code": 6028,
+      "name": "ComplianceHookMismatch",
+      "msg": "Provided compliance hook program does not match the configured one"
+    },
+    {
+      "code": 6029,
+      "name": "JurisdictionPolicyMismatch",
+      "msg": "JurisdictionPolicy account does not match the expected PDA for this marketplace"
     }
   ],
   "types": [
