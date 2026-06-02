@@ -228,6 +228,10 @@ pub struct AssetRegistry {
     pub total_supply: u64,
     /// Amount minted so far.
     pub minted_supply: u64,
+    /// Cumulative amount burned through `redeem` so far. Lets off-chain
+    /// reconcile physical deliveries and lets the issuer detect when supply
+    /// is fully drained (`minted_supply == redeemed_supply`).
+    pub redeemed_supply: u64,
     /// SHA-256 of the off-chain attestation (warehouse receipt, VCS issuance, etc).
     pub oracle_attestation: [u8; 32],
     /// MiCA Art. 6 white paper URI (IPFS / Arweave preferred).
@@ -481,4 +485,55 @@ pub struct PauseChanged {
     pub marketplace: Pubkey,
     pub was: bool,
     pub now: bool,
+}
+
+/// Emitted when the compliance signer revokes a wallet's KYC, typically due
+/// to a sanctions hit, fraud detection or regulatory request. Off-chain
+/// surveillance MUST act on this event (freeze listings, surface to MLRO).
+#[event]
+pub struct ComplianceRevoked {
+    pub marketplace: Pubkey,
+    pub wallet: Pubkey,
+    /// 0=manual, 1=sanctions, 2=fraud, 3=regulatory, 4=request
+    pub reason_code: u8,
+    pub revoked_at: i64,
+}
+
+/// Emitted when the issuer of an `InvestmentOffering` records an off-chain
+/// yield distribution for an epoch. Used by the marketplace UI and auditors
+/// to reconcile on-chain promise vs off-chain payout. Settlement of the
+/// underlying yield (bank wire) is OFF-CHAIN; this event is the on-chain
+/// receipt.
+#[event]
+pub struct InvestmentSettlementRecorded {
+    pub asset_registry: Pubkey,
+    pub mint: Pubkey,
+    pub issuer: Pubkey,
+    pub epoch: u32,
+    pub yield_paid_usdc: u64,
+    /// SHA-256 of the off-chain payout attestation (SWIFT confirmation,
+    /// notary acta, etc.). Mirrors the discipline of `oracle_attestation`.
+    pub attestation: [u8; 32],
+    pub recorded_at: i64,
+}
+
+/// Emitted when the issuer updates metadata before the first mint. After the
+/// first `mint_token`, `frozen_metadata` flips to true and this becomes a
+/// no-op (will revert).
+#[event]
+pub struct AssetMetadataUpdated {
+    pub asset_registry: Pubkey,
+    pub product_name: String,
+    pub metadata_uri: String,
+    pub white_paper_uri: String,
+}
+
+/// Emitted when the issuer role of an AssetRegistry is transferred to a new
+/// wallet. The old issuer signs the transfer; the new issuer must already be
+/// KYC-verified.
+#[event]
+pub struct IssuerTransferred {
+    pub asset_registry: Pubkey,
+    pub old_issuer: Pubkey,
+    pub new_issuer: Pubkey,
 }

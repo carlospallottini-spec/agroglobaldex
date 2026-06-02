@@ -149,4 +149,49 @@ pub mod agroglobaldex {
     ) -> Result<()> {
         instructions::aggregate::update_handler(ctx, verified, active)
     }
+
+    /// Revoke a wallet's KYC. Compliance-signer-only. Used for sanctions hits,
+    /// fraud, or regulatory directives. Emits `ComplianceRevoked`.
+    pub fn revoke_kyc(ctx: Context<RevokeKyc>, reason_code: u8) -> Result<()> {
+        instructions::revoke_kyc::handler(ctx, reason_code)
+    }
+
+    /// Record an off-chain yield distribution for an `InvestmentOffering`.
+    /// Issuer-only. Settlement of USDC is OFF-CHAIN; this is the on-chain
+    /// receipt. Emits `InvestmentSettlementRecorded`.
+    pub fn settle_investment_offering(
+        ctx: Context<SettleInvestmentOffering>,
+        epoch: u32,
+        yield_paid_usdc: u64,
+        attestation: [u8; 32],
+    ) -> Result<()> {
+        instructions::settle_investment_offering::handler(
+            ctx,
+            epoch,
+            yield_paid_usdc,
+            attestation,
+        )
+    }
+
+    /// Update mutable asset metadata BEFORE the first mint. Issuer-only.
+    /// After `mint_token`, `frozen_metadata=true` and this reverts.
+    pub fn update_metadata(
+        ctx: Context<UpdateAssetMetadata>,
+        product_name: String,
+        metadata_uri: String,
+        white_paper_uri: String,
+    ) -> Result<()> {
+        instructions::update_metadata::handler(
+            ctx,
+            product_name,
+            metadata_uri,
+            white_paper_uri,
+        )
+    }
+
+    /// Transfer the `issuer` role of an AssetRegistry to a new wallet.
+    /// Current issuer signs. New issuer must already have valid KYC.
+    pub fn transfer_issuer(ctx: Context<TransferIssuer>) -> Result<()> {
+        instructions::transfer_issuer::handler(ctx)
+    }
 }

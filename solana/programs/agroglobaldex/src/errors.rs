@@ -85,4 +85,22 @@ pub enum AgroError {
 
     #[msg("Marketplace is paused — write operations are temporarily disabled")]
     Paused,
+
+    #[msg("Provided compliance hook program does not match the configured one")]
+    ComplianceHookMismatch,
+
+    #[msg("JurisdictionPolicy account does not match the expected PDA for this marketplace")]
+    JurisdictionPolicyMismatch,
+
+    #[msg("Asset metadata is frozen — the first mint has already happened")]
+    MetadataFrozen,
+
+    #[msg("This instruction only applies to AssetClass::InvestmentOffering")]
+    NotInvestmentOffering,
+
+    #[msg("Invalid compliance signer: must not be the default pubkey nor equal to the current signer")]
+    InvalidComplianceSigner,
+
+    #[msg("Invalid issuer: must not be the default pubkey nor equal to the current issuer")]
+    InvalidIssuer,
 }

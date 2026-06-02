@@ -66,40 +66,60 @@ pub fn handler(
 }
 
 // ---------------------------------------------------------------------------
-// Shared compliance helpers (used by buy_asset / future transfer hook).
+// Shared compliance helpers (used by buy_asset / buy_external_asset).
 // ---------------------------------------------------------------------------
+//
+// The jurisdiction blocklist and the "requires accredited" overlay both live
+// on-chain in `JurisdictionPolicy`. Helpers below take the policy account by
+// reference so callers MUST pass the live on-chain config; there is no
+// hardcoded fallback.
 
 /// Verify a wallet may receive or hold a regulated asset.
+///
+/// Performs (in order):
+///   1. KYC: `record.kyc_verified == true`.
+///   2. Jurisdiction blocklist: `record.jurisdiction ∉ policy.blocked`.
+///   3. Asset-class accredited gate: `HarvestFraction` and `InvestmentOffering`
+///      always require `record.accredited_investor == true`.
+///   4. Policy accredited overlay: if the wallet's jurisdiction is in
+///      `policy.requires_accredited`, the wallet must also be accredited.
 pub fn enforce_compliance(
     record: &ComplianceRecord,
     asset_class: &AssetClass,
+    policy: &JurisdictionPolicy,
 ) -> Result<()> {
-    enforce_compliance_basic(record, asset_class)
+    enforce_compliance_basic(record, asset_class, policy)
 }
 
-/// Same as `enforce_compliance`. Kept under a separate name so call-sites
-/// (e.g. `buy_external_asset`) can express intent: the rules are the same
-/// for natives and curated externals.
+/// Same rules as `enforce_compliance`. Kept under a separate name so call
+/// sites (e.g. `buy_external_asset`) can express intent: the rules are the
+/// same for natives and curated externals.
 pub fn enforce_compliance_basic(
     record: &ComplianceRecord,
     asset_class: &AssetClass,
+    policy: &JurisdictionPolicy,
 ) -> Result<()> {
     require!(record.kyc_verified, AgroError::KycNotVerified);
 
-    const BLOCKED: &[[u8; 2]] = &[*b"KP", *b"IR", *b"SY", *b"CU"];
     require!(
-        !BLOCKED.contains(&record.jurisdiction),
+        !policy.blocked.iter().any(|j| j == &record.jurisdiction),
         AgroError::JurisdictionNotAllowed
     );
 
-    match asset_class {
-        AssetClass::HarvestFraction { .. } | AssetClass::InvestmentOffering { .. } => {
-            require!(
-                record.accredited_investor,
-                AgroError::AccreditedInvestorRequired
-            );
-        }
-        _ => {}
+    let class_requires_accredited = matches!(
+        asset_class,
+        AssetClass::HarvestFraction { .. } | AssetClass::InvestmentOffering { .. }
+    );
+    let jurisdiction_requires_accredited = policy
+        .requires_accredited
+        .iter()
+        .any(|j| j == &record.jurisdiction);
+
+    if class_requires_accredited || jurisdiction_requires_accredited {
+        require!(
+            record.accredited_investor,
+            AgroError::AccreditedInvestorRequired
+        );
     }
     Ok(())
 }

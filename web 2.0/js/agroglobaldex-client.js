@@ -16,7 +16,7 @@ import {
 } from 'https://esm.sh/@coral-xyz/anchor@0.31.1';
 
 import {
-  NETWORK, RPC_ENDPOINTS, PROGRAM_ID, IDL_URL, USDC_MINT,
+  NETWORK, RPC_ENDPOINTS, PROGRAM_ID, COMPLIANCE_HOOK_PROGRAM_ID, IDL_URL, USDC_MINT,
 } from './network-config.js';
 
 import { getWalletProvider, getPublicKey } from './wallet-adapter.js';
@@ -44,6 +44,10 @@ async function loadIdl() {
 
 function programIdPk() {
   return new PublicKey(PROGRAM_ID);
+}
+
+function hookProgramIdPk() {
+  return new PublicKey(COMPLIANCE_HOOK_PROGRAM_ID);
 }
 
 export async function getReadConnection(network = NETWORK) {
@@ -134,6 +138,29 @@ export function findListingPda(assetRegistry, seller) {
     programIdPk(),
   )[0];
 }
+// PDAs on the compliance_hook program (NOT on agroglobaldex):
+// hook_config seed = [b"hook_config", mint]
+export function findHookConfigPda(mint) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('hook_config'), new PublicKey(mint).toBuffer()],
+    hookProgramIdPk(),
+  )[0];
+}
+// extra_account_meta_list seed = [b"extra-account-metas", mint]
+export function findExtraAccountMetaListPda(mint) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('extra-account-metas'), new PublicKey(mint).toBuffer()],
+    hookProgramIdPk(),
+  )[0];
+}
+// jurisdiction_policy seed = [b"jurisdiction_policy", marketplace]
+export function findJurisdictionPolicyPda(marketplace) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('jurisdiction_policy'), new PublicKey(marketplace).toBuffer()],
+    programIdPk(),
+  )[0];
+}
+
 export function findExternalAssetPda(marketplace, index) {
   const idx = new BN(index).toArrayLike(Buffer, 'le', 8);
   return PublicKey.findProgramAddressSync(
@@ -317,7 +344,12 @@ export async function registerAsset(form) {
 
   const assetRegistry = findAssetRegistryPda(marketplace, index);
   const mint = findAssetMintPda(assetRegistry);
-  const hookProgram = new PublicKey(form.complianceHookProgram || PROGRAM_ID);
+  // El programa valida `address = compliance_hook::ID`, asi que el caller
+  // NO puede rotar el hook program ID arbitrariamente — siempre usamos la
+  // constante on-chain.
+  const hookProgram = hookProgramIdPk();
+  const hookConfig = findHookConfigPda(mint);
+  const extraAccountMetaList = findExtraAccountMetaListPda(mint);
 
   const assetClass = buildAssetClass(form);
   const attestation = Array.from(form.oracleAttestation);
@@ -337,6 +369,8 @@ export async function registerAsset(form) {
       assetRegistry,
       mint,
       complianceHookProgram: hookProgram,
+      hookConfig,
+      extraAccountMetaList,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
       rent: SYSVAR_RENT_PUBKEY,
@@ -386,6 +420,7 @@ export async function buyAsset({ listingPubkey, amount }) {
   const mpAcc = await program.account.marketplace.fetch(marketplace);
 
   const buyerCompliance = findComplianceRecordPda(marketplace, buyer);
+  const jurisdictionPolicy = findJurisdictionPolicyPda(marketplace);
   const treasury = findTreasuryPda(marketplace);
   const usdcMint = mpAcc.usdcMint;
 
@@ -406,6 +441,7 @@ export async function buyAsset({ listingPubkey, amount }) {
       mint: regAcc.mint,
       buyerTokenAccount: getAssociatedTokenAddress(regAcc.mint, buyer, TOKEN_2022_PROGRAM_ID),
       buyerCompliance,
+      jurisdictionPolicy,
       usdcMint,
       buyerUsdcAta: buyerUsdc,
       sellerUsdcAta: sellerUsdc,
@@ -557,6 +593,7 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
   const usdcMint = mpAcc.usdcMint;
   const treasury = findTreasuryPda(marketplace);
   const buyerCompliance = findComplianceRecordPda(marketplace, buyer);
+  const jurisdictionPolicy = findJurisdictionPolicyPda(marketplace);
 
   const tx = await program.methods
     .buyExternalAsset(new BN(amount))
@@ -570,6 +607,7 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
       mint: listingAcc.mint,
       buyerTokenAccount: getAssociatedTokenAddress(listingAcc.mint, buyer, TOKEN_PROGRAM_ID),
       buyerCompliance,
+      jurisdictionPolicy,
       usdcMint,
       buyerUsdcAta: getAssociatedTokenAddress(usdcMint, buyer, TOKEN_PROGRAM_ID),
       sellerUsdcAta: getAssociatedTokenAddress(usdcMint, listingAcc.seller, TOKEN_PROGRAM_ID),
@@ -579,6 +617,103 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  return { tx };
+}
+
+/* ═══════ REVOKE KYC (compliance signer revoca KYC ante sanctions / fraud) ═══════ */
+/**
+ * Llamada por el compliance_signer wallet. reasonCode:
+ *   0 = manual, 1 = sanctions, 2 = fraud, 3 = regulatory, 4 = self-request.
+ */
+export async function revokeKyc({ walletAddress, marketplaceAuthority, reasonCode = 0 }) {
+  const program = await getProgram();
+  const complianceSigner = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  if (!auth) throw new Error('Marketplace no inicializado');
+  const marketplace = findMarketplacePda(auth);
+  const wallet = new PublicKey(walletAddress);
+  const complianceRecord = findComplianceRecordPda(marketplace, wallet);
+
+  const tx = await program.methods
+    .revokeKyc(reasonCode)
+    .accounts({
+      complianceSigner,
+      marketplace,
+      wallet,
+      complianceRecord,
+    })
+    .rpc();
+  return { tx };
+}
+
+/* ═══════ SETTLE INVESTMENT OFFERING (issuer registra yield off-chain receipt) ═══════ */
+/**
+ * Por epoch (0,1,2...). `yieldPaidUsdc` en base units (6 decimales). `attestation`
+ * es Uint8Array(32) — usar sha256OfFile(swiftConfirmationPdf) o similar.
+ */
+export async function settleInvestmentOffering({ assetRegistryPubkey, epoch, yieldPaidUsdc, attestation }) {
+  const program = await getProgram();
+  const issuer = program.provider.wallet.publicKey;
+  const assetRegistry = new PublicKey(assetRegistryPubkey);
+  const regAcc = await program.account.assetRegistry.fetch(assetRegistry);
+  const marketplace = regAcc.marketplace;
+
+  const tx = await program.methods
+    .settleInvestmentOffering(epoch, new BN(yieldPaidUsdc), Array.from(attestation))
+    .accounts({
+      issuer,
+      marketplace,
+      assetRegistry,
+    })
+    .rpc();
+  return { tx };
+}
+
+/* ═══════ UPDATE METADATA (pre-first-mint) ═══════ */
+/**
+ * Issuer-only. Revierte con MetadataFrozen una vez que ya se hizo mint_token.
+ */
+export async function updateMetadata({ assetRegistryPubkey, productName, metadataUri, whitePaperUri }) {
+  const program = await getProgram();
+  const issuer = program.provider.wallet.publicKey;
+  const assetRegistry = new PublicKey(assetRegistryPubkey);
+  const regAcc = await program.account.assetRegistry.fetch(assetRegistry);
+  const marketplace = regAcc.marketplace;
+  const mint = regAcc.mint;
+
+  const tx = await program.methods
+    .updateMetadata(productName, metadataUri, whitePaperUri)
+    .accounts({
+      issuer,
+      marketplace,
+      assetRegistry,
+      mint,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+    })
+    .rpc();
+  return { tx };
+}
+
+/* ═══════ TRANSFER ISSUER (ceder rol issuer a wallet KYC-verified) ═══════ */
+export async function transferIssuer({ assetRegistryPubkey, newIssuerAddress }) {
+  const program = await getProgram();
+  const currentIssuer = program.provider.wallet.publicKey;
+  const assetRegistry = new PublicKey(assetRegistryPubkey);
+  const regAcc = await program.account.assetRegistry.fetch(assetRegistry);
+  const marketplace = regAcc.marketplace;
+  const newIssuer = new PublicKey(newIssuerAddress);
+  const newIssuerCompliance = findComplianceRecordPda(marketplace, newIssuer);
+
+  const tx = await program.methods
+    .transferIssuer()
+    .accounts({
+      currentIssuer,
+      marketplace,
+      assetRegistry,
+      newIssuer,
+      newIssuerCompliance,
     })
     .rpc();
   return { tx };
@@ -603,6 +738,8 @@ export default {
   buyAsset, buyExternalAsset,
   cancelListing, updateListingPrice, treasuryWithdraw,
   aggregateExternalAsset, updateExternalAsset,
+  revokeKyc, settleInvestmentOffering, updateMetadata, transferIssuer,
   findMarketplacePda, findAssetRegistryPda, findListingPda, findExternalAssetPda,
-  findComplianceRecordPda,
+  findComplianceRecordPda, findJurisdictionPolicyPda,
+  findHookConfigPda, findExtraAccountMetaListPda,
 };

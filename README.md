@@ -62,7 +62,35 @@ npm install
 npx ts-node --project tsconfig.seed.json scripts/seed-localnet.ts
 ```
 
-**17 instrucciones · 2 programas Anchor · 5 AssetClass (Grain · CarbonCredit · HarvestFraction · InvestmentOffering · Commodity con 9 sectores).** Detalles en [`solana/README.md`](solana/README.md).
+**21 instrucciones · 2 programas Anchor · 5 AssetClass (Grain · CarbonCredit · HarvestFraction · InvestmentOffering · Commodity con 9 sectores).** Detalles en [`solana/README.md`](solana/README.md).
+
+### Cambios v0.3 (audit pre-mainnet)
+
+Audit interno completo (30 issues identificados). 3 críticos + 8 HIGH/MED/LOW fixeados:
+
+| Audit # | Fix | Impacto |
+|---|---|---|
+| #1 CRITICAL | `JurisdictionPolicy` on-chain real (no hardcoded BLOCKED) | `update_jurisdiction_policy` ahora aplica realmente |
+| #2 CRITICAL | TransferHook valida PDAs por derivación, no solo owner | Cierra account-substitution attack |
+| #3 CRITICAL | CPI a `compliance_hook::initialize_extra_account_meta_list` en `register_asset` | Sin este fix NINGÚN token nativo era transferible |
+| #4 HIGH | Fee_bps re-checkeado en buy_asset/buy_external_asset | Defensa en profundidad |
+| #5 HIGH | `update_listing_price` valida source_registry | Bypass del check antes posible |
+| #6 HIGH | `cancel_listing` cierra escrow ATA | Sin rent griefing |
+| #8 MED | Seeds explícitos en asset_registry / external_asset (buy paths) | Defensa en profundidad |
+| #9 MED | `redeem` respeta `marketplace.paused` | Circuit breaker completo |
+| #11 MED | Compliance-hook valida discriminator antes de parsear | Cierra type-confusion attack |
+| #13 LOW | `set_compliance_signer` rechaza default / same signer | Sanity |
+
+Y 4 nuevas instrucciones (HIGH: #15, #16, #19, #20):
+- `revoke_kyc(reason_code)` — compliance signer revoca KYC ante sanctions/fraud/regulatory
+- `settle_investment_offering(epoch, yield_paid, attestation)` — receipt on-chain de yield distribuido off-chain
+- `update_metadata(name, uri, wp_uri)` — issuer actualiza metadata pre-mint
+- `transfer_issuer()` — ceder el rol issuer al nuevo wallet (KYC-verified)
+
+Además: `AssetRegistry.redeemed_supply` tracking (audit #18), `aggregate.active=false` por default (audit #7).
+
+23 tests mocha. Run book operativo en [`solana/RUNBOOK.md`](solana/RUNBOOK.md).
+Security policy en [`SECURITY.md`](SECURITY.md).
 
 ---
 

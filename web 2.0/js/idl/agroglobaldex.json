@@ -153,7 +153,39 @@
           }
         },
         {
-          "name": "asset_registry"
+          "name": "asset_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "listing",
@@ -285,6 +317,41 @@
               {
                 "kind": "account",
                 "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "jurisdiction_policy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  117,
+                  114,
+                  105,
+                  115,
+                  100,
+                  105,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
               }
             ]
           }
@@ -561,7 +628,39 @@
           }
         },
         {
-          "name": "external_asset"
+          "name": "external_asset",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  101,
+                  114,
+                  110,
+                  97,
+                  108,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "external_asset.index",
+                "account": "ExternalAssetRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "listing",
@@ -693,6 +792,41 @@
               {
                 "kind": "account",
                 "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "jurisdiction_policy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  117,
+                  114,
+                  105,
+                  115,
+                  100,
+                  105,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
               }
             ]
           }
@@ -1818,7 +1952,68 @@
           "signer": true
         },
         {
-          "name": "asset_registry"
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "mint",
@@ -2008,7 +2203,158 @@
           }
         },
         {
-          "name": "compliance_hook_program"
+          "name": "compliance_hook_program",
+          "docs": [
+            "at runtime: must be the configured compliance hook program."
+          ],
+          "address": "GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL"
+        },
+        {
+          "name": "hook_config",
+          "docs": [
+            "HookConfig PDA on the compliance_hook program, created via CPI in the",
+            "handler. Keyed by the mint so each asset has its own config."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  111,
+                  107,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                226,
+                134,
+                46,
+                142,
+                238,
+                37,
+                23,
+                25,
+                105,
+                5,
+                175,
+                185,
+                31,
+                18,
+                100,
+                198,
+                54,
+                9,
+                218,
+                212,
+                10,
+                248,
+                217,
+                37,
+                126,
+                129,
+                25,
+                191,
+                211,
+                237,
+                153,
+                69
+              ]
+            }
+          }
+        },
+        {
+          "name": "extra_account_meta_list",
+          "docs": [
+            "ExtraAccountMetaList PDA on the compliance_hook program. Created via CPI",
+            "in the handler. WITHOUT this account the mint is unusable: every Token-",
+            "2022 transfer would revert at the hook resolution step."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  114,
+                  97,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                226,
+                134,
+                46,
+                142,
+                238,
+                37,
+                23,
+                25,
+                105,
+                5,
+                175,
+                185,
+                31,
+                18,
+                100,
+                198,
+                54,
+                9,
+                218,
+                212,
+                10,
+                248,
+                217,
+                37,
+                126,
+                129,
+                25,
+                191,
+                211,
+                237,
+                153,
+                69
+              ]
+            }
+          }
         },
         {
           "name": "token_program",
@@ -2056,6 +2402,105 @@
         {
           "name": "product_name",
           "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "revoke_kyc",
+      "docs": [
+        "Revoke a wallet's KYC. Compliance-signer-only. Used for sanctions hits,",
+        "fraud, or regulatory directives. Emits `ComplianceRevoked`."
+      ],
+      "discriminator": [
+        170,
+        100,
+        20,
+        190,
+        192,
+        242,
+        236,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "compliance_signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "compliance_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "reason_code",
+          "type": "u8"
         }
       ]
     },
@@ -2170,6 +2615,214 @@
           "type": "bool"
         }
       ]
+    },
+    {
+      "name": "settle_investment_offering",
+      "docs": [
+        "Record an off-chain yield distribution for an `InvestmentOffering`.",
+        "Issuer-only. Settlement of USDC is OFF-CHAIN; this is the on-chain",
+        "receipt. Emits `InvestmentSettlementRecorded`."
+      ],
+      "discriminator": [
+        26,
+        198,
+        127,
+        82,
+        39,
+        138,
+        194,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "issuer",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u32"
+        },
+        {
+          "name": "yield_paid_usdc",
+          "type": "u64"
+        },
+        {
+          "name": "attestation",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "transfer_issuer",
+      "docs": [
+        "Transfer the `issuer` role of an AssetRegistry to a new wallet.",
+        "Current issuer signs. New issuer must already have valid KYC."
+      ],
+      "discriminator": [
+        120,
+        98,
+        5,
+        129,
+        218,
+        146,
+        195,
+        51
+      ],
+      "accounts": [
+        {
+          "name": "current_issuer",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_issuer",
+          "docs": [
+            "valid ComplianceRecord (verified by the constraint on `new_issuer_compliance`)."
+          ]
+        },
+        {
+          "name": "new_issuer_compliance",
+          "docs": [
+            "New issuer's ComplianceRecord. Must be KYC-verified."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "new_issuer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
     },
     {
       "name": "treasury_withdraw",
@@ -2822,6 +3475,117 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "update_metadata",
+      "docs": [
+        "Update mutable asset metadata BEFORE the first mint. Issuer-only.",
+        "After `mint_token`, `frozen_metadata=true` and this reverts."
+      ],
+      "discriminator": [
+        170,
+        182,
+        43,
+        239,
+        97,
+        78,
+        225,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "issuer",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "TokenMetadata target."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "product_name",
+          "type": "string"
+        },
+        {
+          "name": "metadata_uri",
+          "type": "string"
+        },
+        {
+          "name": "white_paper_uri",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -2919,6 +3683,19 @@
       ]
     },
     {
+      "name": "AssetMetadataUpdated",
+      "discriminator": [
+        89,
+        212,
+        27,
+        20,
+        122,
+        184,
+        164,
+        241
+      ]
+    },
+    {
       "name": "AssetPurchased",
       "discriminator": [
         221,
@@ -2955,6 +3732,19 @@
         180,
         249,
         254
+      ]
+    },
+    {
+      "name": "ComplianceRevoked",
+      "discriminator": [
+        192,
+        145,
+        0,
+        174,
+        195,
+        92,
+        9,
+        222
       ]
     },
     {
@@ -3020,6 +3810,32 @@
         27,
         222,
         119
+      ]
+    },
+    {
+      "name": "InvestmentSettlementRecorded",
+      "discriminator": [
+        120,
+        237,
+        222,
+        212,
+        4,
+        28,
+        145,
+        12
+      ]
+    },
+    {
+      "name": "IssuerTransferred",
+      "discriminator": [
+        120,
+        203,
+        44,
+        56,
+        31,
+        209,
+        93,
+        176
       ]
     },
     {
@@ -3228,6 +4044,36 @@
       "code": 6027,
       "name": "Paused",
       "msg": "Marketplace is paused — write operations are temporarily disabled"
+    },
+    {
+      "code": 6028,
+      "name": "ComplianceHookMismatch",
+      "msg": "Provided compliance hook program does not match the configured one"
+    },
+    {
+      "code": 6029,
+      "name": "JurisdictionPolicyMismatch",
+      "msg": "JurisdictionPolicy account does not match the expected PDA for this marketplace"
+    },
+    {
+      "code": 6030,
+      "name": "MetadataFrozen",
+      "msg": "Asset metadata is frozen — the first mint has already happened"
+    },
+    {
+      "code": 6031,
+      "name": "NotInvestmentOffering",
+      "msg": "This instruction only applies to AssetClass::InvestmentOffering"
+    },
+    {
+      "code": 6032,
+      "name": "InvalidComplianceSigner",
+      "msg": "Invalid compliance signer: must not be the default pubkey nor equal to the current signer"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidIssuer",
+      "msg": "Invalid issuer: must not be the default pubkey nor equal to the current issuer"
     }
   ],
   "types": [
@@ -3484,6 +4330,35 @@
       }
     },
     {
+      "name": "AssetMetadataUpdated",
+      "docs": [
+        "Emitted when the issuer updates metadata before the first mint. After the",
+        "first `mint_token`, `frozen_metadata` flips to true and this becomes a",
+        "no-op (will revert)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "product_name",
+            "type": "string"
+          },
+          {
+            "name": "metadata_uri",
+            "type": "string"
+          },
+          {
+            "name": "white_paper_uri",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
       "name": "AssetPurchased",
       "type": {
         "kind": "struct",
@@ -3623,6 +4498,15 @@
             "name": "minted_supply",
             "docs": [
               "Amount minted so far."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "redeemed_supply",
+            "docs": [
+              "Cumulative amount burned through `redeem` so far. Lets off-chain",
+              "reconcile physical deliveries and lets the issuer detect when supply",
+              "is fully drained (`minted_supply == redeemed_supply`)."
             ],
             "type": "u64"
           },
@@ -3777,6 +4661,38 @@
               "Bump for this PDA."
             ],
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ComplianceRevoked",
+      "docs": [
+        "Emitted when the compliance signer revokes a wallet's KYC, typically due",
+        "to a sanctions hit, fraud detection or regulatory request. Off-chain",
+        "surveillance MUST act on this event (freeze listings, surface to MLRO)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "reason_code",
+            "docs": [
+              "0=manual, 1=sanctions, 2=fraud, 3=regulatory, 4=request"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "revoked_at",
+            "type": "i64"
           }
         ]
       }
@@ -4056,6 +4972,83 @@
           {
             "name": "product_name",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InvestmentSettlementRecorded",
+      "docs": [
+        "Emitted when the issuer of an `InvestmentOffering` records an off-chain",
+        "yield distribution for an epoch. Used by the marketplace UI and auditors",
+        "to reconcile on-chain promise vs off-chain payout. Settlement of the",
+        "underlying yield (bank wire) is OFF-CHAIN; this event is the on-chain",
+        "receipt."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "issuer",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u32"
+          },
+          {
+            "name": "yield_paid_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "attestation",
+            "docs": [
+              "SHA-256 of the off-chain payout attestation (SWIFT confirmation,",
+              "notary acta, etc.). Mirrors the discipline of `oracle_attestation`."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "recorded_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IssuerTransferred",
+      "docs": [
+        "Emitted when the issuer role of an AssetRegistry is transferred to a new",
+        "wallet. The old issuer signs the transfer; the new issuer must already be",
+        "KYC-verified."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_issuer",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_issuer",
+            "type": "pubkey"
           }
         ]
       }

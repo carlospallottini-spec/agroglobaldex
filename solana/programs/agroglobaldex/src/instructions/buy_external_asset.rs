@@ -30,6 +30,12 @@ pub struct BuyExternalAsset<'info> {
     pub marketplace: Account<'info, Marketplace>,
 
     #[account(
+        seeds = [
+            EXTERNAL_ASSET_SEED,
+            marketplace.key().as_ref(),
+            &external_asset.index.to_le_bytes(),
+        ],
+        bump = external_asset.bump,
         constraint = external_asset.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
         constraint = external_asset.active @ AgroError::ExternalAssetInactive,
@@ -84,6 +90,14 @@ pub struct BuyExternalAsset<'info> {
     )]
     pub buyer_compliance: Account<'info, ComplianceRecord>,
 
+    #[account(
+        seeds = [JURISDICTION_POLICY_SEED, marketplace.key().as_ref()],
+        bump = jurisdiction_policy.bump,
+        constraint = jurisdiction_policy.marketplace == marketplace.key()
+            @ AgroError::JurisdictionPolicyMismatch,
+    )]
+    pub jurisdiction_policy: Account<'info, JurisdictionPolicy>,
+
     #[account(address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint)]
     pub usdc_mint: InterfaceAccount<'info, Mint>,
 
@@ -128,12 +142,17 @@ pub struct BuyExternalAsset<'info> {
 
 pub fn handler(ctx: Context<BuyExternalAsset>, amount: u64) -> Result<()> {
     require!(amount > 0, AgroError::InvalidAmount);
+    require!(
+        ctx.accounts.marketplace.fee_bps <= 10_000,
+        AgroError::FeeTooHigh
+    );
     let listing = &mut ctx.accounts.listing;
     require!(listing.remaining >= amount, AgroError::ListingUnavailable);
 
     enforce_compliance_basic(
         &ctx.accounts.buyer_compliance,
         &ctx.accounts.external_asset.asset_class,
+        &ctx.accounts.jurisdiction_policy,
     )?;
 
     let gross = (amount as u128)

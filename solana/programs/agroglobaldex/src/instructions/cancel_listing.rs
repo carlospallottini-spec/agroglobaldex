@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+    close_account, transfer_checked, CloseAccount, Mint, TokenAccount, TokenInterface,
+    TransferChecked,
 };
 
 use crate::errors::AgroError;
@@ -63,17 +64,17 @@ pub fn handler(ctx: Context<CancelListing>) -> Result<()> {
     let listing = &ctx.accounts.listing;
     let amount = listing.remaining;
 
-    if amount > 0 {
-        let asset_registry_key = ctx.accounts.asset_registry.key();
-        let seller_key = listing.seller;
-        let listing_bump = listing.bump;
-        let signer_seeds: &[&[&[u8]]] = &[&[
-            LISTING_SEED,
-            asset_registry_key.as_ref(),
-            seller_key.as_ref(),
-            std::slice::from_ref(&listing_bump),
-        ]];
+    let asset_registry_key = ctx.accounts.asset_registry.key();
+    let seller_key = listing.seller;
+    let listing_bump = listing.bump;
+    let signer_seeds: &[&[&[u8]]] = &[&[
+        LISTING_SEED,
+        asset_registry_key.as_ref(),
+        seller_key.as_ref(),
+        std::slice::from_ref(&listing_bump),
+    ]];
 
+    if amount > 0 {
         let decimals = ctx.accounts.mint.decimals;
         transfer_checked(
             CpiContext::new_with_signer(
@@ -91,6 +92,20 @@ pub fn handler(ctx: Context<CancelListing>) -> Result<()> {
         )?;
     }
 
-    msg!("Listing cancelled. amount_returned={}", amount);
+    // Close the now-empty escrow ATA, refunding its rent to the seller. The
+    // listing PDA (authority of the escrow) signs the close. Without this,
+    // each cancelled listing would leave a 0-balance ATA forever — rent
+    // griefing the seller for ~0.002 SOL per cancel.
+    close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        CloseAccount {
+            account: ctx.accounts.escrow.to_account_info(),
+            destination: ctx.accounts.seller.to_account_info(),
+            authority: listing.to_account_info(),
+        },
+        signer_seeds,
+    ))?;
+
+    msg!("Listing cancelled. amount_returned={} escrow_closed=true", amount);
     Ok(())
 }
