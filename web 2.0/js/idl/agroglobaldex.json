@@ -2691,6 +2691,140 @@
       ]
     },
     {
+      "name": "transfer_issuer",
+      "docs": [
+        "Transfer the `issuer` role of an AssetRegistry to a new wallet.",
+        "Current issuer signs. New issuer must already have valid KYC."
+      ],
+      "discriminator": [
+        120,
+        98,
+        5,
+        129,
+        218,
+        146,
+        195,
+        51
+      ],
+      "accounts": [
+        {
+          "name": "current_issuer",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_issuer",
+          "docs": [
+            "valid ComplianceRecord (verified by the constraint on `new_issuer_compliance`)."
+          ]
+        },
+        {
+          "name": "new_issuer_compliance",
+          "docs": [
+            "New issuer's ComplianceRecord. Must be KYC-verified."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "new_issuer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "treasury_withdraw",
       "docs": [
         "Authority withdraws accumulated protocol fees (USDC) from the treasury."
@@ -3692,6 +3826,19 @@
       ]
     },
     {
+      "name": "IssuerTransferred",
+      "discriminator": [
+        120,
+        203,
+        44,
+        56,
+        31,
+        209,
+        93,
+        176
+      ]
+    },
+    {
       "name": "JurisdictionPolicyUpdated",
       "discriminator": [
         113,
@@ -3922,6 +4069,11 @@
       "code": 6032,
       "name": "InvalidComplianceSigner",
       "msg": "Invalid compliance signer: must not be the default pubkey nor equal to the current signer"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidIssuer",
+      "msg": "Invalid issuer: must not be the default pubkey nor equal to the current issuer"
     }
   ],
   "types": [
@@ -4872,6 +5024,31 @@
           {
             "name": "recorded_at",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IssuerTransferred",
+      "docs": [
+        "Emitted when the issuer role of an AssetRegistry is transferred to a new",
+        "wallet. The old issuer signs the transfer; the new issuer must already be",
+        "KYC-verified."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_issuer",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_issuer",
+            "type": "pubkey"
           }
         ]
       }

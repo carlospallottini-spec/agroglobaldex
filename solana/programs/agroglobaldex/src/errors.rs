@@ -100,4 +100,7 @@ pub enum AgroError {
 
     #[msg("Invalid compliance signer: must not be the default pubkey nor equal to the current signer")]
     InvalidComplianceSigner,
+
+    #[msg("Invalid issuer: must not be the default pubkey nor equal to the current issuer")]
+    InvalidIssuer,
 }

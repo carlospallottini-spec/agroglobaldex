@@ -527,3 +527,13 @@ pub struct AssetMetadataUpdated {
     pub metadata_uri: String,
     pub white_paper_uri: String,
 }
+
+/// Emitted when the issuer role of an AssetRegistry is transferred to a new
+/// wallet. The old issuer signs the transfer; the new issuer must already be
+/// KYC-verified.
+#[event]
+pub struct IssuerTransferred {
+    pub asset_registry: Pubkey,
+    pub old_issuer: Pubkey,
+    pub new_issuer: Pubkey,
+}

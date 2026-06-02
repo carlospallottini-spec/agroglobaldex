@@ -188,4 +188,10 @@ pub mod agroglobaldex {
             white_paper_uri,
         )
     }
+
+    /// Transfer the `issuer` role of an AssetRegistry to a new wallet.
+    /// Current issuer signs. New issuer must already have valid KYC.
+    pub fn transfer_issuer(ctx: Context<TransferIssuer>) -> Result<()> {
+        instructions::transfer_issuer::handler(ctx)
+    }
 }
