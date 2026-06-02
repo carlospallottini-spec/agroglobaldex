@@ -550,4 +550,93 @@ describe("agroglobaldex", function () {
       "Account",  // anchor reverts on missing account before constraints
     );
   });
+
+  // ---------------- Boundary / fuzz tests (audit #23) -------------------
+
+  it("24 fuzz: register_asset rechaza total_supply = 0", async () => {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    await expectRevert(
+      program.methods.registerAsset(
+        { grain: { kind: { soy: {} }, tons: new BN(50) } },
+        new BN(0), Array.from(createHash("sha256").update("zero").digest()),
+        "ipfs://demo/wp.pdf", "ipfs://demo/meta.json", "Zero supply",
+      )
+        .accounts({ issuer: issuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+        .signers([issuer]).rpc(),
+      "InvalidAmount",
+    );
+  });
+
+  it("25 fuzz: register_asset rechaza white_paper_uri vacio (MiCA Art.6)", async () => {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    await expectRevert(
+      program.methods.registerAsset(
+        { grain: { kind: { soy: {} }, tons: new BN(50) } },
+        new BN(1_000_000), Array.from(createHash("sha256").update("no-wp").digest()),
+        "", "ipfs://demo/meta.json", "No white paper",
+      )
+        .accounts({ issuer: issuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+        .signers([issuer]).rpc(),
+      "MissingWhitePaper",
+    );
+  });
+
+  it("26 fuzz: register_asset rechaza product_name > MAX_PRODUCT_NAME_LEN (64)", async () => {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const tooLong = "x".repeat(65); // > MAX_PRODUCT_NAME_LEN
+    await expectRevert(
+      program.methods.registerAsset(
+        { grain: { kind: { soy: {} }, tons: new BN(50) } },
+        new BN(1_000_000), Array.from(createHash("sha256").update("toolong").digest()),
+        "ipfs://demo/wp.pdf", "ipfs://demo/meta.json", tooLong,
+      )
+        .accounts({ issuer: issuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+        .signers([issuer]).rpc(),
+      "StringTooLong",
+    );
+  });
+
+  it("27 fuzz: register_asset rechaza commodity con origin_country no-uppercase ascii", async () => {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    await expectRevert(
+      program.methods.registerAsset(
+        { commodity: { sector: { wine: {} }, subKind: 0, vintageYear: 2026, gramsPerToken: new BN(750), originCountry: [0x65, 0x73] /* "es" lowercase */ } },
+        new BN(1_000_000), Array.from(createHash("sha256").update("badcountry").digest()),
+        "ipfs://demo/wp.pdf", "ipfs://demo/meta.json", "Bad country case",
+      )
+        .accounts({ issuer: issuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+        .signers([issuer]).rpc(),
+      "InvalidAssetMetadata",
+    );
+  });
+
+  it("28 fuzz: register_asset InvestmentOffering rechaza duration_months > 120", async () => {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const maturity = Math.floor(Date.now() / 1000) + 365 * 86400;
+    await expectRevert(
+      program.methods.registerAsset(
+        { investmentOffering: { productKind: { vineyard: {} }, durationMonths: 200, expectedYieldBps: 500, maturityUnixTs: new BN(maturity) } },
+        new BN(1_000_000), Array.from(createHash("sha256").update("baddur").digest()),
+        "ipfs://demo/wp.pdf", "ipfs://demo/meta.json", "Too long duration",
+      )
+        .accounts({ issuer: issuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+        .signers([issuer]).rpc(),
+      "InvalidDuration",
+    );
+  });
 });
