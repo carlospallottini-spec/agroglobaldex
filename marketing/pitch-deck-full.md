@@ -102,7 +102,7 @@
 **Headline:** Producto técnico listo, pilotos reales en hot.
 
 **Demostrado:**
-- Programa on-chain con **17 instrucciones** auditables (GitHub público).
+- Programa on-chain con **21 instrucciones** auditables (GitHub público).
 - 2 programas Anchor (agroglobaldex + compliance-hook) compilando contra Solana 3.0 / Anchor 0.31.1.
 - Web instalable como PWA, APK Android via Capacitor.
 - Aggregator funcional: ya prueba listar Agrotoken (SPL Solana) + Centrifuge (cross-chain) en seed.

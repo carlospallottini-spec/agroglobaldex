@@ -53,12 +53,12 @@
 
 ## 1:05–1:20 — Proof (screen recording de wallet + tx en Solscan)
 
-> "Está construido. 17 instrucciones en Solana, dos programas Anchor,
+> "Está construido. 21 instrucciones en Solana, dos programas Anchor,
 > Token-2022 con transfer hook que enforza KYC y jurisdicción en cada
 > transferencia. El código está en GitHub. La aplicación web ya funciona,
 > y en breve estará disponible como app móvil en Android."
 
-**On-screen text:** "17 instructions on-chain. 0 audited yet. Open source."
+**On-screen text:** "21 instructions on-chain. 0 audited yet. Open source."
 
 ---
 

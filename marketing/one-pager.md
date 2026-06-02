@@ -43,7 +43,7 @@ Versión imprimible (PDF A4) recomendada. ~300 palabras + key numbers.
 
 ### Status
 
-- 17 instrucciones on-chain (build OK, repo público)
+- 21 instrucciones on-chain (build OK, repo público)
 - 2 programas Anchor (marketplace + compliance-hook)
 - PWA installable + APK Android scaffold
 - Análisis legal MiCA completo (`/legal`)

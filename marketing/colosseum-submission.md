@@ -101,7 +101,7 @@
 2. **Public good**: compliance-hook program is reusable infrastructure for the Solana ecosystem.
 3. **Massive TAM** in an underbuilt vertical (agro RWA).
 4. **Regulatory thoughtfulness**: MiCA analysis done, security-token classification analyzed.
-5. **Founder ships fast**: 17 instructions, 2 programs, full web, PWA, mobile, legal pack, marketing pack all in the open.
+5. **Founder ships fast**: 21 instructions, 2 programs, full web, PWA, mobile, legal pack, marketing pack all in the open.
 
 ## How to run locally (judges)
 
