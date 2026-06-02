@@ -441,6 +441,7 @@ async function main() {
   console.log("  Marketplace assetCount          :", mpAcc.assetCount.toString());
   console.log("  Marketplace externalAssetCount  :", mpAcc.externalAssetCount.toString());
   console.log("  Marketplace feeBps              :", mpAcc.feeBps);
+  console.log("  Marketplace tradeCount          :", mpAcc.tradeCount.toString());
 
   const policyAcc = await program.account.jurisdictionPolicy.fetch(policy);
   const blockedStrs = policyAcc.blocked.map((b: any) => String.fromCharCode(b[0]) + String.fromCharCode(b[1]));
