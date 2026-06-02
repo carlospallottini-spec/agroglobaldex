@@ -1,17 +1,30 @@
 /**
- * AgroGlobalDex — Anchor mocha test suite v2.
+ * AgroGlobalDex — Anchor mocha test suite v3.
  *
- * Coverage:
- *   1. initialize marketplace (separate compliance_signer)
- *   2. init_jurisdiction_policy + update_jurisdiction_policy
- *   3. update_kyc signed by authority (NOT compliance_signer) must fail
- *   4. update_kyc signed by compliance_signer succeeds
- *   5. register_asset Grain with Token-2022 metadata
- *   6. register InvestmentOffering with yield > 5000 bps must fail (InvalidYield)
- *   7. register InvestmentOffering "Viñedo Rioja" 12 months 9% ROI succeeds
- *   8. set_paused gates write paths and resume restores
- *   9. set_compliance_signer rotation
- *  10. aggregator: SPL + cross-chain + update_external_asset
+ * Coverage (21 tests):
+ *   01-02 setup + initialize marketplace (separate compliance_signer)
+ *   03 init_jurisdiction_policy + update_jurisdiction_policy
+ *   04 update_kyc signed by authority (NOT compliance_signer) must fail
+ *   05 update_kyc signed by compliance_signer succeeds
+ *   06-08 register_asset Grain + InvestmentOffering (happy + sad invalid yield)
+ *   09 set_paused gates write paths and resume restores
+ *   10 set_compliance_signer rotation
+ *   11 aggregator: SPL + cross-chain + update_external_asset
+ *   12-13 revoke_kyc (happy + sad unauthorized)
+ *   14-15 settle_investment_offering (happy + sad NotInvestmentOffering)
+ *   16 update_metadata pre-mint (happy)
+ *   17 mint_token Grain (validates minted_supply + frozen_metadata)
+ *   18 update_metadata after mint reverts MetadataFrozen (sad)
+ *   19 redeem (validates redeemed_supply)
+ *   20 redeem when paused reverts (sad)
+ *   21 set_compliance_signer same-signer reverts InvalidComplianceSigner (sad)
+ *
+ * NOT YET COVERED (require funded buyer + TransferHook end-to-end):
+ *   - list_asset (transfer hook integration)
+ *   - update_listing_price (depends on list_asset)
+ *   - cancel_listing (transfer hook + escrow close)
+ *   - buy_asset / buy_external_asset (USDC funding + full e2e)
+ *   - treasury_withdraw
  *
  * Run with:  anchor test
  */
@@ -360,5 +373,109 @@ describe("agroglobaldex", function () {
       .signers([issuer]).rpc();
     const r = await program.account.assetRegistry.fetch(reg);
     assert.equal(r.productName, "Soja AR 2026 Q1 (revised)");
+    assert.equal(r.frozenMetadata, false);
+  });
+
+  it("17 mint_token: issuer mints 50_000_000_000 Grain → minted_supply increments + frozen_metadata=true", async () => {
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const mint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const issuerAta = getAssociatedTokenAddressSync(mint, issuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    await program.methods.mintToken(new BN(50_000_000_000))
+      .accounts({
+        issuer: issuer.publicKey,
+        assetRegistry: reg,
+        mint,
+        issuerTokenAccount: issuerAta,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([issuer]).rpc();
+    const r = await program.account.assetRegistry.fetch(reg);
+    assert.equal(r.mintedSupply.toString(), "50000000000");
+    assert.equal(r.frozenMetadata, true);
+  });
+
+  it("18 sad: update_metadata after first mint reverts MetadataFrozen", async () => {
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const mint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    await expectRevert(
+      program.methods.updateMetadata(
+        "Nuevo nombre prohibido",
+        "ipfs://demo/cant-update.json",
+        "ipfs://demo/cant-update-wp.pdf",
+      )
+        .accounts({
+          issuer: issuer.publicKey,
+          marketplace,
+          assetRegistry: reg,
+          mint,
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+        })
+        .signers([issuer]).rpc(),
+      "MetadataFrozen",
+    );
+  });
+
+  it("19 redeem: issuer burns 10_000_000_000 Grain → redeemed_supply increments", async () => {
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const mint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const issuerAta = getAssociatedTokenAddressSync(mint, issuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const before = await program.account.assetRegistry.fetch(reg);
+    await program.methods.redeem(new BN(10_000_000_000))
+      .accounts({
+        holder: issuer.publicKey,
+        marketplace,
+        assetRegistry: reg,
+        mint,
+        holderTokenAccount: issuerAta,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .signers([issuer]).rpc();
+    const after = await program.account.assetRegistry.fetch(reg);
+    assert.equal(after.redeemedSupply.toString(), "10000000000");
+    assert.equal(after.mintedSupply.toString(), before.mintedSupply.toString());
+  });
+
+  it("20 sad: redeem when marketplace paused reverts Paused", async () => {
+    await program.methods.setPaused(true)
+      .accounts({ authority: authority.publicKey, marketplace })
+      .rpc();
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const mint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const issuerAta = getAssociatedTokenAddressSync(mint, issuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    await expectRevert(
+      program.methods.redeem(new BN(1_000_000_000))
+        .accounts({
+          holder: issuer.publicKey,
+          marketplace,
+          assetRegistry: reg,
+          mint,
+          holderTokenAccount: issuerAta,
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+        })
+        .signers([issuer]).rpc(),
+      "Paused",
+    );
+    // Resume for hygiene
+    await program.methods.setPaused(false)
+      .accounts({ authority: authority.publicKey, marketplace })
+      .rpc();
+  });
+
+  it("21 sad: set_compliance_signer to same signer reverts InvalidComplianceSigner", async () => {
+    await expectRevert(
+      program.methods.setComplianceSigner()
+        .accounts({
+          authority: authority.publicKey,
+          marketplace,
+          newSigner: complianceSigner.publicKey, // same as current
+        }).rpc(),
+      "InvalidComplianceSigner",
+    );
   });
 });
