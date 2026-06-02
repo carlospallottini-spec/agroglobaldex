@@ -315,6 +315,124 @@ async function main() {
     .rpc();
   console.log("    tx:", tx, "new signer:", newSigner.publicKey.toBase58());
 
+  // Restore old compliance signer so the rest of the seed can stamp KYC again.
+  tx = await program.methods
+    .setComplianceSigner()
+    .accounts({
+      authority: payer.publicKey,
+      marketplace,
+      newSigner: complianceSignerKp.publicKey,
+    })
+    .rpc();
+  console.log("    restored old signer, tx:", tx);
+
+  // ────────────────────────────────────────────────────────────────────
+  // 12) update_metadata: Viñedo Rioja todavía NO fue minteado, su metadata
+  //     sigue mutable. Probamos cambiar product_name + URIs.
+  // ────────────────────────────────────────────────────────────────────
+  console.log("\n[12] update_metadata Viñedo Rioja (pre-mint)…");
+  tx = await program.methods
+    .updateMetadata(
+      "Viñedo Rioja 2026 Reserva (revised)",
+      "ipfs://demo/vineyard-meta-v2.json",
+      "ipfs://demo/vineyard-wp-v2.pdf",
+    )
+    .accounts({
+      issuer: payer.publicKey,
+      marketplace,
+      assetRegistry: investRegistry,
+      mint: investMint,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+    })
+    .rpc();
+  console.log("    tx:", tx);
+
+  // ────────────────────────────────────────────────────────────────────
+  // 13) settle_investment_offering: epoch 0 con yield mock USD 450
+  //     (450_000_000 base units USDC).
+  // ────────────────────────────────────────────────────────────────────
+  console.log("\n[13] settle_investment_offering Viñedo Rioja epoch=0 yield=450 USDC…");
+  const settleAtt = Array.from(createHash("sha256").update("swift-confirmation-q1-2026").digest());
+  tx = await program.methods
+    .settleInvestmentOffering(0, new BN(450_000_000), settleAtt)
+    .accounts({
+      issuer: payer.publicKey,
+      marketplace,
+      assetRegistry: investRegistry,
+    })
+    .rpc();
+  console.log("    tx:", tx);
+
+  // ────────────────────────────────────────────────────────────────────
+  // 14) revoke_kyc + re-stamp: ciclo completo de revocación.
+  // ────────────────────────────────────────────────────────────────────
+  console.log("\n[14] revoke_kyc + re-stamp KYC del issuer (reason=1 sanctions)…");
+  const issuerRec = findPda(
+    [Buffer.from("compliance_record"), marketplace.toBuffer(), payer.publicKey.toBuffer()],
+    programId,
+  );
+  tx = await program.methods
+    .revokeKyc(1)
+    .accounts({
+      complianceSigner: complianceSignerKp.publicKey,
+      marketplace,
+      wallet: payer.publicKey,
+      complianceRecord: issuerRec,
+    })
+    .signers([complianceSignerKp])
+    .rpc();
+  console.log("    revoked, tx:", tx);
+  tx = await program.methods
+    .updateKyc(true, [0x41, 0x52], true)
+    .accounts({
+      complianceSigner: complianceSignerKp.publicKey,
+      marketplace,
+      wallet: payer.publicKey,
+      complianceRecord: issuerRec,
+      systemProgram: SystemProgram.programId,
+    })
+    .signers([complianceSignerKp])
+    .rpc();
+  console.log("    re-stamped, tx:", tx);
+
+  // ────────────────────────────────────────────────────────────────────
+  // 15) transfer_issuer: crear nueva wallet ES + KYC + ceder Grain.
+  // ────────────────────────────────────────────────────────────────────
+  console.log("\n[15] transfer_issuer Grain → nueva wallet ES…");
+  const newIssuer = Keypair.generate();
+  await connection.confirmTransaction(
+    await connection.requestAirdrop(newIssuer.publicKey, 1 * 1e9),
+    "confirmed",
+  );
+  const newIssuerRec = findPda(
+    [Buffer.from("compliance_record"), marketplace.toBuffer(), newIssuer.publicKey.toBuffer()],
+    programId,
+  );
+  // Stamp KYC para el nuevo issuer (ES, accredited)
+  tx = await program.methods
+    .updateKyc(true, [0x45, 0x53], true)
+    .accounts({
+      complianceSigner: complianceSignerKp.publicKey,
+      marketplace,
+      wallet: newIssuer.publicKey,
+      complianceRecord: newIssuerRec,
+      systemProgram: SystemProgram.programId,
+    })
+    .signers([complianceSignerKp])
+    .rpc();
+  console.log("    stamped new issuer KYC, tx:", tx);
+  tx = await program.methods
+    .transferIssuer()
+    .accounts({
+      currentIssuer: payer.publicKey,
+      marketplace,
+      assetRegistry,
+      newIssuer: newIssuer.publicKey,
+      newIssuerCompliance: newIssuerRec,
+    })
+    .rpc();
+  console.log("    transferred, tx:", tx, "new issuer:", newIssuer.publicKey.toBase58());
+
   // Verification
   console.log("\n[VERIFY] Estado on-chain:");
   const mpAcc = await program.account.marketplace.fetch(marketplace);
