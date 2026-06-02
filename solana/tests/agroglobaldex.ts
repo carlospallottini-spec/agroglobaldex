@@ -478,4 +478,76 @@ describe("agroglobaldex", function () {
       "InvalidComplianceSigner",
     );
   });
+
+  it("22 transfer_issuer: current issuer cedes Grain to a new KYC'd wallet", async () => {
+    // Setup: create + stamp KYC for a new wallet (the future issuer)
+    const newIssuer = Keypair.generate();
+    await airdrop(newIssuer.publicKey, 2);
+
+    const newIssuerRec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), newIssuer.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.updateKyc(true, Array.from(Buffer.from("ES")), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace,
+        wallet: newIssuer.publicKey,
+        complianceRecord: newIssuerRec,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([complianceSigner]).rpc();
+
+    // Now transfer issuer of the Grain registry (idx=0) from `issuer` → `newIssuer`
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    await program.methods.transferIssuer()
+      .accounts({
+        currentIssuer: issuer.publicKey,
+        marketplace,
+        assetRegistry: reg,
+        newIssuer: newIssuer.publicKey,
+        newIssuerCompliance: newIssuerRec,
+      })
+      .signers([issuer]).rpc();
+    const r = await program.account.assetRegistry.fetch(reg);
+    assert.equal(r.issuer.toBase58(), newIssuer.publicKey.toBase58());
+
+    // Transfer back so subsequent tests stay coherent
+    const issuerRec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), issuer.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.transferIssuer()
+      .accounts({
+        currentIssuer: newIssuer.publicKey,
+        marketplace,
+        assetRegistry: reg,
+        newIssuer: issuer.publicKey,
+        newIssuerCompliance: issuerRec,
+      })
+      .signers([newIssuer]).rpc();
+  });
+
+  it("23 sad: transfer_issuer to non-KYC wallet reverts KycNotVerified", async () => {
+    const randomWallet = Keypair.generate(); // never stamped
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const fakeRec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), randomWallet.publicKey.toBuffer()],
+      programId,
+    );
+    await expectRevert(
+      program.methods.transferIssuer()
+        .accounts({
+          currentIssuer: issuer.publicKey,
+          marketplace,
+          assetRegistry: reg,
+          newIssuer: randomWallet.publicKey,
+          newIssuerCompliance: fakeRec,
+        })
+        .signers([issuer]).rpc(),
+      "Account",  // anchor reverts on missing account before constraints
+    );
+  });
 });
