@@ -1,6 +1,6 @@
 {
   "name": "agroglobaldex",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "AgroGlobalDex - Marketplace global de RWA agropecuarios sobre Solana con compliance MiCA + Token-2022 + aggregator cross-chain + yield offerings (Demo/PoC)",
   "main": "main.js",
   "author": "AgroGlobalDex - Carlos Pallottini",
