@@ -482,6 +482,8 @@ pub enum HookError {
     SourceComplianceMismatch,
     #[msg("Destination ComplianceRecord is not the expected PDA for the destination owner")]
     DestComplianceMismatch,
+    #[msg("Account discriminator does not match the expected type")]
+    DiscriminatorMismatch,
 }
 
 // ---------------------------------------------------------------------------
@@ -508,7 +510,31 @@ pub enum HookError {
 const DISCRIMINATOR_LEN: usize = 8;
 const PUBKEY_LEN: usize = 32;
 
+// Anchor v0.31 derives `<Type>::DISCRIMINATOR` as `sha256("account:<Name>")[..8]`.
+// We hardcode them here because we cannot import the agroglobaldex crate (it
+// would create a cyclic build dependency: agroglobaldex depends on
+// compliance_hook for CPI). Tests verify these match the live discriminators
+// — if you rename `ComplianceRecord` or `JurisdictionPolicy` you MUST update
+// these constants and bump the program version.
+const COMPLIANCE_RECORD_DISCRIMINATOR: [u8; 8] =
+    [147, 228, 164, 27, 251, 44, 67, 185]; // sha256("account:ComplianceRecord")[..8]
+const JURISDICTION_POLICY_DISCRIMINATOR: [u8; 8] =
+    [63, 121, 124, 194, 172, 129, 209, 132]; // sha256("account:JurisdictionPolicy")[..8]
+
+fn check_discriminator(data: &[u8], expected: &[u8; 8]) -> Result<()> {
+    require!(
+        data.len() >= DISCRIMINATOR_LEN,
+        HookError::DeserializationFailed
+    );
+    require!(
+        &data[..DISCRIMINATOR_LEN] == expected,
+        HookError::DiscriminatorMismatch
+    );
+    Ok(())
+}
+
 fn parse_compliance_record(data: &[u8]) -> Result<(bool, [u8; 2])> {
+    check_discriminator(data, &COMPLIANCE_RECORD_DISCRIMINATOR)?;
     // 8 (discr) + 32 (wallet) + 32 (marketplace) = 72
     let kyc_off = DISCRIMINATOR_LEN + PUBKEY_LEN + PUBKEY_LEN;
     let jur_off = kyc_off + 1;
@@ -521,6 +547,7 @@ fn parse_compliance_record(data: &[u8]) -> Result<(bool, [u8; 2])> {
 }
 
 fn parse_blocked_jurisdictions(data: &[u8]) -> Result<Vec<[u8; 2]>> {
+    check_discriminator(data, &JURISDICTION_POLICY_DISCRIMINATOR)?;
     // skip discriminator + marketplace pubkey
     let mut off = DISCRIMINATOR_LEN + PUBKEY_LEN;
     require!(data.len() >= off + 4, HookError::DeserializationFailed);

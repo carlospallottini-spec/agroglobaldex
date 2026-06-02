@@ -30,6 +30,12 @@ pub struct BuyAsset<'info> {
     pub marketplace: Account<'info, Marketplace>,
 
     #[account(
+        seeds = [
+            ASSET_REGISTRY_SEED,
+            marketplace.key().as_ref(),
+            &asset_registry.index.to_le_bytes(),
+        ],
+        bump = asset_registry.bump,
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
@@ -147,6 +153,13 @@ pub struct BuyAsset<'info> {
 
 pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
     require!(amount > 0, AgroError::InvalidAmount);
+    // Defense in depth: initialize already caps fee_bps at 1000 (10%) but we
+    // re-check here so this handler is correct on its own — protects against
+    // any future ix that mutates `marketplace.fee_bps` without re-validating.
+    require!(
+        ctx.accounts.marketplace.fee_bps <= 10_000,
+        AgroError::FeeTooHigh
+    );
     let listing = &mut ctx.accounts.listing;
     require!(listing.remaining >= amount, AgroError::ListingUnavailable);
 

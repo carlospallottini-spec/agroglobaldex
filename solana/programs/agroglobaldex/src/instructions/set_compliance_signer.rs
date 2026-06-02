@@ -22,9 +22,18 @@ pub struct SetComplianceSigner<'info> {
 }
 
 pub fn handler(ctx: Context<SetComplianceSigner>) -> Result<()> {
+    let new_signer = ctx.accounts.new_signer.key();
+    require!(
+        new_signer != Pubkey::default(),
+        AgroError::InvalidComplianceSigner
+    );
     let mp = &mut ctx.accounts.marketplace;
     let old = mp.compliance_signer;
-    mp.compliance_signer = ctx.accounts.new_signer.key();
+    require!(
+        new_signer != old,
+        AgroError::InvalidComplianceSigner
+    );
+    mp.compliance_signer = new_signer;
 
     emit!(ComplianceSignerRotated {
         marketplace: mp.key(),

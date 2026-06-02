@@ -348,6 +348,7 @@ pub fn handler(
     registry.asset_class = asset_class;
     registry.total_supply = total_supply;
     registry.minted_supply = 0;
+    registry.redeemed_supply = 0;
     registry.oracle_attestation = oracle_attestation;
     registry.white_paper_uri = white_paper_uri;
     registry.metadata_uri = metadata_uri;

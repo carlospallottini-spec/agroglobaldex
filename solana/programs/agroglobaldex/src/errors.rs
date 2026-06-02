@@ -97,4 +97,7 @@ pub enum AgroError {
 
     #[msg("This instruction only applies to AssetClass::InvestmentOffering")]
     NotInvestmentOffering,
+
+    #[msg("Invalid compliance signer: must not be the default pubkey nor equal to the current signer")]
+    InvalidComplianceSigner,
 }

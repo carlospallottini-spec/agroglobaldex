@@ -30,6 +30,12 @@ pub struct BuyExternalAsset<'info> {
     pub marketplace: Account<'info, Marketplace>,
 
     #[account(
+        seeds = [
+            EXTERNAL_ASSET_SEED,
+            marketplace.key().as_ref(),
+            &external_asset.index.to_le_bytes(),
+        ],
+        bump = external_asset.bump,
         constraint = external_asset.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
         constraint = external_asset.active @ AgroError::ExternalAssetInactive,
@@ -136,6 +142,10 @@ pub struct BuyExternalAsset<'info> {
 
 pub fn handler(ctx: Context<BuyExternalAsset>, amount: u64) -> Result<()> {
     require!(amount > 0, AgroError::InvalidAmount);
+    require!(
+        ctx.accounts.marketplace.fee_bps <= 10_000,
+        AgroError::FeeTooHigh
+    );
     let listing = &mut ctx.accounts.listing;
     require!(listing.remaining >= amount, AgroError::ListingUnavailable);
 

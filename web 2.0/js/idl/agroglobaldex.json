@@ -153,7 +153,39 @@
           }
         },
         {
-          "name": "asset_registry"
+          "name": "asset_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "listing",
@@ -596,7 +628,39 @@
           }
         },
         {
-          "name": "external_asset"
+          "name": "external_asset",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  120,
+                  116,
+                  101,
+                  114,
+                  110,
+                  97,
+                  108,
+                  95,
+                  97,
+                  115,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "external_asset.index",
+                "account": "ExternalAssetRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "listing",
@@ -1888,7 +1952,68 @@
           "signer": true
         },
         {
-          "name": "asset_registry"
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "mint",
@@ -3792,6 +3917,11 @@
       "code": 6031,
       "name": "NotInvestmentOffering",
       "msg": "This instruction only applies to AssetClass::InvestmentOffering"
+    },
+    {
+      "code": 6032,
+      "name": "InvalidComplianceSigner",
+      "msg": "Invalid compliance signer: must not be the default pubkey nor equal to the current signer"
     }
   ],
   "types": [
@@ -4216,6 +4346,15 @@
             "name": "minted_supply",
             "docs": [
               "Amount minted so far."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "redeemed_supply",
+            "docs": [
+              "Cumulative amount burned through `redeem` so far. Lets off-chain",
+              "reconcile physical deliveries and lets the issuer detect when supply",
+              "is fully drained (`minted_supply == redeemed_supply`)."
             ],
             "type": "u64"
           },

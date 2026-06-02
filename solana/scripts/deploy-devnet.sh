@@ -158,11 +158,35 @@ solana program deploy --program-id target/deploy/compliance_hook-keypair.json \
                      target/deploy/compliance_hook.so 2>&1 | tail -2
 ok "Deployed compliance_hook: $HOOK_PROGRAM_ID"
 
-# ─── 5. copy IDLs ─────────────────────────────────────────────────────
+# ─── 5. copy IDLs + integrity check ─────────────────────────────────
+# Hash both IDLs antes y después de copiar. Diferencia = corrupción durante
+# el cp (improbable pero defensa en profundidad). Imprimimos los hashes para
+# que queden en el log del deploy y se puedan comparar contra el commit.
 log "Copiando IDLs al frontend"
 mkdir -p "$FRONTEND_IDL"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  HASH_TOOL=sha256sum
+elif command -v shasum >/dev/null 2>&1; then
+  HASH_TOOL="shasum -a 256"
+else
+  HASH_TOOL=""
+  warn "ni sha256sum ni shasum disponibles — skip integrity check"
+fi
+
 cp target/idl/agroglobaldex.json "$FRONTEND_IDL/agroglobaldex.json"
 cp target/idl/compliance_hook.json "$FRONTEND_IDL/compliance_hook.json"
+
+if [ -n "$HASH_TOOL" ]; then
+  H1=$($HASH_TOOL target/idl/agroglobaldex.json | awk '{print $1}')
+  H2=$($HASH_TOOL "$FRONTEND_IDL/agroglobaldex.json" | awk '{print $1}')
+  H3=$($HASH_TOOL target/idl/compliance_hook.json | awk '{print $1}')
+  H4=$($HASH_TOOL "$FRONTEND_IDL/compliance_hook.json" | awk '{print $1}')
+  [ "$H1" = "$H2" ] || err "IDL agroglobaldex corrupto al copiar (hash mismatch)"
+  [ "$H3" = "$H4" ] || err "IDL compliance_hook corrupto al copiar (hash mismatch)"
+  printf "  agroglobaldex.json   sha256 = %s\n" "$H1"
+  printf "  compliance_hook.json sha256 = %s\n" "$H3"
+fi
 ok "IDLs copiados a $FRONTEND_IDL"
 
 # ─── Resumen final ───────────────────────────────────────────────────

@@ -20,6 +20,8 @@ pub struct UpdateListingPrice<'info> {
         bump = listing.bump,
         has_one = seller @ AgroError::UnauthorizedIssuer,
         constraint = listing.active @ AgroError::ListingUnavailable,
+        constraint = listing.source_registry == asset_registry.key()
+            @ AgroError::ListingMismatch,
     )]
     pub listing: Account<'info, MarketplaceListing>,
 }

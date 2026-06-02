@@ -8,12 +8,31 @@ use crate::state::*;
 /// Burn tokens to redeem the underlying physical commodity (grain delivery)
 /// or retire a carbon credit. The off-chain workflow watches the
 /// `AssetRedeemed` event and physically settles to the holder.
+///
+/// Gated by `marketplace.paused` so a circuit-breaker scenario halts
+/// off-chain delivery commitments too.
 #[derive(Accounts)]
 pub struct Redeem<'info> {
     #[account(mut)]
     pub holder: Signer<'info>,
 
     #[account(
+        seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
+        bump = marketplace.bump,
+        constraint = !marketplace.paused @ AgroError::Paused,
+    )]
+    pub marketplace: Account<'info, Marketplace>,
+
+    #[account(
+        mut,
+        seeds = [
+            ASSET_REGISTRY_SEED,
+            marketplace.key().as_ref(),
+            &asset_registry.index.to_le_bytes(),
+        ],
+        bump = asset_registry.bump,
+        constraint = asset_registry.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
         constraint = asset_registry.redeemable @ AgroError::AssetNotRedeemable,
     )]
     pub asset_registry: Account<'info, AssetRegistry>,
@@ -48,8 +67,14 @@ pub fn handler(ctx: Context<Redeem>, amount: u64) -> Result<()> {
     );
     burn(cpi_ctx, amount)?;
 
+    let registry = &mut ctx.accounts.asset_registry;
+    registry.redeemed_supply = registry
+        .redeemed_supply
+        .checked_add(amount)
+        .ok_or(AgroError::PriceOverflow)?;
+
     emit!(AssetRedeemed {
-        asset_registry: ctx.accounts.asset_registry.key(),
+        asset_registry: registry.key(),
         holder: ctx.accounts.holder.key(),
         amount,
         redeemed_at: Clock::get()?.unix_timestamp,

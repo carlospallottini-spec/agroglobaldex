@@ -228,6 +228,10 @@ pub struct AssetRegistry {
     pub total_supply: u64,
     /// Amount minted so far.
     pub minted_supply: u64,
+    /// Cumulative amount burned through `redeem` so far. Lets off-chain
+    /// reconcile physical deliveries and lets the issuer detect when supply
+    /// is fully drained (`minted_supply == redeemed_supply`).
+    pub redeemed_supply: u64,
     /// SHA-256 of the off-chain attestation (warehouse receipt, VCS issuance, etc).
     pub oracle_attestation: [u8; 32],
     /// MiCA Art. 6 white paper URI (IPFS / Arweave preferred).
