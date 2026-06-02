@@ -126,6 +126,7 @@
         },
         {
           "name": "marketplace",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -555,6 +556,45 @@
           }
         },
         {
+          "name": "trade_receipt",
+          "docs": [
+            "Immutable proof-of-trade. Derived from the global `trade_count` so it",
+            "is unique and sequential. Created here (init) and never mutated again."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  100,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.trade_count",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
           "name": "token_program"
         },
         {
@@ -601,6 +641,7 @@
         },
         {
           "name": "marketplace",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1025,6 +1066,44 @@
               {
                 "kind": "account",
                 "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trade_receipt",
+          "docs": [
+            "Immutable proof-of-trade for this external-asset purchase."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  100,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.trade_count",
+                "account": "Marketplace"
               }
             ]
           }
@@ -3666,6 +3745,19 @@
         97,
         122
       ]
+    },
+    {
+      "name": "TradeReceipt",
+      "discriminator": [
+        81,
+        155,
+        106,
+        207,
+        56,
+        213,
+        102,
+        174
+      ]
     }
   ],
   "events": [
@@ -3888,6 +3980,19 @@
         54,
         64,
         24
+      ]
+    },
+    {
+      "name": "TradeReceiptCreated",
+      "discriminator": [
+        243,
+        184,
+        39,
+        201,
+        12,
+        51,
+        69,
+        47
       ]
     },
     {
@@ -5274,6 +5379,16 @@
               "Circuit breaker. When `true`, all write paths abort with `Paused`."
             ],
             "type": "bool"
+          },
+          {
+            "name": "trade_count",
+            "docs": [
+              "Monotonic counter of settled trades. Used to derive the",
+              "`TradeReceipt` PDA for every buy. Provides a global, queryable,",
+              "immutable proof-of-trade ledger — the structured-data answer to",
+              "AgriDex's per-trade receipt NFTs."
+            ],
+            "type": "u64"
           }
         ]
       }
@@ -5470,6 +5585,186 @@
           {
             "name": "new_minted_supply",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TradeReceipt",
+      "docs": [
+        "Immutable proof-of-trade. One per successful `buy_asset` /",
+        "`buy_external_asset` (including partial fills). Derived from the global",
+        "`marketplace.trade_count` so it is unique, sequential and queryable. This",
+        "is AgriDex's \"trade receipt NFT\" reimagined as structured on-chain data:",
+        "auditors, regulators and the UI can index the full trade ledger without",
+        "parsing NFT metadata."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "docs": [
+              "Marketplace this trade happened under."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "listing",
+            "docs": [
+              "The listing that was bought from."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_mint",
+            "docs": [
+              "The asset mint that changed hands."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "buyer",
+            "docs": [
+              "Buyer wallet."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "seller",
+            "docs": [
+              "Seller wallet."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "source",
+            "docs": [
+              "Native (program-minted) or External (aggregated SPL)."
+            ],
+            "type": {
+              "defined": {
+                "name": "ListingSource"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Tokens transferred (base units)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "unit_price_usdc",
+            "docs": [
+              "Per-token USDC price at trade time (base units, 6 decimals)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "gross_usdc",
+            "docs": [
+              "Gross USDC paid (amount * unit_price)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "fee_usdc",
+            "docs": [
+              "Protocol fee charged (USDC base units)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "buyer_jurisdiction",
+            "docs": [
+              "Buyer jurisdiction at trade time (ISO-3166 alpha-2). Snapshotted so a",
+              "later KYC update doesn't rewrite history."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                2
+              ]
+            }
+          },
+          {
+            "name": "trade_index",
+            "docs": [
+              "Global sequential index (== marketplace.trade_count at mint time)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "settled_at",
+            "docs": [
+              "Settlement timestamp."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for this PDA."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TradeReceiptCreated",
+      "docs": [
+        "Emitted alongside `AssetPurchased` whenever a `TradeReceipt` PDA is minted.",
+        "Indexers build the global trade ledger from this stream."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_receipt",
+            "type": "pubkey"
+          },
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "source",
+            "type": {
+              "defined": {
+                "name": "ListingSource"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "gross_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "trade_index",
+            "type": "u64"
+          },
+          {
+            "name": "settled_at",
+            "type": "i64"
           }
         ]
       }

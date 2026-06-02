@@ -238,6 +238,39 @@ export async function fetchAllExternalAssets(network = NETWORK) {
   }
 }
 
+/**
+ * Fetch the global trade ledger (TradeReceipt PDAs). Optionally filter by
+ * buyer or seller wallet. Returns newest-first.
+ */
+export async function fetchAllTradeReceipts({ buyer, seller, network = NETWORK } = {}) {
+  try {
+    const program = await getReadProgram(network);
+    const a = ns(program, ['tradeReceipt']);
+    if (!a) return [];
+    const filters = [];
+    // TradeReceipt layout after 8-byte discriminator:
+    //   marketplace(32) listing(32) asset_mint(32) buyer(32) seller(32) ...
+    if (buyer) filters.push({ memcmp: { offset: 8 + 32 * 3, bytes: buyer } });
+    else if (seller) filters.push({ memcmp: { offset: 8 + 32 * 4, bytes: seller } });
+    const list = await a.all(filters);
+    return list
+      .map(({ publicKey, account }) => ({ publicKey: publicKey.toString(), ...account }))
+      .sort((x, y) => Number(y.tradeIndex) - Number(x.tradeIndex));
+  } catch (e) {
+    console.warn('[agroglobaldex] fetchAllTradeReceipts failed:', e.message);
+    return [];
+  }
+}
+
+/** Derive a TradeReceipt PDA from a marketplace + trade index. */
+export function findTradeReceiptPda(marketplace, tradeIndex) {
+  const idxBuf = new BN(tradeIndex).toArrayLike(Buffer, 'le', 8);
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('trade_receipt'), new PublicKey(marketplace).toBuffer(), idxBuf],
+    programIdPk(),
+  )[0];
+}
+
 export async function fetchComplianceRecord(walletAddress, marketplaceAuthority, network = NETWORK) {
   try {
     const program = await getReadProgram(network);
@@ -422,6 +455,7 @@ export async function buyAsset({ listingPubkey, amount }) {
   const buyerCompliance = findComplianceRecordPda(marketplace, buyer);
   const jurisdictionPolicy = findJurisdictionPolicyPda(marketplace);
   const treasury = findTreasuryPda(marketplace);
+  const tradeReceipt = findTradeReceiptPda(marketplace, mpAcc.tradeCount);
   const usdcMint = mpAcc.usdcMint;
 
   // ATAs (clásicas para USDC)
@@ -447,6 +481,7 @@ export async function buyAsset({ listingPubkey, amount }) {
       sellerUsdcAta: sellerUsdc,
       treasuryUsdcAta: treasuryUsdc,
       treasury,
+      tradeReceipt,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -594,6 +629,7 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
   const treasury = findTreasuryPda(marketplace);
   const buyerCompliance = findComplianceRecordPda(marketplace, buyer);
   const jurisdictionPolicy = findJurisdictionPolicyPda(marketplace);
+  const tradeReceipt = findTradeReceiptPda(marketplace, mpAcc.tradeCount);
 
   const tx = await program.methods
     .buyExternalAsset(new BN(amount))
@@ -613,6 +649,7 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
       sellerUsdcAta: getAssociatedTokenAddress(usdcMint, listingAcc.seller, TOKEN_PROGRAM_ID),
       treasuryUsdcAta: getAssociatedTokenAddress(usdcMint, treasury, TOKEN_PROGRAM_ID),
       treasury,
+      tradeReceipt,
       tokenProgram: TOKEN_PROGRAM_ID,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -739,7 +776,8 @@ export default {
   cancelListing, updateListingPrice, treasuryWithdraw,
   aggregateExternalAsset, updateExternalAsset,
   revokeKyc, settleInvestmentOffering, updateMetadata, transferIssuer,
+  fetchAllTradeReceipts,
   findMarketplacePda, findAssetRegistryPda, findListingPda, findExternalAssetPda,
   findComplianceRecordPda, findJurisdictionPolicyPda,
-  findHookConfigPda, findExtraAccountMetaListPda,
+  findHookConfigPda, findExtraAccountMetaListPda, findTradeReceiptPda,
 };

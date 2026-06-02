@@ -23,6 +23,7 @@ pub const LISTING_USDC_ESCROW_SEED: &[u8] = b"listing_usdc_escrow";
 pub const TREASURY_SEED: &[u8] = b"treasury";
 pub const EXTERNAL_ASSET_SEED: &[u8] = b"external_asset";
 pub const JURISDICTION_POLICY_SEED: &[u8] = b"jurisdiction_policy";
+pub const TRADE_RECEIPT_SEED: &[u8] = b"trade_receipt";
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -209,6 +210,11 @@ pub struct Marketplace {
     pub external_asset_count: u64,
     /// Circuit breaker. When `true`, all write paths abort with `Paused`.
     pub paused: bool,
+    /// Monotonic counter of settled trades. Used to derive the
+    /// `TradeReceipt` PDA for every buy. Provides a global, queryable,
+    /// immutable proof-of-trade ledger — the structured-data answer to
+    /// AgriDex's per-trade receipt NFTs.
+    pub trade_count: u64,
 }
 
 /// One per tokenized real-world asset lot. The mint of the SPL Token-2022 is
@@ -366,9 +372,65 @@ pub struct ExternalAssetRegistry {
     pub bump: u8,
 }
 
+/// Immutable proof-of-trade. One per successful `buy_asset` /
+/// `buy_external_asset` (including partial fills). Derived from the global
+/// `marketplace.trade_count` so it is unique, sequential and queryable. This
+/// is AgriDex's "trade receipt NFT" reimagined as structured on-chain data:
+/// auditors, regulators and the UI can index the full trade ledger without
+/// parsing NFT metadata.
+#[account]
+#[derive(InitSpace)]
+pub struct TradeReceipt {
+    /// Marketplace this trade happened under.
+    pub marketplace: Pubkey,
+    /// The listing that was bought from.
+    pub listing: Pubkey,
+    /// The asset mint that changed hands.
+    pub asset_mint: Pubkey,
+    /// Buyer wallet.
+    pub buyer: Pubkey,
+    /// Seller wallet.
+    pub seller: Pubkey,
+    /// Native (program-minted) or External (aggregated SPL).
+    pub source: ListingSource,
+    /// Tokens transferred (base units).
+    pub amount: u64,
+    /// Per-token USDC price at trade time (base units, 6 decimals).
+    pub unit_price_usdc: u64,
+    /// Gross USDC paid (amount * unit_price).
+    pub gross_usdc: u64,
+    /// Protocol fee charged (USDC base units).
+    pub fee_usdc: u64,
+    /// Buyer jurisdiction at trade time (ISO-3166 alpha-2). Snapshotted so a
+    /// later KYC update doesn't rewrite history.
+    pub buyer_jurisdiction: [u8; 2],
+    /// Global sequential index (== marketplace.trade_count at mint time).
+    pub trade_index: u64,
+    /// Settlement timestamp.
+    pub settled_at: i64,
+    /// Bump for this PDA.
+    pub bump: u8,
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
+
+/// Emitted alongside `AssetPurchased` whenever a `TradeReceipt` PDA is minted.
+/// Indexers build the global trade ledger from this stream.
+#[event]
+pub struct TradeReceiptCreated {
+    pub trade_receipt: Pubkey,
+    pub marketplace: Pubkey,
+    pub buyer: Pubkey,
+    pub seller: Pubkey,
+    pub asset_mint: Pubkey,
+    pub source: ListingSource,
+    pub amount: u64,
+    pub gross_usdc: u64,
+    pub trade_index: u64,
+    pub settled_at: i64,
+}
 
 #[event]
 pub struct AssetRegistered {
