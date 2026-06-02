@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin avanzado — AgroGlobalDex</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<meta name="description" content="Acciones administrativas: revoke KYC, settle yield offerings, update metadata, transferir issuer. Acceso para compliance_signer e issuers.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--red:#FF3D4A;--amb:#F0A020;--bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;--r:8px;--r2:14px;--fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);min-height:100vh}
+a{color:inherit;text-decoration:none}
+nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nlt{font-family:var(--fd);font-size:16px}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r)}
+.nav-links a.active,.nav-links a:hover{color:var(--neon)}
+.nav-r{margin-left:auto}
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.nwb.connected{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb.connected .wdot{background:var(--neon)}
+.demo-banner{background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px}
+main{max-width:1100px;margin:32px auto;padding:0 32px 80px}
+h1{font-family:var(--fd);font-size:36px;margin-bottom:6px}
+.sub{color:var(--t2);margin-bottom:24px;font-size:14px}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:24px;margin-bottom:18px}
+.card h3{font-family:var(--fd);font-size:20px;margin-bottom:6px}
+.card .desc{color:var(--t2);font-size:13px;margin-bottom:18px}
+.role{display:inline-block;padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-left:8px;vertical-align:middle}
+.role.comp{background:#00FF6A1A;color:var(--neon)}
+.role.iss{background:#F0A0201A;color:var(--amb)}
+.field{margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);color:var(--txt);font-family:var(--fb);font-size:13px}
+.field textarea{min-height:80px;font-family:monospace}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.row2{grid-template-columns:1fr}}
+.btn-p{padding:11px 22px;background:var(--neon);color:#000;border:none;border-radius:var(--r);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--fb)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed}
+.btn-danger{background:var(--red);color:#fff}
+.warn{background:#F0A0201A;border:1px solid #F0A02055;border-radius:var(--r);padding:12px;color:var(--amb);font-size:12px;margin-bottom:18px}
+.note{font-size:11px;color:var(--t3);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Pantalla admin avanzada. Acciones del compliance_signer y de issuers.</div>
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html">Tokenizar</a>
+    <a href="invest.html">Invertir</a>
+    <a href="investors.html">Inversores</a>
+    <a href="aggregate.html">Agregador</a>
+    <a href="admin.html" class="active">Admin</a>
+  </div>
+  <div class="nav-r">
+    <button id="wallet-btn" class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+  </div>
+</nav>
+
+<main>
+  <h1>Admin avanzado</h1>
+  <div class="sub">Acciones operativas que NO van por el wizard de tokenizar. Distintos roles tienen distintos permisos on-chain — el programa rechaza las que no corresponden.</div>
+
+  <div class="warn">⚠️ Estas acciones <strong>modifican estado on-chain</strong> de forma inmediata. Devnet only mientras el audit + CASP estén pendientes.</div>
+
+  <!-- 1. REVOKE KYC -->
+  <div class="card">
+    <h3>1. Revoke KYC <span class="role comp">compliance_signer</span></h3>
+    <div class="desc">Revoca KYC de una wallet ante sanctions hit, fraude, o requerimiento regulatorio. La wallet revocada no podrá comprar ni recibir tokens. NO afecta tokens ya en mano (para clawback hace falta PermanentDelegate, roadmap).</div>
+    <div class="row2">
+      <div class="field"><label>Wallet a revocar</label>
+        <input type="text" id="rk-wallet" placeholder="Pubkey base58…">
+      </div>
+      <div class="field"><label>Reason code</label>
+        <select id="rk-reason">
+          <option value="0">0 — manual</option>
+          <option value="1">1 — sanctions hit (OFAC / EU / UN)</option>
+          <option value="2">2 — fraud detection</option>
+          <option value="3">3 — regulatory request</option>
+          <option value="4">4 — wallet self-request</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-p btn-danger" id="rk-btn">Revocar KYC</button>
+    <div class="note">Emite ComplianceRevoked event con timestamp. Off-chain surveillance escucha y prioriza el caso.</div>
+  </div>
+
+  <!-- 2. SETTLE INVESTMENT OFFERING -->
+  <div class="card">
+    <h3>2. Settle Investment Offering <span class="role iss">issuer</span></h3>
+    <div class="desc">Registra on-chain el receipt de un yield distribuido off-chain (bank wire). Por epoch. Solo aplica a AssetClass::InvestmentOffering (e.g. Viñedo Rioja).</div>
+    <div class="field"><label>Asset Registry pubkey</label>
+      <input type="text" id="se-reg" placeholder="Pubkey del registry InvestmentOffering…">
+    </div>
+    <div class="row2">
+      <div class="field"><label>Epoch</label>
+        <input type="number" id="se-epoch" placeholder="0, 1, 2…" min="0">
+      </div>
+      <div class="field"><label>Yield pagado (USDC base units, 6 decimales)</label>
+        <input type="number" id="se-yield" placeholder="450000000 = 450 USDC" min="1">
+      </div>
+    </div>
+    <div class="field"><label>Attestation file (SWIFT confirmation, notario, etc.)</label>
+      <input type="file" id="se-file" accept=".pdf,.png,.jpg,.txt">
+      <div class="note">Se sube el SHA-256 (no el archivo). Guardá el original off-chain.</div>
+    </div>
+    <button class="btn-p" id="se-btn">Registrar yield epoch</button>
+  </div>
+
+  <!-- 3. UPDATE METADATA -->
+  <div class="card">
+    <h3>3. Update metadata (pre-mint) <span class="role iss">issuer</span></h3>
+    <div class="desc">Actualizá nombre, metadata_uri y white_paper_uri antes de hacer el primer <code>mint_token</code>. Después del primer mint queda inmutable (revertirá con MetadataFrozen).</div>
+    <div class="field"><label>Asset Registry pubkey</label>
+      <input type="text" id="um-reg" placeholder="Pubkey del registry…">
+    </div>
+    <div class="row2">
+      <div class="field"><label>Product name (max 50)</label>
+        <input type="text" id="um-name" placeholder="Viñedo Rioja 2026 Reserva">
+      </div>
+      <div class="field"><label>Metadata URI</label>
+        <input type="text" id="um-meta" placeholder="ipfs://…">
+      </div>
+    </div>
+    <div class="field"><label>White paper URI (obligatorio MiCA)</label>
+      <input type="text" id="um-wp" placeholder="ipfs://…/whitepaper.pdf">
+    </div>
+    <button class="btn-p" id="um-btn">Actualizar metadata</button>
+  </div>
+
+  <!-- 4. TRANSFER ISSUER -->
+  <div class="card">
+    <h3>4. Transfer issuer <span class="role iss">current issuer</span></h3>
+    <div class="desc">Cedé el rol issuer del registry a otra wallet. La nueva wallet DEBE tener ComplianceRecord KYC-verified (sin esto la ix revierte). Útil cuando vendés el SPV o rotás keypair operativo.</div>
+    <div class="field"><label>Asset Registry pubkey</label>
+      <input type="text" id="ti-reg" placeholder="Pubkey del registry…">
+    </div>
+    <div class="field"><label>New issuer wallet</label>
+      <input type="text" id="ti-new" placeholder="Pubkey base58 del nuevo issuer (debe tener KYC)">
+    </div>
+    <button class="btn-p" id="ti-btn">Transferir issuer</button>
+  </div>
+
+</main>
+
+<div id="toast-stack" style="position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px"></div>
+
+<script type="module">
+import { connectWallet, getPublicKey, isConnected } from './js/wallet-adapter.js';
+import {
+  revokeKyc, settleInvestmentOffering, updateMetadata, transferIssuer,
+  sha256OfFile, fetchMarketplace,
+} from './js/agroglobaldex-client.js';
+import { txUrl } from './js/network-config.js';
+
+const $ = s => document.querySelector(s);
+
+function toast(msg, kind='success') {
+  const t = document.createElement('div');
+  t.style.cssText = 'padding:14px 18px;background:#0A0F0C;border:1px solid '+
+    (kind==='error'?'#FF3D4A55':'#00FF6A28')+';border-radius:8px;color:'+
+    (kind==='error'?'#FF3D4A':'#00FF6A')+';font-size:13px;min-width:260px';
+  t.innerHTML = msg;
+  $('#toast-stack').appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 6000);
+}
+
+function txToast(sig) {
+  toast(`✓ Tx confirmado<br><a href="${txUrl(sig)}" target="_blank" style="color:inherit;text-decoration:underline;font-size:11px">${sig.slice(0,12)}…${sig.slice(-8)}</a>`);
+}
+
+// Wallet wiring
+const btn = $('#wallet-btn');
+btn.addEventListener('click', async () => {
+  try {
+    await connectWallet();
+    btn.classList.add('connected');
+    btn.querySelector('span').textContent = getPublicKey().slice(0,4) + '…' + getPublicKey().slice(-4);
+  } catch (e) { toast('Wallet error: ' + e.message, 'error'); }
+});
+
+// 1. Revoke KYC
+$('#rk-btn').addEventListener('click', async () => {
+  const wallet = $('#rk-wallet').value.trim();
+  const reasonCode = Number($('#rk-reason').value);
+  if (!wallet) return toast('Wallet requerida', 'error');
+  try {
+    $('#rk-btn').disabled = true;
+    const { tx } = await revokeKyc({ walletAddress: wallet, reasonCode });
+    txToast(tx);
+  } catch (e) {
+    toast('Error: ' + (e.message || e), 'error');
+  } finally {
+    $('#rk-btn').disabled = false;
+  }
+});
+
+// 2. Settle Investment Offering
+$('#se-btn').addEventListener('click', async () => {
+  const reg = $('#se-reg').value.trim();
+  const epoch = Number($('#se-epoch').value);
+  const yieldPaid = $('#se-yield').value;
+  const file = $('#se-file').files[0];
+  if (!reg || !yieldPaid || epoch < 0) return toast('Faltan campos', 'error');
+  if (!file) return toast('Adjuntá el archivo de attestation', 'error');
+  try {
+    $('#se-btn').disabled = true;
+    const attestation = await sha256OfFile(file);
+    const { tx } = await settleInvestmentOffering({
+      assetRegistryPubkey: reg, epoch, yieldPaidUsdc: yieldPaid, attestation,
+    });
+    txToast(tx);
+  } catch (e) {
+    toast('Error: ' + (e.message || e), 'error');
+  } finally {
+    $('#se-btn').disabled = false;
+  }
+});
+
+// 3. Update Metadata
+$('#um-btn').addEventListener('click', async () => {
+  const reg = $('#um-reg').value.trim();
+  const productName = $('#um-name').value.trim();
+  const metadataUri = $('#um-meta').value.trim();
+  const whitePaperUri = $('#um-wp').value.trim();
+  if (!reg || !productName || !whitePaperUri) return toast('Registry, nombre y white paper son obligatorios', 'error');
+  try {
+    $('#um-btn').disabled = true;
+    const { tx } = await updateMetadata({
+      assetRegistryPubkey: reg, productName, metadataUri, whitePaperUri,
+    });
+    txToast(tx);
+  } catch (e) {
+    toast('Error: ' + (e.message || e) + (String(e).includes('MetadataFrozen') ? '<br>El asset ya fue minteado — metadata frozen.' : ''), 'error');
+  } finally {
+    $('#um-btn').disabled = false;
+  }
+});
+
+// 4. Transfer Issuer
+$('#ti-btn').addEventListener('click', async () => {
+  const reg = $('#ti-reg').value.trim();
+  const newIssuer = $('#ti-new').value.trim();
+  if (!reg || !newIssuer) return toast('Faltan campos', 'error');
+  try {
+    $('#ti-btn').disabled = true;
+    const { tx } = await transferIssuer({
+      assetRegistryPubkey: reg, newIssuerAddress: newIssuer,
+    });
+    txToast(tx);
+  } catch (e) {
+    toast('Error: ' + (e.message || e) + (String(e).includes('KycNotVerified') ? '<br>El nuevo issuer no tiene KYC stamped.' : ''), 'error');
+  } finally {
+    $('#ti-btn').disabled = false;
+  }
+});
+</script>
+
+<script type="module" src="js/pwa-install.js"></script>
+</body>
+</html>
