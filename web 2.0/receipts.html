@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comprobantes de trade — AgroGlobalDex</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<meta name="description" content="Ledger público e inmutable de cada operación del marketplace. Proof-of-trade on-chain: trazabilidad supply-chain verificable.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--red:#FF3D4A;--amb:#F0A020;--bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;--r:8px;--r2:14px;--fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);min-height:100vh}
+a{color:inherit;text-decoration:none}
+nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nlt{font-family:var(--fd);font-size:16px}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px;flex-wrap:wrap}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r)}
+.nav-links a.active,.nav-links a:hover{color:var(--neon)}
+.nav-r{margin-left:auto}
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.nwb.connected{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb.connected .wdot{background:var(--neon)}
+.demo-banner{background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px}
+main{max-width:1200px;margin:32px auto;padding:0 32px 80px}
+h1{font-family:var(--fd);font-size:36px;margin-bottom:6px}
+.sub{color:var(--t2);margin-bottom:24px;font-size:14px;max-width:760px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:18px}
+.stat .v{font-family:var(--fd);font-size:28px;color:var(--neon)}
+.stat .l{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.filters{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.filters input{flex:1;min-width:220px;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);color:var(--txt);font-family:var(--fb);font-size:13px}
+.filters button{padding:10px 18px;background:var(--neon);color:#000;border:none;border-radius:var(--r);font-weight:700;font-size:13px;cursor:pointer}
+.filters button.ghost{background:var(--bg3);color:var(--t2);border:1px solid var(--bd2)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--bd2)}
+td{padding:11px 12px;border-bottom:1px solid var(--bd)}
+tr:hover td{background:var(--bg2)}
+.mono{font-family:monospace;font-size:12px}
+.pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase}
+.pill.native{background:#00FF6A1A;color:var(--neon)}
+.pill.external{background:#F0A0201A;color:var(--amb)}
+.empty{text-align:center;padding:60px 20px;color:var(--t3)}
+.flag{font-size:14px}
+.linkout{color:var(--neon);text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Ledger de comprobantes on-chain · datos de devnet</div>
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html">Tokenizar</a>
+    <a href="invest.html">Invertir</a>
+    <a href="receipts.html" class="active">Comprobantes</a>
+    <a href="investors.html">Inversores</a>
+  </div>
+  <div class="nav-r">
+    <button id="wallet-btn" class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+  </div>
+</nav>
+
+<main>
+  <h1>Comprobantes de trade</h1>
+  <div class="sub">Cada operación del marketplace deja un <strong>comprobante inmutable on-chain</strong> (TradeReceipt PDA). A diferencia de un NFT de metadata, es dato estructurado y consultable: auditores, reguladores y compradores pueden reconstruir la trazabilidad supply-chain completa. Esta es la versión mejorada del "trade receipt" de plataformas como AgriDex.</div>
+
+  <div class="stats">
+    <div class="stat"><div class="v" id="st-count">—</div><div class="l">Trades totales</div></div>
+    <div class="stat"><div class="v" id="st-volume">—</div><div class="l">Volumen USDC</div></div>
+    <div class="stat"><div class="v" id="st-fees">—</div><div class="l">Fees protocolo</div></div>
+    <div class="stat"><div class="v" id="st-countries">—</div><div class="l">Jurisdicciones</div></div>
+  </div>
+
+  <div class="filters">
+    <input type="text" id="f-wallet" placeholder="Filtrar por wallet (buyer)…">
+    <button id="f-apply">Filtrar</button>
+    <button class="ghost" id="f-clear">Limpiar</button>
+  </div>
+
+  <div id="table-wrap">
+    <div class="empty">Conectá una wallet o esperá a que cargue el ledger…</div>
+  </div>
+</main>
+
+<div id="toast-stack" style="position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px"></div>
+
+<script type="module">
+import { connectWallet, getPublicKey, isConnected } from './js/wallet-adapter.js';
+import { fetchAllTradeReceipts } from './js/agroglobaldex-client.js';
+import { txUrl, addrUrl, formatUsdc, truncateAddress, bytesToJurisdiction } from './js/network-config.js';
+
+const $ = s => document.querySelector(s);
+
+function toast(msg, kind='success') {
+  const t = document.createElement('div');
+  t.style.cssText = 'padding:14px 18px;background:#0A0F0C;border:1px solid '+
+    (kind==='error'?'#FF3D4A55':'#00FF6A28')+';border-radius:8px;color:'+
+    (kind==='error'?'#FF3D4A':'#00FF6A')+';font-size:13px;min-width:240px';
+  t.textContent = msg; $('#toast-stack').appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 4000);
+}
+
+// ISO-3166 alpha-2 → emoji flag
+function flag(iso2) {
+  if (!iso2 || iso2.length !== 2 || iso2 === '\0\0') return '🌐';
+  const A = 0x1F1E6;
+  const cc = iso2.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return '🌐';
+  return String.fromCodePoint(A + cc.charCodeAt(0) - 65) + String.fromCodePoint(A + cc.charCodeAt(1) - 65);
+}
+
+function fmtDate(unix) {
+  if (!unix) return '—';
+  const n = typeof unix === 'object' && unix.toNumber ? unix.toNumber() : Number(unix);
+  return new Date(n * 1000).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function n(x) { return typeof x === 'object' && x?.toNumber ? x.toNumber() : Number(x || 0); }
+
+function render(receipts) {
+  if (!receipts.length) {
+    $('#table-wrap').innerHTML = '<div class="empty">Sin comprobantes todavía. Cuando se ejecute la primera compra en el marketplace, aparecerá acá.</div>';
+    return;
+  }
+  // Stats
+  let vol = 0, fees = 0; const countries = new Set();
+  receipts.forEach(r => {
+    vol += n(r.grossUsdc); fees += n(r.feeUsdc);
+    const j = bytesToJurisdiction(r.buyerJurisdiction);
+    if (j && j !== '—') countries.add(j);
+  });
+  $('#st-count').textContent = receipts.length;
+  $('#st-volume').textContent = formatUsdc(vol, 0);
+  $('#st-fees').textContent = formatUsdc(fees, 0);
+  $('#st-countries').textContent = countries.size;
+
+  const rows = receipts.map(r => {
+    const j = bytesToJurisdiction(r.buyerJurisdiction);
+    const src = (r.source && Object.keys(r.source)[0]) || 'native';
+    const isExt = src.toLowerCase().includes('external');
+    return `<tr>
+      <td class="mono">#${n(r.tradeIndex)}</td>
+      <td><span class="pill ${isExt?'external':'native'}">${isExt?'Externo':'Nativo'}</span></td>
+      <td><a class="mono linkout" href="${addrUrl(r.assetMint?.toString?.()||r.assetMint)}" target="_blank">${truncateAddress(r.assetMint)}</a></td>
+      <td class="mono">${truncateAddress(r.buyer)}</td>
+      <td class="flag">${flag(j)} ${j}</td>
+      <td>${n(r.amount).toLocaleString('es-ES')}</td>
+      <td>${formatUsdc(n(r.grossUsdc))}</td>
+      <td>${fmtDate(r.settledAt)}</td>
+      <td><a class="mono linkout" href="${addrUrl(r.publicKey)}" target="_blank">ver</a></td>
+    </tr>`;
+  }).join('');
+
+  $('#table-wrap').innerHTML = `<table>
+    <thead><tr>
+      <th>#</th><th>Origen</th><th>Asset mint</th><th>Buyer</th><th>Juris.</th>
+      <th>Cantidad</th><th>Total</th><th>Fecha</th><th>Receipt</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+async function load(buyerFilter) {
+  $('#table-wrap').innerHTML = '<div class="empty">Cargando ledger on-chain…</div>';
+  try {
+    const receipts = await fetchAllTradeReceipts(buyerFilter ? { buyer: buyerFilter } : {});
+    render(receipts);
+  } catch (e) {
+    $('#table-wrap').innerHTML = '<div class="empty">Error cargando comprobantes: ' + (e.message||e) + '</div>';
+  }
+}
+
+$('#wallet-btn').addEventListener('click', async () => {
+  try {
+    await connectWallet();
+    const pk = getPublicKey();
+    $('#wallet-btn').classList.add('connected');
+    $('#wallet-btn').querySelector('span').textContent = pk.slice(0,4)+'…'+pk.slice(-4);
+  } catch (e) { toast('Wallet error: '+e.message, 'error'); }
+});
+
+$('#f-apply').addEventListener('click', () => {
+  const w = $('#f-wallet').value.trim();
+  load(w || null);
+});
+$('#f-clear').addEventListener('click', () => { $('#f-wallet').value=''; load(null); });
+
+// Auto-load read-only (no requiere wallet)
+load(null);
+</script>
+
+<script type="module" src="js/pwa-install.js"></script>
+</body>
+</html>
