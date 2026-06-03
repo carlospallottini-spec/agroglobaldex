@@ -194,4 +194,61 @@ pub mod agroglobaldex {
     pub fn transfer_issuer(ctx: Context<TransferIssuer>) -> Result<()> {
         instructions::transfer_issuer::handler(ctx)
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Lending — collateralized USDC loans against tokenized agro-RWA.
+    // The killer ag-finance primitive: instant credit against a tokenized
+    // harvest / warehouse receipt without a bank.
+    // ──────────────────────────────────────────────────────────────────
+
+    /// Create the lending market for this marketplace. Authority-only.
+    pub fn init_lending_market(
+        ctx: Context<InitLendingMarket>,
+        apr_bps: u16,
+        max_ltv_bps: u16,
+        liquidation_threshold_bps: u16,
+        liquidation_bonus_bps: u16,
+    ) -> Result<()> {
+        instructions::lending::init_lending_market_handler(
+            ctx,
+            apr_bps,
+            max_ltv_bps,
+            liquidation_threshold_bps,
+            liquidation_bonus_bps,
+        )
+    }
+
+    /// Deposit USDC liquidity into the lending pool. Anyone can fund.
+    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
+        instructions::lending::deposit_liquidity_handler(ctx, amount)
+    }
+
+    /// Set the collateral price (USDC per token) + enable flag for an asset.
+    /// Authority acts as oracle relay. Production: wire a signed price feed.
+    pub fn set_collateral_config(
+        ctx: Context<SetCollateralConfig>,
+        price_usdc_per_token: u64,
+        enabled: bool,
+    ) -> Result<()> {
+        instructions::lending::set_collateral_config_handler(ctx, price_usdc_per_token, enabled)
+    }
+
+    /// Open a loan: lock collateral Token-2022, receive USDC up to max LTV.
+    pub fn open_loan(
+        ctx: Context<OpenLoan>,
+        collateral_amount: u64,
+        borrow_amount: u64,
+    ) -> Result<()> {
+        instructions::lending::open_loan_handler(ctx, collateral_amount, borrow_amount)
+    }
+
+    /// Repay principal + accrued interest, unlock collateral.
+    pub fn repay_loan(ctx: Context<RepayLoan>) -> Result<()> {
+        instructions::lending::repay_loan_handler(ctx)
+    }
+
+    /// Liquidate an unhealthy loan: repay the debt, seize the collateral.
+    pub fn liquidate(ctx: Context<Liquidate>) -> Result<()> {
+        instructions::lending::liquidate_handler(ctx)
+    }
 }

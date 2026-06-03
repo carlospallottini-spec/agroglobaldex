@@ -1291,6 +1291,168 @@
       "args": []
     },
     {
+      "name": "deposit_liquidity",
+      "docs": [
+        "Deposit USDC liquidity into the lending pool. Anyone can fund."
+      ],
+      "discriminator": [
+        245,
+        99,
+        59,
+        25,
+        151,
+        71,
+        233,
+        249
+      ],
+      "accounts": [
+        {
+          "name": "provider",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lending_market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market.marketplace",
+                "account": "LendingMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "usdc_pool",
+          "writable": true
+        },
+        {
+          "name": "provider_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "provider"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "init_jurisdiction_policy",
       "docs": [
         "Create the on-chain mutable JurisdictionPolicy with conservative defaults."
@@ -1381,6 +1543,240 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "init_lending_market",
+      "docs": [
+        "Create the lending market for this marketplace. Authority-only."
+      ],
+      "discriminator": [
+        34,
+        162,
+        116,
+        14,
+        101,
+        137,
+        94,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lending_market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "usdc_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault_authority"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "apr_bps",
+          "type": "u16"
+        },
+        {
+          "name": "max_ltv_bps",
+          "type": "u16"
+        },
+        {
+          "name": "liquidation_threshold_bps",
+          "type": "u16"
+        },
+        {
+          "name": "liquidation_bonus_bps",
+          "type": "u16"
+        }
+      ]
     },
     {
       "name": "initialize",
@@ -1614,6 +2010,337 @@
           "type": "u16"
         }
       ]
+    },
+    {
+      "name": "liquidate",
+      "docs": [
+        "Liquidate an unhealthy loan: repay the debt, seize the collateral."
+      ],
+      "discriminator": [
+        223,
+        179,
+        226,
+        125,
+        48,
+        46,
+        39,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "liquidator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lending_market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market.marketplace",
+                "account": "LendingMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "loan.asset_registry",
+                "account": "LoanPosition"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "loan.borrower",
+                "account": "LoanPosition"
+              },
+              {
+                "kind": "account",
+                "path": "loan.asset_registry",
+                "account": "LoanPosition"
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidator_compliance",
+          "docs": [
+            "Liquidator must be KYC-verified to receive the seized collateral."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market.marketplace",
+                "account": "LendingMarket"
+              },
+              {
+                "kind": "account",
+                "path": "liquidator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_mint",
+          "writable": true
+        },
+        {
+          "name": "liquidator_collateral_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "liquidator"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_vault",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "usdc_pool",
+          "writable": true
+        },
+        {
+          "name": "liquidator_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "liquidator"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "usdc_token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
     },
     {
       "name": "list_asset",
@@ -2008,6 +2735,465 @@
       "args": [
         {
           "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "open_loan",
+      "docs": [
+        "Open a loan: lock collateral Token-2022, receive USDC up to max LTV."
+      ],
+      "discriminator": [
+        49,
+        29,
+        234,
+        76,
+        192,
+        61,
+        108,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lending_market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower_compliance",
+          "docs": [
+            "Borrower must be KYC-verified to take a loan."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_mint",
+          "writable": true
+        },
+        {
+          "name": "borrower_collateral_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault_authority"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "usdc_pool",
+          "writable": true
+        },
+        {
+          "name": "borrower_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "usdc_token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "collateral_amount",
+          "type": "u64"
+        },
+        {
+          "name": "borrow_amount",
           "type": "u64"
         }
       ]
@@ -2485,6 +3671,257 @@
       ]
     },
     {
+      "name": "repay_loan",
+      "docs": [
+        "Repay principal + accrued interest, unlock collateral."
+      ],
+      "discriminator": [
+        224,
+        93,
+        144,
+        77,
+        61,
+        17,
+        137,
+        54
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lending_market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market.marketplace",
+                "account": "LendingMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "loan.asset_registry",
+                "account": "LoanPosition"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_mint",
+          "writable": true
+        },
+        {
+          "name": "borrower_collateral_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_vault",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "usdc_pool",
+          "writable": true
+        },
+        {
+          "name": "borrower_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "usdc_token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "revoke_kyc",
       "docs": [
         "Revoke a wallet's KYC. Compliance-signer-only. Used for sanctions hits,",
@@ -2580,6 +4017,143 @@
         {
           "name": "reason_code",
           "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "set_collateral_config",
+      "docs": [
+        "Set the collateral price (USDC per token) + enable flag for an asset.",
+        "Authority acts as oracle relay. Production: wire a signed price feed."
+      ],
+      "discriminator": [
+        59,
+        39,
+        3,
+        171,
+        10,
+        224,
+        203,
+        32
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lending_market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset_registry"
+        },
+        {
+          "name": "collateral_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price_usdc_per_token",
+          "type": "u64"
+        },
+        {
+          "name": "enabled",
+          "type": "bool"
         }
       ]
     },
@@ -3715,6 +5289,19 @@
       ]
     },
     {
+      "name": "CollateralConfig",
+      "discriminator": [
+        150,
+        147,
+        210,
+        201,
+        79,
+        202,
+        93,
+        49
+      ]
+    },
+    {
       "name": "ComplianceRecord",
       "discriminator": [
         147,
@@ -3751,6 +5338,32 @@
         129,
         209,
         132
+      ]
+    },
+    {
+      "name": "LendingMarket",
+      "discriminator": [
+        246,
+        114,
+        50,
+        98,
+        72,
+        157,
+        28,
+        120
+      ]
+    },
+    {
+      "name": "LoanPosition",
+      "discriminator": [
+        45,
+        172,
+        28,
+        194,
+        82,
+        206,
+        243,
+        190
       ]
     },
     {
@@ -3857,6 +5470,19 @@
         180,
         249,
         254
+      ]
+    },
+    {
+      "name": "CollateralConfigured",
+      "discriminator": [
+        101,
+        105,
+        125,
+        236,
+        162,
+        22,
+        37,
+        94
       ]
     },
     {
@@ -3977,6 +5603,32 @@
       ]
     },
     {
+      "name": "LendingMarketInitialized",
+      "discriminator": [
+        244,
+        242,
+        249,
+        138,
+        156,
+        35,
+        123,
+        108
+      ]
+    },
+    {
+      "name": "LiquidityDeposited",
+      "discriminator": [
+        218,
+        155,
+        74,
+        193,
+        59,
+        66,
+        94,
+        122
+      ]
+    },
+    {
       "name": "ListingPriceUpdated",
       "discriminator": [
         85,
@@ -3987,6 +5639,45 @@
         54,
         37,
         147
+      ]
+    },
+    {
+      "name": "LoanLiquidated",
+      "discriminator": [
+        1,
+        29,
+        28,
+        96,
+        66,
+        95,
+        8,
+        204
+      ]
+    },
+    {
+      "name": "LoanOpened",
+      "discriminator": [
+        66,
+        100,
+        157,
+        177,
+        1,
+        226,
+        123,
+        151
+      ]
+    },
+    {
+      "name": "LoanRepaid",
+      "discriminator": [
+        202,
+        183,
+        88,
+        60,
+        211,
+        54,
+        142,
+        243
       ]
     },
     {
@@ -4217,6 +5908,46 @@
       "code": 6034,
       "name": "EpochNotMonotonic",
       "msg": "Settlement epochs must be strictly monotonic increasing"
+    },
+    {
+      "code": 6035,
+      "name": "InvalidLendingParams",
+      "msg": "Lending parameters out of bounds (LTV/threshold/APR)"
+    },
+    {
+      "code": 6036,
+      "name": "CollateralNotEnabled",
+      "msg": "This asset is not enabled as collateral"
+    },
+    {
+      "code": 6037,
+      "name": "InvalidCollateralPrice",
+      "msg": "Collateral price is zero or stale"
+    },
+    {
+      "code": 6038,
+      "name": "ExceedsMaxLtv",
+      "msg": "Requested borrow exceeds the maximum loan-to-value"
+    },
+    {
+      "code": 6039,
+      "name": "InsufficientLiquidity",
+      "msg": "Lending pool has insufficient USDC liquidity"
+    },
+    {
+      "code": 6040,
+      "name": "LoanInactive",
+      "msg": "Loan is not active"
+    },
+    {
+      "code": 6041,
+      "name": "LoanHealthy",
+      "msg": "Loan is healthy — cannot be liquidated yet"
+    },
+    {
+      "code": 6042,
+      "name": "RepayTooLow",
+      "msg": "Repay amount does not cover the outstanding debt"
     }
   ],
   "types": [
@@ -4768,6 +6499,81 @@
       }
     },
     {
+      "name": "CollateralConfig",
+      "docs": [
+        "Per-asset collateral configuration. Sets the price (USDC per token) used",
+        "to value collateral, plus an enable flag. Price is set by the marketplace",
+        "authority acting as an oracle relay; production should wire a signed",
+        "price feed (see audit #12)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_usdc_per_token",
+            "docs": [
+              "USDC base units (6 decimals) per ONE collateral token base unit."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "enabled",
+            "docs": [
+              "Whether this asset may be used as collateral."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "updated_at",
+            "docs": [
+              "Last time the price was refreshed."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralConfigured",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_usdc_per_token",
+            "type": "u64"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "ComplianceRecord",
       "docs": [
         "One per wallet. Stamped by the marketplace `compliance_signer`."
@@ -5309,6 +7115,156 @@
       }
     },
     {
+      "name": "LendingMarket",
+      "docs": [
+        "On-chain lending market: lets producers borrow USDC against their",
+        "tokenized agro-RWA collateral. One per marketplace. The killer ag-finance",
+        "primitive — instant credit against a warehouse receipt / tokenized harvest",
+        "without a bank. USDC liquidity sits in a pool ATA owned by the",
+        "`lending_vault` authority PDA."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketplace",
+            "docs": [
+              "Marketplace this lending market belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "docs": [
+              "USDC mint used for both liquidity and loans (== marketplace.usdc_mint)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_pool",
+            "docs": [
+              "USDC pool ATA owned by the vault authority PDA."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "apr_bps",
+            "docs": [
+              "Fixed annualized interest rate in basis points (e.g. 1200 = 12% APR)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "max_ltv_bps",
+            "docs": [
+              "Maximum loan-to-value in basis points (e.g. 5000 = borrow up to 50%",
+              "of collateral value). Conservative defaults protect the pool."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "liquidation_threshold_bps",
+            "docs": [
+              "Health-factor threshold for liquidation in basis points. When the",
+              "current LTV exceeds this (e.g. 8000 = 80%), the loan can be liquidated."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "liquidation_bonus_bps",
+            "docs": [
+              "Bonus paid to the liquidator in basis points of seized collateral",
+              "(e.g. 500 = 5% discount). Incentivizes timely liquidation."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "total_liquidity",
+            "docs": [
+              "Total USDC currently available in the pool."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_borrowed",
+            "docs": [
+              "Total USDC currently lent out (principal only)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "loan_count",
+            "docs": [
+              "Monotonic counter of loans ever opened."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for this PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "vault_authority_bump",
+            "docs": [
+              "Bump for the vault authority PDA (owns usdc_pool + collateral ATAs)."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LendingMarketInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "marketplace",
+            "type": "pubkey"
+          },
+          {
+            "name": "apr_bps",
+            "type": "u16"
+          },
+          {
+            "name": "max_ltv_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityDeposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_liquidity",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ListingPriceUpdated",
       "type": {
         "kind": "struct",
@@ -5339,6 +7295,192 @@
           },
           {
             "name": "External"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanLiquidated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "liquidator",
+            "type": "pubkey"
+          },
+          {
+            "name": "debt_repaid_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_seized",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "principal_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "loan_index",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanPosition",
+      "docs": [
+        "A single borrower's loan position against one collateral asset."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_vault",
+            "docs": [
+              "Collateral ATA owned by the vault authority PDA holding the tokens."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_amount",
+            "docs": [
+              "Collateral tokens locked (base units)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "principal_usdc",
+            "docs": [
+              "Outstanding principal in USDC base units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "accrued_interest_usdc",
+            "docs": [
+              "Interest accrued and not yet paid (USDC base units)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "apr_bps",
+            "docs": [
+              "APR snapshot at open time (loan keeps its rate)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "opened_at",
+            "docs": [
+              "When the loan was opened."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "last_accrued_at",
+            "docs": [
+              "Last time interest was accrued into `accrued_interest_usdc`."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "loan_index",
+            "docs": [
+              "Global sequential index."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "active",
+            "docs": [
+              "Active until fully repaid or liquidated."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanRepaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "interest_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_returned",
+            "type": "u64"
           }
         ]
       }

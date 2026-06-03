@@ -106,4 +106,28 @@ pub enum AgroError {
 
     #[msg("Settlement epochs must be strictly monotonic increasing")]
     EpochNotMonotonic,
+
+    #[msg("Lending parameters out of bounds (LTV/threshold/APR)")]
+    InvalidLendingParams,
+
+    #[msg("This asset is not enabled as collateral")]
+    CollateralNotEnabled,
+
+    #[msg("Collateral price is zero or stale")]
+    InvalidCollateralPrice,
+
+    #[msg("Requested borrow exceeds the maximum loan-to-value")]
+    ExceedsMaxLtv,
+
+    #[msg("Lending pool has insufficient USDC liquidity")]
+    InsufficientLiquidity,
+
+    #[msg("Loan is not active")]
+    LoanInactive,
+
+    #[msg("Loan is healthy — cannot be liquidated yet")]
+    LoanHealthy,
+
+    #[msg("Repay amount does not cover the outstanding debt")]
+    RepayTooLow,
 }
