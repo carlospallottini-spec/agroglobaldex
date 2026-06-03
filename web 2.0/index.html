@@ -261,15 +261,18 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 /* MARKETPLACE PREVIEW */
 .mp-preview{background:var(--bg)}
 .mp-layout{display:grid;grid-template-columns:1fr 380px;gap:24px;max-width:1200px;margin:0 auto;margin-top:40px}
-.mp-map-box{border:1px solid var(--bd);border-radius:var(--r3);overflow:hidden;height:440px;position:relative;background:var(--bg2)}
+.mp-map-box{border:1px solid var(--bd);border-radius:var(--r3);overflow:hidden;height:440px;position:relative;background:#0a1424}
 #map{width:100%;height:100%;z-index:1}
-.leaflet-tile-pane{filter:saturate(.15) brightness(.35) contrast(1.1) hue-rotate(80deg)}
+/* Sutil overlay para que los labels y markers se lean bien sobre el satelite */
+.leaflet-tile-pane{filter:saturate(1) brightness(.96) contrast(1.02)}
+/* Overlay de labels en blanco para que los nombres de paises se vean sobre el satelite oscuro de oceano */
+.leaflet-overlay-pane svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .leaflet-control-zoom a{background:rgba(5,8,10,.9)!important;color:var(--neon)!important;border:1px solid var(--bd2)!important;width:30px!important;height:30px!important;line-height:30px!important;border-radius:6px!important;font-family:var(--fb)!important}
 .leaflet-control-attribution{display:none!important}
-.mk{position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
-.mk-dot{width:10px;height:10px;border-radius:50%;background:var(--neon);position:relative;z-index:2;box-shadow:0 0 12px rgba(0,255,106,.5)}
-.mk-dot.gold{background:var(--gold);box-shadow:0 0 12px rgba(200,168,75,.5)}
-.mk-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--neon);opacity:.4;animation:mpulse 2.5s infinite}
+.mk{position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+.mk-dot{width:12px;height:12px;border-radius:50%;background:var(--neon);position:relative;z-index:2;box-shadow:0 0 0 2px rgba(5,8,10,.85),0 0 16px rgba(0,255,106,.9),0 2px 6px rgba(0,0,0,.6)}
+.mk-dot.gold{background:var(--gold);box-shadow:0 0 0 2px rgba(5,8,10,.85),0 0 16px rgba(200,168,75,.9),0 2px 6px rgba(0,0,0,.6)}
+.mk-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--neon);opacity:.65;animation:mpulse 2.5s infinite}
 .mk-ring.gold{border-color:var(--gold)}
 @keyframes mpulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
 .leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid var(--bd2)!important;border-radius:var(--r2)!important;color:var(--txt)!important}
@@ -1111,10 +1114,13 @@ const FEED=[
   {u:"Café Sierra Nevada",f:"🇨🇴",a:"tokenizó 8T Café",amt:"$63K"},
 ];
 
-const map=L.map('map',{center:[30,0],zoom:2,zoomControl:true,scrollWheelZoom:false,attributionControl:false,minZoom:2,maxZoom:6});
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(map);
+const map=L.map('map',{center:[30,0],zoom:2,zoomControl:true,scrollWheelZoom:false,attributionControl:false,minZoom:2,maxZoom:6,worldCopyJump:true});
+// Capa base: Esri World Imagery (satelite real, sin cuenta) — muestra campos, oceanos, terreno reales.
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'© Esri'}).addTo(map);
+// Overlay transparente con nombres de paises/oceanos en blanco — clean & readable sobre el satelite.
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,opacity:.9}).addTo(map);
 COUNTRIES.forEach(c=>{
-  const icon=L.divIcon({className:'',html:`<div class="mk"><div class="mk-ring ${c.g?'gold':''}"></div><div class="mk-dot ${c.g?'gold':''}"></div></div>`,iconSize:[28,28],iconAnchor:[14,14]});
+  const icon=L.divIcon({className:'',html:`<div class="mk"><div class="mk-ring ${c.g?'gold':''}"></div><div class="mk-dot ${c.g?'gold':''}"></div></div>`,iconSize:[32,32],iconAnchor:[16,16]});
   const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
   m.bindPopup(`<div class="pop-t">${c.flag} ${c.name}</div><div class="pop-i">${c.prod}</div><div class="pop-v">${c.comp} empresas · ${c.vol}</div>`);
 });
