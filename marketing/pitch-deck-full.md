@@ -29,13 +29,15 @@
 
 ## Slide 3 — Solution
 
-**Headline:** Una sola plataforma para tokenizar, agregar y tradear cualquier activo agropecuario, con compliance MiCA-grade.
+**Headline:** Una sola plataforma para tokenizar, agregar, tradear **y financiar** cualquier activo agropecuario, con compliance MiCA-grade.
 
-**Body — dos casos de uso:**
+**Body — tres casos de uso:**
 
 **1. Tokenización directa.** Productores tokenizan kg/litros de su producto físico — granos, **carnes, vinos, aceites, lácteos, frutas, vegetales** — en Solana con Token-2022 + Transfer Hook. Cada token representa una unidad física con certificado off-chain verificable on-chain (hash SHA-256).
 
 **2. Agregador global.** AgroGlobalDex es **single front-end** que lista tokens de otras plataformas (Agrotoken, Topaz, RIPE, Centrifuge…) por sector y país, dándoles distribución y a los inversores **una sola interfaz** para invertir cross-border.
+
+**3. Crédito al productor.** Lending market on-chain: el productor lockea su cosecha tokenizada como colateral y recibe USDC en segundos. Sin banco, sin papeleo, sin tasa variable. El warehouse receipt deja de ser un papel y se vuelve liquidez productiva. **Esto es lo que cierra el ciclo capital → producción → settlement** y es lo que ningún competidor del espacio (AgriDex incluido) ofrece hoy.
 
 **KYC + jurisdicción enforced on-chain en cada transfer** (Transfer Hook). MiCA-aligned desde día uno.
 
@@ -54,12 +56,14 @@
 
 ## Slide 5 — Product (con captura/mockup)
 
-**Headline:** Cuatro flows en una sola app web + móvil instalable.
+**Headline:** Seis flows en una sola app web + móvil instalable.
 
-**Bullet points** (con screenshots de la web — tomar de /marketplace, /tokenize, /invest, /aggregate):
+**Bullet points** (con screenshots de la web — tomar de /marketplace, /tokenize, /invest, /borrow, /receipts, /aggregate):
 - **Marketplace.** Lista de activos nativos + agregados, filtros por sector / país / clase.
 - **Tokenizar.** Wizard 4 pasos para productores. Calcula SHA-256 del certificado en el navegador, firma con wallet Solana, mintea Token-2022.
-- **Invertir.** Yield offerings y commodities físicos, modal de detalle con disclosures MiCA.
+- **Invertir.** Yield offerings y commodities físicos, modal de detalle con disclosures MiCA. Cada offering muestra el último settlement on-chain ("epoch 2 · USD 450 acum").
+- **🆕 Crédito.** Lending market on-chain: productor lockea cosecha tokenizada → recibe USDC en segundos. APR fijo snapshot al abrir, LTV max 50%, liquidación si supera 80%. **Esto NO lo tiene AgriDex ni nadie en el espacio crypto-agro hoy.** Es nuestro killer feature: el productor argentino que vende soja al exportador a 90 días puede usar el token de su warehouse receipt como colateral y cobrar al día 0.
+- **🆕 Comprobantes.** Ledger público de cada trade. Cada compra deja un `TradeReceipt` PDA inmutable con buyer/seller/jurisdiction/amount/fees — supply-chain provenance verificable sin parsear metadata NFT.
 - **Agregador.** Admin curated. Tokens RWA-agro de terceros aparecen junto a los nativos.
 
 **Stack:** Solana mainnet (target Q3 2026) · Anchor 0.31 · Token-2022 · PWA + Capacitor Android · multi-wallet (Phantom/Solflare/Backpack).
@@ -145,6 +149,7 @@
 | **Proof-of-trade**: receipt por trade | NFT con metadata | **PDA estructurada queryable** |
 | KYC enforcement on-chain (TransferHook) | ❌ | ✅ Token-2022 |
 | **Yield offerings** (security tokens MiFID II) | ❌ | ✅ con settlement on-chain receipt + epochs |
+| **Crédito al productor** (lending market on-chain) | ❌ | ✅ APR fijo, LTV max 50%, liquidación automática |
 | **Aggregator** de tokens de otras plataformas | ❌ | ✅ (Agrotoken, Topaz, Centrifuge…) |
 | Revocación de KYC + transferencia de issuer | ❌ | ✅ ix dedicadas |
 | White paper MiCA Art. 6 templates legales | ❌ | ✅ pack legal completo |

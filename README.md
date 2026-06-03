@@ -32,12 +32,15 @@ python3 -m http.server 8000 --directory "web 2.0"
 # Abrir http://localhost:8000/index.html
 ```
 
-**8 páginas listas:**
+**11 páginas listas:**
 - `/index.html` — landing
 - `/marketplace.html` — listings on-chain
 - `/tokenize.html` — wizard para productores (4 pasos)
-- `/invest.html` — yield offerings
-- `/aggregate.html` — admin / curador
+- `/invest.html` — yield offerings (con settlement history on-chain)
+- **`/borrow.html`** — lending market: USDC contra colateral tokenizado, APR fijo, LTV 50%
+- **`/receipts.html`** — ledger público de TradeReceipts (proof-of-trade)
+- `/aggregate.html` — admin / curador (cross-platform tokens)
+- `/admin.html` — operaciones avanzadas (revoke_kyc, settle, update_metadata, transfer_issuer)
 - `/investors.html` — fundraising pre-seed
 - `/about.html`, `/contact.html`, `/team.html`
 
