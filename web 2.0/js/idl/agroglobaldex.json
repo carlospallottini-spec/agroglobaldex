@@ -2746,7 +2746,40 @@
           }
         },
         {
-          "name": "asset_registry"
+          "name": "asset_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "asset_registry.index",
+                "account": "AssetRegistry"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -4179,6 +4212,11 @@
       "code": 6033,
       "name": "InvalidIssuer",
       "msg": "Invalid issuer: must not be the default pubkey nor equal to the current issuer"
+    },
+    {
+      "code": 6034,
+      "name": "EpochNotMonotonic",
+      "msg": "Settlement epochs must be strictly monotonic increasing"
     }
   ],
   "types": [
@@ -4664,6 +4702,31 @@
               "immutable fields are allowed."
             ],
             "type": "bool"
+          },
+          {
+            "name": "last_settled_epoch",
+            "docs": [
+              "For `InvestmentOffering`: highest epoch settled so far (+1 means N",
+              "distributions recorded). 0 with `total_yield_paid_usdc == 0` means no",
+              "distribution yet. Lets the UI show settlement history without an",
+              "off-chain indexer."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "total_yield_paid_usdc",
+            "docs": [
+              "For `InvestmentOffering`: cumulative USDC yield recorded across all",
+              "epochs (base units, 6 decimals)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "last_settled_at",
+            "docs": [
+              "Unix timestamp of the most recent settlement. 0 if none."
+            ],
+            "type": "i64"
           },
           {
             "name": "index",

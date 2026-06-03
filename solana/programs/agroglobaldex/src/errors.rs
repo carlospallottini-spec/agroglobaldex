@@ -103,4 +103,7 @@ pub enum AgroError {
 
     #[msg("Invalid issuer: must not be the default pubkey nor equal to the current issuer")]
     InvalidIssuer,
+
+    #[msg("Settlement epochs must be strictly monotonic increasing")]
+    EpochNotMonotonic,
 }

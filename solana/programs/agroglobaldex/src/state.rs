@@ -256,6 +256,16 @@ pub struct AssetRegistry {
     /// True once the issuer has minted at least once and no more changes to
     /// immutable fields are allowed.
     pub frozen_metadata: bool,
+    /// For `InvestmentOffering`: highest epoch settled so far (+1 means N
+    /// distributions recorded). 0 with `total_yield_paid_usdc == 0` means no
+    /// distribution yet. Lets the UI show settlement history without an
+    /// off-chain indexer.
+    pub last_settled_epoch: u32,
+    /// For `InvestmentOffering`: cumulative USDC yield recorded across all
+    /// epochs (base units, 6 decimals).
+    pub total_yield_paid_usdc: u64,
+    /// Unix timestamp of the most recent settlement. 0 if none.
+    pub last_settled_at: i64,
     /// Sequential index assigned by the marketplace at registration time.
     /// Used as a seed component so PDA seeds are deterministically
     /// reconstructible without trusting the client.
