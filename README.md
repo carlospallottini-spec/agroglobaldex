@@ -13,10 +13,10 @@
 
 | Plataforma | Archivo | Notas |
 |---|---|---|
-| 🪟 Windows 10/11 | `AgroGlobalDex-Setup-2.1.0.exe` | Instalador NSIS — click → Next → Next |
-| 🪟 Windows portable | `AgroGlobalDex-2.1.0-portable.exe` | Sin instalar — doble click y corre |
-| 🍎 macOS | `AgroGlobalDex-2.1.0.dmg` | Intel + Apple Silicon |
-| 🐧 Linux | `AgroGlobalDex-2.1.0.AppImage` | `chmod +x` y ejecutar |
+| 🪟 Windows 10/11 | `AgroGlobalDex-Setup-2.2.0.exe` | Instalador NSIS — click → Next → Next |
+| 🪟 Windows portable | `AgroGlobalDex-2.2.0-portable.exe` | Sin instalar — doble click y corre |
+| 🍎 macOS | `AgroGlobalDex-2.2.0.dmg` | Intel + Apple Silicon |
+| 🐧 Linux | `AgroGlobalDex-2.2.0.AppImage` | `chmod +x` y ejecutar |
 | 📱 Mobile (PWA) | Web installable | Abrí la web en el móvil → "Añadir a pantalla de inicio" |
 
 Cada vez que tagueamos `v*` el workflow buildea Windows + macOS + Linux en paralelo y los publica como Release. Tamaño ~90 MB.

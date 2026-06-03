@@ -5,6 +5,57 @@ All notable changes to AgroGlobalDex are documented here. Follows
 
 Repository: https://github.com/carlospallottini-spec/agroglobaldex
 
+## [Unreleased] — 0.4.0 (proof-of-trade ledger, inspirado en AgriDex)
+
+### Programa Solana — Feature TradeReceipt
+
+- **Nuevo account `TradeReceipt`** — proof-of-trade inmutable creado en cada
+  `buy_asset` y `buy_external_asset`. Seed `[trade_receipt, marketplace,
+  trade_index]`. Campos: `marketplace`, `listing`, `asset_mint`, `buyer`,
+  `seller`, `source` (Native/External), `amount`, `unit_price_usdc`,
+  `gross_usdc`, `fee_usdc`, `buyer_jurisdiction` (snapshot), `trade_index`,
+  `settled_at`. Equivalente estructurado del "trade receipt NFT" de
+  AgriDex, queryable sin parsear metadata JSON.
+- **`Marketplace.trade_count: u64`** — contador global monotónico, derivar
+  el siguiente receipt PDA.
+- **Evento `TradeReceiptCreated`** — para indexers.
+
+### Programa Solana — Settlement history persistido
+
+- **`AssetRegistry` agrega 3 campos**: `last_settled_epoch: u32`,
+  `total_yield_paid_usdc: u64`, `last_settled_at: i64`. Antes
+  `settle_investment_offering` solo emitía event; ahora persiste el
+  cursor on-chain.
+- **`EpochNotMonotonic`** — la ix rechaza epochs que no son estrictamente
+  crecientes. Esquema queryable sin indexer.
+
+### Frontend
+
+- **`receipts.html`** nueva — ledger público read-only de comprobantes.
+  4 stats (trades, volumen, fees, jurisdicciones), filtro por wallet
+  (memcmp), emoji flags por buyer_jurisdiction. Link en nav de las 8
+  páginas públicas.
+- **`invest.html`** — cada offering card muestra "Último settlement ·
+  epoch N · USD X acum." si hubo distribución, "Sin distribuciones aún"
+  si nunca se settleó.
+- **Client**: `fetchAllTradeReceipts({ buyer, seller })` con memcmp,
+  `findTradeReceiptPda`. `buyAsset` y `buyExternalAsset` pasan el
+  receipt PDA derivado de `mp.tradeCount`.
+
+### Marketing
+
+- **Slide 9 pitch deck** — tabla comparativa específica vs AgriDex
+  (10 capacidades). Claim diferencial: nuestro receipt es PDA tipada,
+  no metadata NFT.
+
+### Schema changes (breaking on-chain)
+
+`Marketplace` y `AssetRegistry` crecieron en bytes. Solo afecta
+devnet/localnet (mainnet sin deployar todavía). Requiere `--reset` del
+validator local. CI / seed script intactos.
+
+---
+
 ## [Unreleased] — 0.3.0 (audit pre-mainnet)
 
 ### Programa Solana — Critical fixes (audit interno)
