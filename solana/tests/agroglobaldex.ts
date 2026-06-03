@@ -639,4 +639,55 @@ describe("agroglobaldex", function () {
       "InvalidDuration",
     );
   });
+
+  // ---------------- Lending module ----------------------------------------
+
+  it("29 sad: init_lending_market with max_ltv >= liquidation_threshold reverts", async () => {
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    await expectRevert(
+      program.methods.initLendingMarket(1200, 8000, 7000, 500) // max_ltv 80% >= threshold 70%
+        .accounts({
+          authority: authority.publicKey, marketplace, lendingMarket: lm,
+          vaultAuthority: vaultAuth, usdcMint, usdcPool,
+          tokenProgram: TOKEN_PROGRAM_ID, associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        }).rpc(),
+      "InvalidLendingParams",
+    );
+  });
+
+  it("30 init_lending_market: 12% APR, 50% LTV, 80% liq threshold", async () => {
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    await program.methods.initLendingMarket(1200, 5000, 8000, 500)
+      .accounts({
+        authority: authority.publicKey, marketplace, lendingMarket: lm,
+        vaultAuthority: vaultAuth, usdcMint, usdcPool,
+        tokenProgram: TOKEN_PROGRAM_ID, associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      }).rpc();
+    const acc = await program.account.lendingMarket.fetch(lm);
+    assert.equal(acc.aprBps, 1200);
+    assert.equal(acc.maxLtvBps, 5000);
+    assert.equal(acc.liquidationThresholdBps, 8000);
+    assert.equal(acc.totalLiquidity.toString(), "0");
+  });
+
+  it("31 set_collateral_config: enable Grain (idx 0) at 1.00 USDC/token", async () => {
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+    await program.methods.setCollateralConfig(new BN(1_000_000), true) // 1 USDC (6 decimals) per token
+      .accounts({
+        authority: authority.publicKey, marketplace, lendingMarket: lm,
+        assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId,
+      }).rpc();
+    const acc = await program.account.collateralConfig.fetch(cfg);
+    assert.equal(acc.enabled, true);
+    assert.equal(acc.priceUsdcPerToken.toString(), "1000000");
+  });
 });

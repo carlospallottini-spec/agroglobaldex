@@ -5,6 +5,65 @@ All notable changes to AgroGlobalDex are documented here. Follows
 
 Repository: https://github.com/carlospallottini-spec/agroglobaldex
 
+## [Unreleased] — 0.5.0 (módulo de crédito colateralizado — ag-finance)
+
+### Programa Solana — Lending module (6 instrucciones nuevas)
+
+La primitiva ag-finance más disruptiva del sector: **crédito USDC instantáneo
+contra cosecha tokenizada, sin banco**. El productor deposita sus tokens
+RWA-agro como colateral y toma un préstamo on-chain. Generaliza cross-sector
++ cross-país lo que Agrotoken hizo para granos en LATAM.
+
+- **`init_lending_market`** (authority) — APR, max LTV, liquidation threshold
+  + bonus, crea el pool USDC (ATA owned by vault authority PDA). Valida
+  `max_ltv < liquidation_threshold`.
+- **`deposit_liquidity`** (cualquiera) — fondea el pool con USDC.
+- **`set_collateral_config`** (authority/oráculo) — precio USDC/token +
+  enable por asset. `CollateralConfig` PDA por `asset_registry`.
+- **`open_loan`** (borrower) — lockea colateral Token-2022, recibe USDC
+  hasta `max_ltv * collateral_value`. Requiere KYC del borrower.
+- **`repay_loan`** (borrower) — paga principal + interés acumulado,
+  recupera el colateral.
+- **`liquidate`** (cualquiera KYC'd) — si `debt * 10000 >= collateral_value
+  * liq_threshold`, el liquidator paga la deuda y se lleva el colateral.
+
+Interés lineal: `principal * apr_bps * elapsed_s / (10000 * SECONDS_PER_YEAR)`.
+Sin compounding sorpresa, auditable.
+
+Total instrucciones: **27** (era 21).
+
+### State nuevo
+- `LendingMarket` (apr, ltv, thresholds, liquidity, borrowed, loan_count)
+- `CollateralConfig` (price + enabled por asset)
+- `LoanPosition` (colateral, principal, accrued_interest, apr snapshot)
+- 9 errores + 6 eventos nuevos.
+
+### Compliance
+El `vault_authority` PDA necesita `ComplianceRecord` KYC-verified (stampeado
+una vez por el compliance_signer) porque los colaterales son Token-2022 con
+el TransferHook. Borrower y liquidator también requieren KYC. Documentado en
+RUNBOOK §7b.
+
+### Frontend
+- **`borrow.html`** nueva — UI de crédito: pool stats, form pedir préstamo
+  con cálculo de LTV en vivo, "Mis préstamos" con repago, card proveer
+  liquidez. Error hints contextuales.
+- Client: `fetchLendingMarket`, `fetchAllLoans`, `fetchCollateralConfig`,
+  `openLoan`, `repayLoan`, `depositLiquidity` + 4 PDA helpers.
+- Nav: "Crédito" en las 8 páginas públicas.
+
+### Tests
+- 3 lending tests (init sad/happy params, set_collateral_config). 31 total.
+
+### Docs
+- RUNBOOK §7b: setup lending (KYC del vault), operación, liquidación,
+  tabla de riesgos.
+
+### Schema changes (breaking on-chain)
+Nuevos account types. Solo afecta devnet/localnet (sin mainnet).
+
+---
+
 ## [Unreleased] — 0.4.0 (proof-of-trade ledger, inspirado en AgriDex)
 
 ### Programa Solana — Feature TradeReceipt

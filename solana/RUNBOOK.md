@@ -214,6 +214,65 @@ auditoría profesional.
 
 ---
 
+## 7b. Lending — setup y operaciones
+
+El módulo de crédito colateralizado requiere un setup inicial y monitoreo
+continuo del health de los préstamos.
+
+### Setup inicial (una vez)
+
+```
+1. authority → init_lending_market(apr_bps, max_ltv_bps,
+   liquidation_threshold_bps, liquidation_bonus_bps)
+   Recomendado conservador: apr=1200 (12%), max_ltv=5000 (50%),
+   liq_threshold=8000 (80%), liq_bonus=500 (5%).
+
+2. compliance_signer → update_kyc(vault_authority_pda, kyc=true,
+   jurisdiction="XX" interno, accredited=true)
+   CRÍTICO: el vault PDA recibe colateral Token-2022, y el TransferHook
+   exige ComplianceRecord en el destino. Sin este paso, NINGÚN open_loan
+   funciona. El `vault_authority` PDA = [b"lending_vault", lending_market].
+
+3. authority → set_collateral_config(asset_registry, price_usdc_per_token,
+   enabled=true) por cada asset aceptado como colateral.
+
+4. Fondear el pool: cualquiera → deposit_liquidity(amount). El treasury
+   o un LP institucional aporta el USDC inicial.
+```
+
+### Operación continua
+
+**Actualizar precios de colateral** (oráculo):
+- `authority → set_collateral_config(asset, nuevo_precio, true)` cada vez
+  que el spot price del commodity se mueve materialmente. Producción debe
+  wirear un price feed firmado (audit #12) en lugar de la authority manual.
+
+**Monitorear health de préstamos**:
+- Indexar el event `LoanOpened`. Para cada loan activo, calcular
+  `LTV = (principal + accrued_interest) / (collateral_amount * price)`.
+- Si `LTV > liquidation_threshold`, el loan es liquidable.
+- Alertar al equipo + permitir que liquidators (KYC'd) ejecuten `liquidate`.
+
+**Liquidación**:
+- Cualquier wallet KYC-verified puede llamar `liquidate(loan)` si el loan
+  superó el threshold. El liquidator paga la deuda (principal+interés) al
+  pool y se lleva TODO el colateral (el bonus es implícito: el colateral
+  vale más que la deuda al threshold).
+- En un crash de precio del commodity, bajá `set_collateral_config` ANTES
+  de que los loans queden bajo-colateralizados, o el pool come pérdidas.
+
+### Riesgos del módulo lending
+
+| Riesgo | Mitigación |
+|---|---|
+| Precio de colateral stale → loan bajo-colateralizado | Price feed firmado + heartbeat; pausar si stale |
+| Pool sin liquidez para nuevos loans | `deposit_liquidity` de LPs; cap de `total_borrowed` |
+| Oráculo comprometido infla precio → over-borrow | Multi-sig de oráculos (3-de-5) en mainnet |
+| Liquidación no rentable (gas > bonus) | Subir `liquidation_bonus_bps` |
+| Vault PDA sin KYC → loans rotos | Checklist de setup paso 2 (arriba) |
+
+---
+
 ## 8. Checklist mensual de salud on-chain
 
 - [ ] `solana balance` del authority > 1 SOL (para fees de pause emergency)
