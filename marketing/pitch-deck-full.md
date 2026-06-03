@@ -128,12 +128,32 @@
 | | Single-sector | Multi-sector |
 |---|---|---|
 | **Single-country** | Agrotoken (AR granos), RIPE (USA) | — |
-| **Cross-country** | Toucan, Klima DAO (carbon only); Verra TR² | **AgroGlobalDex** |
+| **Cross-country** | AgriDex (UK, multi-commodity, no compliance-first), Toucan/Klima (carbono solo), Verra TR² | **AgroGlobalDex** |
 
 **Differentiator clave:**
 - Otros son **vertical-thin** (un sector) o **geo-thin** (un país).
 - AgroGlobalDex es horizontal + global + compliance-first.
 - Los demás son **competidores complementarios**: los agregamos.
+
+**Diferenciadores técnicos específicos vs AgriDex (referente directo)**:
+
+| Capacidad | AgriDex | AgroGlobalDex |
+|---|---|---|
+| Tokenización RWA agro sobre Solana | ✅ | ✅ |
+| Settlement USDC instantáneo | ✅ | ✅ |
+| Compliance MiCA-first (jurisdiction policy on-chain) | ❌ | ✅ |
+| **Proof-of-trade**: receipt por trade | NFT con metadata | **PDA estructurada queryable** |
+| KYC enforcement on-chain (TransferHook) | ❌ | ✅ Token-2022 |
+| **Yield offerings** (security tokens MiFID II) | ❌ | ✅ con settlement on-chain receipt + epochs |
+| **Aggregator** de tokens de otras plataformas | ❌ | ✅ (Agrotoken, Topaz, Centrifuge…) |
+| Revocación de KYC + transferencia de issuer | ❌ | ✅ ix dedicadas |
+| White paper MiCA Art. 6 templates legales | ❌ | ✅ pack legal completo |
+| Foco geográfico | UK/global commodity | UE-first (Francia AMF/ACPR) + LATAM |
+
+**El "trade receipt NFT" de AgriDex es metadata semi-estructurada**. El nuestro
+es una `TradeReceipt` PDA con campos tipados (buyer, seller, jurisdiction
+snapshot, gross, fee, trade_index global, settled_at). Indexers, auditores y
+regulators consultan el ledger sin parsear metadata JSON.
 
 ---
 
