@@ -107,7 +107,7 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
           <select id="b-asset"><option value="">Cargá tu wallet…</option></select>
         </div>
         <div class="field"><label>Cantidad de colateral (tokens)</label>
-          <input type="number" id="b-collateral" placeholder="ej. 50000" min="1">
+          <input type="number" inputmode="decimal" id="b-collateral" placeholder="ej. 50000" min="1">
         </div>
         <div class="calc" id="b-calc" style="display:none">
           <div class="row"><div>Precio colateral</div><div class="v" id="c-price">—</div></div>
@@ -115,7 +115,7 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
           <div class="row"><div>Máximo a pedir (LTV)</div><div class="v" id="c-max">—</div></div>
         </div>
         <div class="field"><label>USDC a pedir</label>
-          <input type="number" id="b-borrow" placeholder="hasta el máximo LTV" min="1">
+          <input type="number" inputmode="decimal" id="b-borrow" placeholder="hasta el máximo LTV" min="1">
         </div>
         <button class="btn-p" id="b-btn">Pedir préstamo</button>
       </div>
@@ -131,7 +131,7 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
         <h3>Proveer liquidez</h3>
         <div class="desc">Aportá USDC al pool y financiá a productores. (En MVP el interés acumulado vuelve al pool.)</div>
         <div class="field"><label>USDC a depositar</label>
-          <input type="number" id="l-amount" placeholder="ej. 10000" min="1">
+          <input type="number" inputmode="decimal" id="l-amount" placeholder="ej. 10000" min="1">
         </div>
         <button class="btn-p" id="l-btn">Depositar liquidez</button>
       </div>

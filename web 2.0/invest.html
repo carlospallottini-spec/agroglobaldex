@@ -286,7 +286,7 @@ function openDetail(pk) {
       <strong style="color:#FF3D4A">Riesgo.</strong> ROI es una expectativa, no garantía. Performance depende del activo subyacente (clima, mercado, gestión). Possible pérdida del 100%. Liquidación off-chain por contrato. Leé el white paper.
     </div>
     ${listing ? `<div style="display:flex;gap:10px;margin-top:18px">
-      <input type="number" id="amount" min="1" placeholder="Cantidad" style="flex:1;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:8px;color:var(--txt);font-family:var(--fb);font-size:13px">
+      <input type="number" inputmode="decimal" id="amount" min="1" placeholder="Cantidad" style="flex:1;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:8px;color:var(--txt);font-family:var(--fb);font-size:13px">
       <button class="btn-p" id="invest-btn">Invertir</button>
     </div>` : '<div style="text-align:center;color:var(--t3);font-size:13px;margin-top:18px">Esta oferta todavía no está listada en el marketplace.</div>'}
   `;

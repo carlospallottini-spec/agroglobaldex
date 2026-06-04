@@ -59,6 +59,12 @@ function ensureInstallStyles() {
     @media(max-width:780px){
       .agg-mtab{display:flex}
       body{padding-bottom:64px}
+      /* Apple HIG 44px tap target — aplicado solo en mobile para no estorbar desktop */
+      .btn-p,.btn-g,.nwb,button.btn,.nbtn-p,.nbtn-g,.filt,.filters button{min-height:44px}
+      /* Input zoom prevention en iOS: font-size>=16px evita el auto-zoom */
+      input,select,textarea{font-size:16px!important}
+      /* Tables overflow horizontal en lugar de romper layout */
+      table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
     }
   `;
   document.head.appendChild(s);

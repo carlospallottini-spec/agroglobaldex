@@ -1106,7 +1106,9 @@ const FEED=[
 ];
 
 let activeF="ALL";const markers={};
-const map=L.map('map',{center:[25,0],zoom:2,zoomControl:true,scrollWheelZoom:true,attributionControl:false,minZoom:2,maxZoom:6,worldCopyJump:true});
+// tap:false evita doble-disparo en iOS Safari (Leaflet emitia click + touch
+// end y abria 2 popups al tocar un marker).
+const map=L.map('map',{center:[25,0],zoom:2,zoomControl:true,scrollWheelZoom:true,tap:false,attributionControl:false,minZoom:2,maxZoom:6,worldCopyJump:true});
 // Capa base satelite real (Esri World Imagery) — campos, oceanos y terreno reales
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'© Esri'}).addTo(map);
 // Overlay con nombres de paises / oceanos en blanco para legibilidad
