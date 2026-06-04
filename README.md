@@ -17,6 +17,7 @@
 | 🪟 Windows portable | `AgroGlobalDex-2.3.0-portable.exe` | Sin instalar — doble click y corre |
 | 🍎 macOS | `AgroGlobalDex-2.3.0.dmg` | Intel + Apple Silicon |
 | 🐧 Linux | `AgroGlobalDex-2.3.0.AppImage` | `chmod +x` y ejecutar |
+| 🤖 Android | `AgroGlobalDex-2.3.0-debug.apk` | Debug-signed APK. Habilitar "Orígenes desconocidos" → instalar. Play Store post-funding. |
 | 📱 Mobile (PWA) | Web installable | Abrí la web en el móvil → "Añadir a pantalla de inicio" |
 
 Cada vez que tagueamos `v*` el workflow buildea Windows + macOS + Linux en paralelo y los publica como Release. Tamaño ~90 MB.
