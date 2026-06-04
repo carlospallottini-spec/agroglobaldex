@@ -358,6 +358,9 @@ pub fn handler(
         AssetClass::HarvestFraction { .. } | AssetClass::InvestmentOffering { .. }
     );
     registry.frozen_metadata = false;
+    registry.last_settled_epoch = 0;
+    registry.total_yield_paid_usdc = 0;
+    registry.last_settled_at = 0;
     registry.index = index;
     registry.bump = ctx.bumps.asset_registry;
 

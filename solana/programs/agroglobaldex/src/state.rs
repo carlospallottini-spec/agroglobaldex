@@ -23,6 +23,14 @@ pub const LISTING_USDC_ESCROW_SEED: &[u8] = b"listing_usdc_escrow";
 pub const TREASURY_SEED: &[u8] = b"treasury";
 pub const EXTERNAL_ASSET_SEED: &[u8] = b"external_asset";
 pub const JURISDICTION_POLICY_SEED: &[u8] = b"jurisdiction_policy";
+pub const TRADE_RECEIPT_SEED: &[u8] = b"trade_receipt";
+pub const LENDING_MARKET_SEED: &[u8] = b"lending_market";
+pub const LENDING_VAULT_SEED: &[u8] = b"lending_vault";
+pub const COLLATERAL_CONFIG_SEED: &[u8] = b"collateral_config";
+pub const LOAN_SEED: &[u8] = b"loan";
+
+/// Seconds in a (365-day) year, for linear interest accrual.
+pub const SECONDS_PER_YEAR: i64 = 365 * 24 * 60 * 60;
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -209,6 +217,11 @@ pub struct Marketplace {
     pub external_asset_count: u64,
     /// Circuit breaker. When `true`, all write paths abort with `Paused`.
     pub paused: bool,
+    /// Monotonic counter of settled trades. Used to derive the
+    /// `TradeReceipt` PDA for every buy. Provides a global, queryable,
+    /// immutable proof-of-trade ledger — the structured-data answer to
+    /// AgriDex's per-trade receipt NFTs.
+    pub trade_count: u64,
 }
 
 /// One per tokenized real-world asset lot. The mint of the SPL Token-2022 is
@@ -250,6 +263,16 @@ pub struct AssetRegistry {
     /// True once the issuer has minted at least once and no more changes to
     /// immutable fields are allowed.
     pub frozen_metadata: bool,
+    /// For `InvestmentOffering`: highest epoch settled so far (+1 means N
+    /// distributions recorded). 0 with `total_yield_paid_usdc == 0` means no
+    /// distribution yet. Lets the UI show settlement history without an
+    /// off-chain indexer.
+    pub last_settled_epoch: u32,
+    /// For `InvestmentOffering`: cumulative USDC yield recorded across all
+    /// epochs (base units, 6 decimals).
+    pub total_yield_paid_usdc: u64,
+    /// Unix timestamp of the most recent settlement. 0 if none.
+    pub last_settled_at: i64,
     /// Sequential index assigned by the marketplace at registration time.
     /// Used as a seed component so PDA seeds are deterministically
     /// reconstructible without trusting the client.
@@ -366,9 +389,150 @@ pub struct ExternalAssetRegistry {
     pub bump: u8,
 }
 
+/// Immutable proof-of-trade. One per successful `buy_asset` /
+/// `buy_external_asset` (including partial fills). Derived from the global
+/// `marketplace.trade_count` so it is unique, sequential and queryable. This
+/// is AgriDex's "trade receipt NFT" reimagined as structured on-chain data:
+/// auditors, regulators and the UI can index the full trade ledger without
+/// parsing NFT metadata.
+#[account]
+#[derive(InitSpace)]
+pub struct TradeReceipt {
+    /// Marketplace this trade happened under.
+    pub marketplace: Pubkey,
+    /// The listing that was bought from.
+    pub listing: Pubkey,
+    /// The asset mint that changed hands.
+    pub asset_mint: Pubkey,
+    /// Buyer wallet.
+    pub buyer: Pubkey,
+    /// Seller wallet.
+    pub seller: Pubkey,
+    /// Native (program-minted) or External (aggregated SPL).
+    pub source: ListingSource,
+    /// Tokens transferred (base units).
+    pub amount: u64,
+    /// Per-token USDC price at trade time (base units, 6 decimals).
+    pub unit_price_usdc: u64,
+    /// Gross USDC paid (amount * unit_price).
+    pub gross_usdc: u64,
+    /// Protocol fee charged (USDC base units).
+    pub fee_usdc: u64,
+    /// Buyer jurisdiction at trade time (ISO-3166 alpha-2). Snapshotted so a
+    /// later KYC update doesn't rewrite history.
+    pub buyer_jurisdiction: [u8; 2],
+    /// Global sequential index (== marketplace.trade_count at mint time).
+    pub trade_index: u64,
+    /// Settlement timestamp.
+    pub settled_at: i64,
+    /// Bump for this PDA.
+    pub bump: u8,
+}
+
+/// On-chain lending market: lets producers borrow USDC against their
+/// tokenized agro-RWA collateral. One per marketplace. The killer ag-finance
+/// primitive — instant credit against a warehouse receipt / tokenized harvest
+/// without a bank. USDC liquidity sits in a pool ATA owned by the
+/// `lending_vault` authority PDA.
+#[account]
+#[derive(InitSpace)]
+pub struct LendingMarket {
+    /// Marketplace this lending market belongs to.
+    pub marketplace: Pubkey,
+    /// USDC mint used for both liquidity and loans (== marketplace.usdc_mint).
+    pub usdc_mint: Pubkey,
+    /// USDC pool ATA owned by the vault authority PDA.
+    pub usdc_pool: Pubkey,
+    /// Fixed annualized interest rate in basis points (e.g. 1200 = 12% APR).
+    pub apr_bps: u16,
+    /// Maximum loan-to-value in basis points (e.g. 5000 = borrow up to 50%
+    /// of collateral value). Conservative defaults protect the pool.
+    pub max_ltv_bps: u16,
+    /// Health-factor threshold for liquidation in basis points. When the
+    /// current LTV exceeds this (e.g. 8000 = 80%), the loan can be liquidated.
+    pub liquidation_threshold_bps: u16,
+    /// Bonus paid to the liquidator in basis points of seized collateral
+    /// (e.g. 500 = 5% discount). Incentivizes timely liquidation.
+    pub liquidation_bonus_bps: u16,
+    /// Total USDC currently available in the pool.
+    pub total_liquidity: u64,
+    /// Total USDC currently lent out (principal only).
+    pub total_borrowed: u64,
+    /// Monotonic counter of loans ever opened.
+    pub loan_count: u64,
+    /// Bump for this PDA.
+    pub bump: u8,
+    /// Bump for the vault authority PDA (owns usdc_pool + collateral ATAs).
+    pub vault_authority_bump: u8,
+}
+
+/// Per-asset collateral configuration. Sets the price (USDC per token) used
+/// to value collateral, plus an enable flag. Price is set by the marketplace
+/// authority acting as an oracle relay; production should wire a signed
+/// price feed (see audit #12).
+#[account]
+#[derive(InitSpace)]
+pub struct CollateralConfig {
+    pub lending_market: Pubkey,
+    pub asset_registry: Pubkey,
+    pub mint: Pubkey,
+    /// USDC base units (6 decimals) per ONE collateral token base unit.
+    pub price_usdc_per_token: u64,
+    /// Whether this asset may be used as collateral.
+    pub enabled: bool,
+    /// Last time the price was refreshed.
+    pub updated_at: i64,
+    pub bump: u8,
+}
+
+/// A single borrower's loan position against one collateral asset.
+#[account]
+#[derive(InitSpace)]
+pub struct LoanPosition {
+    pub lending_market: Pubkey,
+    pub borrower: Pubkey,
+    pub asset_registry: Pubkey,
+    pub collateral_mint: Pubkey,
+    /// Collateral ATA owned by the vault authority PDA holding the tokens.
+    pub collateral_vault: Pubkey,
+    /// Collateral tokens locked (base units).
+    pub collateral_amount: u64,
+    /// Outstanding principal in USDC base units.
+    pub principal_usdc: u64,
+    /// Interest accrued and not yet paid (USDC base units).
+    pub accrued_interest_usdc: u64,
+    /// APR snapshot at open time (loan keeps its rate).
+    pub apr_bps: u16,
+    /// When the loan was opened.
+    pub opened_at: i64,
+    /// Last time interest was accrued into `accrued_interest_usdc`.
+    pub last_accrued_at: i64,
+    /// Global sequential index.
+    pub loan_index: u64,
+    /// Active until fully repaid or liquidated.
+    pub active: bool,
+    pub bump: u8,
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
+
+/// Emitted alongside `AssetPurchased` whenever a `TradeReceipt` PDA is minted.
+/// Indexers build the global trade ledger from this stream.
+#[event]
+pub struct TradeReceiptCreated {
+    pub trade_receipt: Pubkey,
+    pub marketplace: Pubkey,
+    pub buyer: Pubkey,
+    pub seller: Pubkey,
+    pub asset_mint: Pubkey,
+    pub source: ListingSource,
+    pub amount: u64,
+    pub gross_usdc: u64,
+    pub trade_index: u64,
+    pub settled_at: i64,
+}
 
 #[event]
 pub struct AssetRegistered {
@@ -536,4 +700,61 @@ pub struct IssuerTransferred {
     pub asset_registry: Pubkey,
     pub old_issuer: Pubkey,
     pub new_issuer: Pubkey,
+}
+
+// ---------------------------------------------------------------------------
+// Lending events
+// ---------------------------------------------------------------------------
+
+#[event]
+pub struct LendingMarketInitialized {
+    pub lending_market: Pubkey,
+    pub marketplace: Pubkey,
+    pub apr_bps: u16,
+    pub max_ltv_bps: u16,
+}
+
+#[event]
+pub struct LiquidityDeposited {
+    pub lending_market: Pubkey,
+    pub provider: Pubkey,
+    pub amount: u64,
+    pub total_liquidity: u64,
+}
+
+#[event]
+pub struct CollateralConfigured {
+    pub lending_market: Pubkey,
+    pub asset_registry: Pubkey,
+    pub price_usdc_per_token: u64,
+    pub enabled: bool,
+}
+
+#[event]
+pub struct LoanOpened {
+    pub loan: Pubkey,
+    pub lending_market: Pubkey,
+    pub borrower: Pubkey,
+    pub asset_registry: Pubkey,
+    pub collateral_amount: u64,
+    pub principal_usdc: u64,
+    pub loan_index: u64,
+}
+
+#[event]
+pub struct LoanRepaid {
+    pub loan: Pubkey,
+    pub borrower: Pubkey,
+    pub principal_usdc: u64,
+    pub interest_usdc: u64,
+    pub collateral_returned: u64,
+}
+
+#[event]
+pub struct LoanLiquidated {
+    pub loan: Pubkey,
+    pub borrower: Pubkey,
+    pub liquidator: Pubkey,
+    pub debt_repaid_usdc: u64,
+    pub collateral_seized: u64,
 }

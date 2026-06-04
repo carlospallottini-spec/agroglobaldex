@@ -1,6 +1,6 @@
 {
   "name": "agroglobaldex-mobile",
-  "version": "0.1.0",
+  "version": "2.3.0",
   "private": true,
   "description": "AgroGlobalDex — Capacitor wrapper para Android/iOS sobre el shell web compartido",
   "scripts": {

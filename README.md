@@ -13,10 +13,11 @@
 
 | Plataforma | Archivo | Notas |
 |---|---|---|
-| 🪟 Windows 10/11 | `AgroGlobalDex-Setup-2.0.0.exe` | Instalador NSIS — click → Next → Next |
-| 🪟 Windows portable | `AgroGlobalDex-2.0.0-portable.exe` | Sin instalar — doble click y corre |
-| 🍎 macOS | `AgroGlobalDex-2.0.0.dmg` | Intel + Apple Silicon |
-| 🐧 Linux | `AgroGlobalDex-2.0.0.AppImage` | `chmod +x` y ejecutar |
+| 🪟 Windows 10/11 | `AgroGlobalDex-Setup-2.3.0.exe` | Instalador NSIS — click → Next → Next |
+| 🪟 Windows portable | `AgroGlobalDex-2.3.0-portable.exe` | Sin instalar — doble click y corre |
+| 🍎 macOS | `AgroGlobalDex-2.3.0.dmg` | Intel + Apple Silicon |
+| 🐧 Linux | `AgroGlobalDex-2.3.0.AppImage` | `chmod +x` y ejecutar |
+| 🤖 Android | `AgroGlobalDex-2.3.0-debug.apk` | Debug-signed APK. Habilitar "Orígenes desconocidos" → instalar. Play Store post-funding. |
 | 📱 Mobile (PWA) | Web installable | Abrí la web en el móvil → "Añadir a pantalla de inicio" |
 
 Cada vez que tagueamos `v*` el workflow buildea Windows + macOS + Linux en paralelo y los publica como Release. Tamaño ~90 MB.
@@ -32,12 +33,15 @@ python3 -m http.server 8000 --directory "web 2.0"
 # Abrir http://localhost:8000/index.html
 ```
 
-**8 páginas listas:**
+**11 páginas listas:**
 - `/index.html` — landing
 - `/marketplace.html` — listings on-chain
 - `/tokenize.html` — wizard para productores (4 pasos)
-- `/invest.html` — yield offerings
-- `/aggregate.html` — admin / curador
+- `/invest.html` — yield offerings (con settlement history on-chain)
+- **`/borrow.html`** — lending market: USDC contra colateral tokenizado, APR fijo, LTV 50%
+- **`/receipts.html`** — ledger público de TradeReceipts (proof-of-trade)
+- `/aggregate.html` — admin / curador (cross-platform tokens)
+- `/admin.html` — operaciones avanzadas (revoke_kyc, settle, update_metadata, transfer_issuer)
 - `/investors.html` — fundraising pre-seed
 - `/about.html`, `/contact.html`, `/team.html`
 
@@ -62,7 +66,7 @@ npm install
 npx ts-node --project tsconfig.seed.json scripts/seed-localnet.ts
 ```
 
-**21 instrucciones · 2 programas Anchor · 5 AssetClass (Grain · CarbonCredit · HarvestFraction · InvestmentOffering · Commodity con 9 sectores).** Detalles en [`solana/README.md`](solana/README.md).
+**27 instrucciones · 2 programas Anchor · 5 AssetClass (Grain · CarbonCredit · HarvestFraction · InvestmentOffering · Commodity con 9 sectores).** Detalles en [`solana/README.md`](solana/README.md).
 
 ### Cambios v0.3 (audit pre-mainnet)
 

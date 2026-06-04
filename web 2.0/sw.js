@@ -1,18 +1,22 @@
 /* AgroGlobalDex — Service Worker (PWA shell + kill-switch para Electron)
- * v5 — Detecta protocolo file:// (Electron / Capacitor desktop) y se
- * auto-destruye limpiando caches. En navegador web real (https://) se
- * comporta como PWA shell normal.
+ * v6 — Agrega borrow.html, receipts.html, admin.html al precache shell.
+ *      Detecta protocolo file:// (Electron / Capacitor desktop) y se
+ *      auto-destruye limpiando caches. En navegador web real (https://) se
+ *      comporta como PWA shell normal.
  */
-const CACHE = 'agroglobaldex-v5';
+const CACHE = 'agroglobaldex-v6';
 const IS_FILE = location.protocol === 'file:';
 const SHELL = [
   '/',
   '/index.html',
   '/marketplace.html',
   '/tokenize.html',
+  '/borrow.html',
   '/invest.html',
+  '/receipts.html',
   '/investors.html',
   '/aggregate.html',
+  '/admin.html',
   '/about.html',
   '/contact.html',
   '/team.html',
@@ -24,6 +28,7 @@ const SHELL = [
   '/js/mwa-helper.js',
   '/js/pwa-install.js',
   '/js/idl/agroglobaldex.json',
+  '/js/idl/compliance_hook.json',
 ];
 
 self.addEventListener('install', (e) => {

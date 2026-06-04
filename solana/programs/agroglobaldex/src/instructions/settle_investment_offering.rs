@@ -28,6 +28,13 @@ pub struct SettleInvestmentOffering<'info> {
     pub marketplace: Account<'info, Marketplace>,
 
     #[account(
+        mut,
+        seeds = [
+            ASSET_REGISTRY_SEED,
+            marketplace.key().as_ref(),
+            &asset_registry.index.to_le_bytes(),
+        ],
+        bump = asset_registry.bump,
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
         constraint = asset_registry.issuer == issuer.key()
@@ -50,12 +57,33 @@ pub fn handler(
         ),
         AgroError::NotInvestmentOffering
     );
+    // Epochs must be strictly monotonic so the on-chain `last_settled_epoch`
+    // is a reliable cursor. First call: epoch=0 with last_settled_epoch=0 and
+    // total_yield_paid_usdc=0 is acceptable; subsequent calls must increment.
+    let prior_epoch = ctx.accounts.asset_registry.last_settled_epoch;
+    let already_settled_anything = ctx.accounts.asset_registry.total_yield_paid_usdc > 0
+        || ctx.accounts.asset_registry.last_settled_at > 0;
+    if already_settled_anything {
+        require!(epoch > prior_epoch, AgroError::EpochNotMonotonic);
+    }
 
     let now = Clock::get()?.unix_timestamp;
+    let asset_key = ctx.accounts.asset_registry.key();
+    let asset_mint = ctx.accounts.asset_registry.mint;
+    let issuer_key = ctx.accounts.issuer.key();
+
+    let registry = &mut ctx.accounts.asset_registry;
+    registry.last_settled_epoch = epoch;
+    registry.last_settled_at = now;
+    registry.total_yield_paid_usdc = registry
+        .total_yield_paid_usdc
+        .checked_add(yield_paid_usdc)
+        .ok_or(AgroError::PriceOverflow)?;
+
     emit!(InvestmentSettlementRecorded {
-        asset_registry: ctx.accounts.asset_registry.key(),
-        mint: ctx.accounts.asset_registry.mint,
-        issuer: ctx.accounts.issuer.key(),
+        asset_registry: asset_key,
+        mint: asset_mint,
+        issuer: issuer_key,
         epoch,
         yield_paid_usdc,
         attestation,

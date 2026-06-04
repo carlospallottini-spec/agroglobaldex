@@ -97,6 +97,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
     <a href="about.html">Nosotros</a>
     <a href="marketplace.html">Marketplace</a>
     <a href="tokenize.html">Tokenizar</a>
+    <a href="borrow.html">Crédito</a>
     <a href="invest.html" class="active">Invertir</a>
     <a href="team.html">Equipo</a>
     <a href="contact.html">Contacto</a>
@@ -224,6 +225,9 @@ function render() {
         <div class="offer-row"><div>Maduración</div><div class="v">${fmtDate(m.maturityUnixTs)}</div></div>
         <div class="offer-row"><div>Supply</div><div class="v">${Number(o.totalSupply || o.account?.totalSupply || 0).toLocaleString('es-ES')}</div></div>
         <div class="offer-row"><div>Precio</div><div class="v">${listing ? formatUsdc(listing.priceUsdc) : 'Sin listing'}</div></div>
+        ${(o.lastSettledAt && Number(o.lastSettledAt) > 0) ? `
+        <div class="offer-row" style="background:rgba(0,255,106,0.05);border-radius:6px;padding:8px 10px;margin-top:6px"><div style="color:#00FF6A;font-size:11px">Último settlement · epoch ${o.lastSettledEpoch}</div><div class="v" style="color:#00FF6A">${formatUsdc(o.totalYieldPaidUsdc, 0)} acum.</div></div>
+        ` : `<div class="offer-row" style="opacity:.6"><div>Settlements</div><div class="v" style="font-size:11px">Sin distribuciones aún</div></div>`}
         <div class="offer-cta">
           <a class="btn-p" data-buy="${listing?.publicKey || ''}" data-meta="${o.publicKey}">${listing ? 'Invertir' : 'Detalles'}</a>
         </div>
@@ -282,7 +286,7 @@ function openDetail(pk) {
       <strong style="color:#FF3D4A">Riesgo.</strong> ROI es una expectativa, no garantía. Performance depende del activo subyacente (clima, mercado, gestión). Possible pérdida del 100%. Liquidación off-chain por contrato. Leé el white paper.
     </div>
     ${listing ? `<div style="display:flex;gap:10px;margin-top:18px">
-      <input type="number" id="amount" min="1" placeholder="Cantidad" style="flex:1;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:8px;color:var(--txt);font-family:var(--fb);font-size:13px">
+      <input type="number" inputmode="decimal" id="amount" min="1" placeholder="Cantidad" style="flex:1;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:8px;color:var(--txt);font-family:var(--fb);font-size:13px">
       <button class="btn-p" id="invest-btn">Invertir</button>
     </div>` : '<div style="text-align:center;color:var(--t3);font-size:13px;margin-top:18px">Esta oferta todavía no está listada en el marketplace.</div>'}
   `;

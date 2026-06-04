@@ -138,6 +138,32 @@ export function findListingPda(assetRegistry, seller) {
     programIdPk(),
   )[0];
 }
+// ── Lending PDAs ──────────────────────────────────────────────────────
+export function findLendingMarketPda(marketplace) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('lending_market'), new PublicKey(marketplace).toBuffer()],
+    programIdPk(),
+  )[0];
+}
+export function findLendingVaultPda(lendingMarket) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('lending_vault'), new PublicKey(lendingMarket).toBuffer()],
+    programIdPk(),
+  )[0];
+}
+export function findCollateralConfigPda(lendingMarket, assetRegistry) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('collateral_config'), new PublicKey(lendingMarket).toBuffer(), new PublicKey(assetRegistry).toBuffer()],
+    programIdPk(),
+  )[0];
+}
+export function findLoanPda(lendingMarket, borrower, assetRegistry) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('loan'), new PublicKey(lendingMarket).toBuffer(), new PublicKey(borrower).toBuffer(), new PublicKey(assetRegistry).toBuffer()],
+    programIdPk(),
+  )[0];
+}
+
 // PDAs on the compliance_hook program (NOT on agroglobaldex):
 // hook_config seed = [b"hook_config", mint]
 export function findHookConfigPda(mint) {
@@ -236,6 +262,39 @@ export async function fetchAllExternalAssets(network = NETWORK) {
     console.warn('[agroglobaldex] fetchAllExternalAssets failed:', e.message);
     return [];
   }
+}
+
+/**
+ * Fetch the global trade ledger (TradeReceipt PDAs). Optionally filter by
+ * buyer or seller wallet. Returns newest-first.
+ */
+export async function fetchAllTradeReceipts({ buyer, seller, network = NETWORK } = {}) {
+  try {
+    const program = await getReadProgram(network);
+    const a = ns(program, ['tradeReceipt']);
+    if (!a) return [];
+    const filters = [];
+    // TradeReceipt layout after 8-byte discriminator:
+    //   marketplace(32) listing(32) asset_mint(32) buyer(32) seller(32) ...
+    if (buyer) filters.push({ memcmp: { offset: 8 + 32 * 3, bytes: buyer } });
+    else if (seller) filters.push({ memcmp: { offset: 8 + 32 * 4, bytes: seller } });
+    const list = await a.all(filters);
+    return list
+      .map(({ publicKey, account }) => ({ publicKey: publicKey.toString(), ...account }))
+      .sort((x, y) => Number(y.tradeIndex) - Number(x.tradeIndex));
+  } catch (e) {
+    console.warn('[agroglobaldex] fetchAllTradeReceipts failed:', e.message);
+    return [];
+  }
+}
+
+/** Derive a TradeReceipt PDA from a marketplace + trade index. */
+export function findTradeReceiptPda(marketplace, tradeIndex) {
+  const idxBuf = new BN(tradeIndex).toArrayLike(Buffer, 'le', 8);
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('trade_receipt'), new PublicKey(marketplace).toBuffer(), idxBuf],
+    programIdPk(),
+  )[0];
 }
 
 export async function fetchComplianceRecord(walletAddress, marketplaceAuthority, network = NETWORK) {
@@ -422,6 +481,7 @@ export async function buyAsset({ listingPubkey, amount }) {
   const buyerCompliance = findComplianceRecordPda(marketplace, buyer);
   const jurisdictionPolicy = findJurisdictionPolicyPda(marketplace);
   const treasury = findTreasuryPda(marketplace);
+  const tradeReceipt = findTradeReceiptPda(marketplace, mpAcc.tradeCount);
   const usdcMint = mpAcc.usdcMint;
 
   // ATAs (clásicas para USDC)
@@ -447,6 +507,7 @@ export async function buyAsset({ listingPubkey, amount }) {
       sellerUsdcAta: sellerUsdc,
       treasuryUsdcAta: treasuryUsdc,
       treasury,
+      tradeReceipt,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -594,6 +655,7 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
   const treasury = findTreasuryPda(marketplace);
   const buyerCompliance = findComplianceRecordPda(marketplace, buyer);
   const jurisdictionPolicy = findJurisdictionPolicyPda(marketplace);
+  const tradeReceipt = findTradeReceiptPda(marketplace, mpAcc.tradeCount);
 
   const tx = await program.methods
     .buyExternalAsset(new BN(amount))
@@ -613,6 +675,7 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
       sellerUsdcAta: getAssociatedTokenAddress(usdcMint, listingAcc.seller, TOKEN_PROGRAM_ID),
       treasuryUsdcAta: getAssociatedTokenAddress(usdcMint, treasury, TOKEN_PROGRAM_ID),
       treasury,
+      tradeReceipt,
       tokenProgram: TOKEN_PROGRAM_ID,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -719,6 +782,163 @@ export async function transferIssuer({ assetRegistryPubkey, newIssuerAddress }) 
   return { tx };
 }
 
+/* ═══════ LENDING ═══════ */
+
+/** Read the lending market state (apr, ltv, liquidity, etc.). */
+export async function fetchLendingMarket(marketplaceAuthority, network = NETWORK) {
+  try {
+    const program = await getReadProgram(network);
+    const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+    if (!auth) return null;
+    const marketplace = findMarketplacePda(auth);
+    const lm = findLendingMarketPda(marketplace);
+    const a = ns(program, ['lendingMarket']);
+    if (!a) return null;
+    const acc = await a.fetchNullable(lm);
+    return acc ? { publicKey: lm.toString(), ...acc } : null;
+  } catch (e) {
+    console.warn('[agroglobaldex] fetchLendingMarket failed:', e.message);
+    return null;
+  }
+}
+
+/** Read all loan positions, optionally filter by borrower. */
+export async function fetchAllLoans({ borrower, network = NETWORK } = {}) {
+  try {
+    const program = await getReadProgram(network);
+    const a = ns(program, ['loanPosition']);
+    if (!a) return [];
+    // LoanPosition after 8-byte discriminator: lending_market(32) borrower(32)
+    const filters = borrower ? [{ memcmp: { offset: 8 + 32, bytes: borrower } }] : [];
+    const list = await a.all(filters);
+    return list.map(({ publicKey, account }) => ({ publicKey: publicKey.toString(), ...account }));
+  } catch (e) {
+    console.warn('[agroglobaldex] fetchAllLoans failed:', e.message);
+    return [];
+  }
+}
+
+/** Read the collateral config (price + enabled) for an asset. */
+export async function fetchCollateralConfig(lendingMarket, assetRegistry, network = NETWORK) {
+  try {
+    const program = await getReadProgram(network);
+    const cfg = findCollateralConfigPda(lendingMarket, assetRegistry);
+    const a = ns(program, ['collateralConfig']);
+    if (!a) return null;
+    const acc = await a.fetchNullable(cfg);
+    return acc ? { publicKey: cfg.toString(), ...acc } : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Open a loan: lock collateral, receive USDC. */
+export async function openLoan({ assetRegistryPubkey, collateralAmount, borrowAmount, marketplaceAuthority }) {
+  const program = await getProgram();
+  const borrower = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const mpAcc = await fetchMarketplace(auth);
+  const assetRegistry = new PublicKey(assetRegistryPubkey);
+  const regAcc = await program.account.assetRegistry.fetch(assetRegistry);
+  const collateralMint = regAcc.mint;
+
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const lmAcc = await program.account.lendingMarket.fetch(lendingMarket);
+  const vaultAuthority = findLendingVaultPda(lendingMarket);
+  const collateralConfig = findCollateralConfigPda(lendingMarket, assetRegistry);
+  const borrowerCompliance = findComplianceRecordPda(marketplace, borrower);
+  const loan = findLoanPda(lendingMarket, borrower, assetRegistry);
+  const usdcMint = mpAcc.usdcMint;
+
+  const tx = await program.methods
+    .openLoan(new BN(collateralAmount), new BN(borrowAmount))
+    .accounts({
+      borrower,
+      marketplace,
+      lendingMarket,
+      collateralConfig,
+      assetRegistry,
+      borrowerCompliance,
+      collateralMint,
+      borrowerCollateralAta: getAssociatedTokenAddress(collateralMint, borrower, TOKEN_2022_PROGRAM_ID),
+      vaultAuthority,
+      collateralVault: getAssociatedTokenAddress(collateralMint, vaultAuthority, TOKEN_2022_PROGRAM_ID),
+      usdcMint,
+      usdcPool: lmAcc.usdcPool,
+      borrowerUsdcAta: getAssociatedTokenAddress(usdcMint, borrower, TOKEN_PROGRAM_ID),
+      loan,
+      collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+      usdcTokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  return { tx, loan: loan.toString() };
+}
+
+/** Repay a loan in full (principal + interest), unlock collateral. */
+export async function repayLoan({ assetRegistryPubkey, marketplaceAuthority }) {
+  const program = await getProgram();
+  const borrower = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const mpAcc = await fetchMarketplace(auth);
+  const assetRegistry = new PublicKey(assetRegistryPubkey);
+  const regAcc = await program.account.assetRegistry.fetch(assetRegistry);
+  const collateralMint = regAcc.mint;
+
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const lmAcc = await program.account.lendingMarket.fetch(lendingMarket);
+  const vaultAuthority = findLendingVaultPda(lendingMarket);
+  const loan = findLoanPda(lendingMarket, borrower, assetRegistry);
+  const usdcMint = mpAcc.usdcMint;
+
+  const tx = await program.methods
+    .repayLoan()
+    .accounts({
+      borrower,
+      lendingMarket,
+      loan,
+      collateralMint,
+      borrowerCollateralAta: getAssociatedTokenAddress(collateralMint, borrower, TOKEN_2022_PROGRAM_ID),
+      vaultAuthority,
+      collateralVault: getAssociatedTokenAddress(collateralMint, vaultAuthority, TOKEN_2022_PROGRAM_ID),
+      usdcMint,
+      usdcPool: lmAcc.usdcPool,
+      borrowerUsdcAta: getAssociatedTokenAddress(usdcMint, borrower, TOKEN_PROGRAM_ID),
+      collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+      usdcTokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .rpc();
+  return { tx };
+}
+
+/** Deposit USDC liquidity into the lending pool. */
+export async function depositLiquidity({ amount, marketplaceAuthority }) {
+  const program = await getProgram();
+  const provider = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const mpAcc = await fetchMarketplace(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const lmAcc = await program.account.lendingMarket.fetch(lendingMarket);
+  const usdcMint = mpAcc.usdcMint;
+
+  const tx = await program.methods
+    .depositLiquidity(new BN(amount))
+    .accounts({
+      provider,
+      lendingMarket,
+      usdcMint,
+      usdcPool: lmAcc.usdcPool,
+      providerUsdcAta: getAssociatedTokenAddress(usdcMint, provider, TOKEN_PROGRAM_ID),
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .rpc();
+  return { tx };
+}
+
 /* ═══════ ATA helper (sync, sin spl-token dep) ═══════ */
 function getAssociatedTokenAddress(mint, owner, tokenProgramId) {
   return PublicKey.findProgramAddressSync(
@@ -739,7 +959,11 @@ export default {
   cancelListing, updateListingPrice, treasuryWithdraw,
   aggregateExternalAsset, updateExternalAsset,
   revokeKyc, settleInvestmentOffering, updateMetadata, transferIssuer,
+  fetchAllTradeReceipts,
+  fetchLendingMarket, fetchAllLoans, fetchCollateralConfig,
+  openLoan, repayLoan, depositLiquidity,
   findMarketplacePda, findAssetRegistryPda, findListingPda, findExternalAssetPda,
   findComplianceRecordPda, findJurisdictionPolicyPda,
-  findHookConfigPda, findExtraAccountMetaListPda,
+  findHookConfigPda, findExtraAccountMetaListPda, findTradeReceiptPda,
+  findLendingMarketPda, findLendingVaultPda, findCollateralConfigPda, findLoanPda,
 };

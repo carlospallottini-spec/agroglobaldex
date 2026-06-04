@@ -23,9 +23,10 @@ pub struct BuyExternalAsset<'info> {
     pub buyer: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
         bump = marketplace.bump,
-    constraint = !marketplace.paused @ AgroError::Paused,
+        constraint = !marketplace.paused @ AgroError::Paused,
     )]
     pub marketplace: Account<'info, Marketplace>,
 
@@ -134,6 +135,16 @@ pub struct BuyExternalAsset<'info> {
     )]
     pub treasury: UncheckedAccount<'info>,
 
+    /// Immutable proof-of-trade for this external-asset purchase.
+    #[account(
+        init,
+        payer = buyer,
+        space = 8 + TradeReceipt::INIT_SPACE,
+        seeds = [TRADE_RECEIPT_SEED, marketplace.key().as_ref(), &marketplace.trade_count.to_le_bytes()],
+        bump
+    )]
+    pub trade_receipt: Account<'info, TradeReceipt>,
+
     pub token_program: Interface<'info, TokenInterface>,
     pub usdc_token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -231,14 +242,56 @@ pub fn handler(ctx: Context<BuyExternalAsset>, amount: u64) -> Result<()> {
     if listing.remaining == 0 {
         listing.active = false;
     }
+    let listing_key = listing.key();
+    let listing_seller = listing.seller;
+    let unit_price = listing.price_usdc;
+
+    // ---- Proof-of-trade: mint the immutable TradeReceipt -------------------
+    let buyer_jur = ctx.accounts.buyer_compliance.jurisdiction;
+    let now = Clock::get()?.unix_timestamp;
+    let trade_index = ctx.accounts.marketplace.trade_count;
+
+    let receipt = &mut ctx.accounts.trade_receipt;
+    receipt.marketplace = ctx.accounts.marketplace.key();
+    receipt.listing = listing_key;
+    receipt.asset_mint = ctx.accounts.mint.key();
+    receipt.buyer = ctx.accounts.buyer.key();
+    receipt.seller = listing_seller;
+    receipt.source = ListingSource::External;
+    receipt.amount = amount;
+    receipt.unit_price_usdc = unit_price;
+    receipt.gross_usdc = gross_u64;
+    receipt.fee_usdc = fee_u64;
+    receipt.buyer_jurisdiction = buyer_jur;
+    receipt.trade_index = trade_index;
+    receipt.settled_at = now;
+    receipt.bump = ctx.bumps.trade_receipt;
+
+    let mp = &mut ctx.accounts.marketplace;
+    mp.trade_count = mp
+        .trade_count
+        .checked_add(1)
+        .ok_or(AgroError::PriceOverflow)?;
 
     emit!(AssetPurchased {
-        listing: listing.key(),
+        listing: listing_key,
         buyer: ctx.accounts.buyer.key(),
-        seller: listing.seller,
+        seller: listing_seller,
         amount,
         total_usdc: gross_u64,
         fee_usdc: fee_u64,
+    });
+    emit!(TradeReceiptCreated {
+        trade_receipt: receipt.key(),
+        marketplace: receipt.marketplace,
+        buyer: receipt.buyer,
+        seller: receipt.seller,
+        asset_mint: receipt.asset_mint,
+        source: ListingSource::External,
+        amount,
+        gross_usdc: gross_u64,
+        trade_index,
+        settled_at: now,
     });
 
     Ok(())

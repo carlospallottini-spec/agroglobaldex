@@ -126,12 +126,61 @@ jobs:
             agrochain-electron/dist/*.deb
 
   # ──────────────────────────────────────────────────────────────────
-  # PUBLICAR RELEASE — junta los 3 artifacts y los pega como un release
+  # ANDROID APK (Capacitor) — debug-signed, sideloadable
+  # ──────────────────────────────────────────────────────────────────
+  build-android:
+    runs-on: ubuntu-latest
+    continue-on-error: true   # build APK no debe bloquear el release de desktop si Gradle revienta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Capacitor deps
+        working-directory: mobile
+        run: npm install
+
+      - name: Add Android platform + sync
+        working-directory: mobile
+        run: |
+          npx cap add android || true   # idempotente: si ya está agregado, no falla
+          npx cap sync android
+
+      - name: Make gradlew executable
+        working-directory: mobile/android
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK with version
+        working-directory: mobile/android/app/build/outputs/apk/debug
+        run: |
+          VERSION=$(node -p "require('../../../../../../../agrochain-electron/package.json').version")
+          mv app-debug.apk "AgroGlobalDex-${VERSION}-debug.apk"
+
+      - name: Upload Android APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgroGlobalDex-Android
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+
+  # ──────────────────────────────────────────────────────────────────
+  # PUBLICAR RELEASE — junta los 4 artifacts y los pega como un release
   # público. Se ejecuta en cada push de tag v* (release oficial)
   # Y TAMBIÉN en cada workflow_dispatch (pre-release con tag automático).
   # ──────────────────────────────────────────────────────────────────
   release:
-    needs: [ build-windows, build-macos, build-linux ]
+    needs: [ build-windows, build-macos, build-linux, build-android ]
     runs-on: ubuntu-latest
     # Se ejecuta tanto en tags v* como en workflow_dispatch manual
     if: ${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' }}
@@ -169,6 +218,7 @@ jobs:
             dist/AgroGlobalDex-Windows/**
             dist/AgroGlobalDex-macOS/**
             dist/AgroGlobalDex-Linux/**
+            dist/AgroGlobalDex-Android/**
           body: |
             ## AgroGlobalDex — ${{ steps.tag.outputs.name }}
 
@@ -178,6 +228,14 @@ jobs:
             - **Windows**: `AgroGlobalDex-Setup-*.exe` (instalador) o `*-portable.exe` (sin instalar)
             - **macOS**: `AgroGlobalDex-*.dmg` (Intel + Apple Silicon)
             - **Linux**: `AgroGlobalDex-*.AppImage`
+
+            ### 📱 Descargar la app móvil
+            - **Android APK** (sideload): `AgroGlobalDex-*-debug.apk` — debug-signed,
+              instalar con `adb install` o desde el File Manager del teléfono después
+              de habilitar "Orígenes desconocidos". Para Play Store hacen falta
+              ProGuard rules + release signing (post-funding).
+            - **iOS**: por ahora vía PWA — abrí el sitio en Safari → "Añadir a
+              pantalla de inicio". App nativa iOS post-funding.
 
             ### 🌐 Probar en el navegador
             Cloná el repo y serví `web 2.0/`:
