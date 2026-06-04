@@ -64,6 +64,33 @@ Nuevos account types. Solo afecta devnet/localnet (sin mainnet).
 
 ---
 
+## [Unreleased] — 0.5.0 (devnet bootstrap + UX realista)
+
+### Operations
+
+- **`scripts/initialize-devnet.ts`** — bootstrap idempotente del marketplace
+  + jurisdiction_policy + lending_market en devnet pública. Lee cada cuenta
+  primero; si existe, salta. Persiste el `compliance_signer` keypair en
+  `~/.config/solana/agroglobaldex-compliance-signer.json` (`chmod 600`).
+- **`scripts/deploy-devnet.sh`** — al final pregunta si correr
+  `initialize-devnet.ts`. Con `--yes` lo automatiza.
+- **RUNBOOK §6** actualizado con el nuevo flow + warning de backup del
+  compliance signer.
+
+### Frontend / UX
+
+- **Mapa mundi realista** (`index.html` + `marketplace.html`): cambiado de
+  `cartocdn dark_all` + filter `brightness(.35) hue-rotate(80deg)` a
+  **Esri World Imagery** (satélite real) + overlay `voyager_only_labels`
+  para los nombres de países. Markers 32 px con halo blanco-negro para que
+  resalten sobre cualquier terreno. `worldCopyJump:true` para wrappear en
+  la antimeridiana.
+- **Demo video script v2 (120 s)** con sub-segmento dedicado a `/borrow`
+  ("Cierra el ciclo capital → producción → venta on-chain") + `/receipts`
+  + shot list para grabar las 6 pantallas en orden.
+
+---
+
 ## [Unreleased] — 0.4.0 (proof-of-trade ledger, inspirado en AgriDex)
 
 ### Programa Solana — Feature TradeReceipt
