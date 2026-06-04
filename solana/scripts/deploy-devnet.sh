@@ -201,11 +201,33 @@ printf "\n  ${BLD}Wallet authority:${NC} %s\n" "$WALLET_PUB"
 printf "  ${BLD}RPC:${NC} %s\n" "$RPC_URL"
 hr
 
+# ─── Auto-bootstrap del marketplace (idempotente) ─────────────────────
+hr
+if [ "$YES" = "1" ]; then
+  RUN_INIT="y"
+else
+  printf "\n${BLD}¿Inicializar marketplace + jurisdiction_policy + lending_market ahora?${NC} [Y/n] "
+  read -r RUN_INIT
+  RUN_INIT=${RUN_INIT:-y}
+fi
+
+if [ "$RUN_INIT" = "y" ] || [ "$RUN_INIT" = "Y" ]; then
+  log "Corriendo initialize-devnet.ts (idempotente)…"
+  export ANCHOR_PROVIDER_URL="$RPC_URL"
+  export ANCHOR_WALLET="$HOME/.config/solana/id.json"
+  cd "$ROOT"
+  if npx ts-node --project tsconfig.seed.json scripts/initialize-devnet.ts; then
+    ok "Bootstrap on-chain completo. Marketplace listo en devnet."
+  else
+    err "El bootstrap falló — revisar logs arriba. Las programs siguen deployadas."
+  fi
+fi
+
 printf "\n${BLD}Próximos pasos:${NC}\n"
-printf "  1. Inicializar el marketplace + seed datos demo:\n"
+printf "  1. (opcional) Cargar datos demo end-to-end:\n"
 printf "     ${CYN}npx ts-node --project tsconfig.seed.json scripts/seed-localnet.ts${NC}\n"
-printf "     (modificá la URL del RPC en el script si vas a devnet)\n\n"
-printf "  2. Servir la web local apuntando a devnet:\n"
+printf "     (necesita validator local; para devnet usar el flow web)\n\n"
+printf "  2. Servir la web local apuntando a devnet (la default):\n"
 printf "     ${CYN}cd .. && python3 -m http.server 8000 --directory \"web 2.0\"${NC}\n"
 printf "     Abrir: http://localhost:8000/index.html\n\n"
 printf "  3. Compartir las URLs Solscan de arriba con tu inversor/auditor.\n\n"

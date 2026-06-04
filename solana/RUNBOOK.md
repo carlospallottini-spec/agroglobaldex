@@ -172,9 +172,20 @@ solana program show GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL
 cp target/idl/agroglobaldex.json "../web 2.0/js/idl/agroglobaldex.json"
 cp target/idl/compliance_hook.json "../web 2.0/js/idl/compliance_hook.json"
 
-# 8. Inicializar marketplace
-anchor run initialize-devnet
+# 8. Inicializar marketplace + jurisdiction_policy + lending_market
+#    (Idempotente: si las cuentas ya existen, salta cada paso.)
+export ANCHOR_PROVIDER_URL="https://api.devnet.solana.com"
+export ANCHOR_WALLET="$HOME/.config/solana/id.json"
+npx ts-node --project tsconfig.seed.json scripts/initialize-devnet.ts
 ```
+
+**Shortcut**: `./scripts/deploy-devnet.sh` corre 1–7 + te pregunta si querés
+ejecutar 8 al final. Con `--yes` lo dispara automático.
+
+El script `initialize-devnet.ts` genera el `compliance_signer` keypair en
+`~/.config/solana/agroglobaldex-compliance-signer.json` (`chmod 600`) la
+primera vez. **Hacé backup** — perderlo significa rotar via
+`set_compliance_signer` y re-stampear KYC de todas las wallets activas.
 
 **Verificable build (audit #25, #26)**: `anchor build --verifiable` usa Docker
 con toolchain fijo para que `solana-verify` pueda chequear que el .so
