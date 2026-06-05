@@ -189,7 +189,17 @@ pub struct DepositLiquidity<'info> {
     )]
     pub provider_usdc_ata: InterfaceAccount<'info, TokenAccount>,
 
+    #[account(
+        init_if_needed,
+        payer = provider,
+        space = 8 + LiquidityProvider::INIT_SPACE,
+        seeds = [LIQUIDITY_PROVIDER_SEED, lending_market.key().as_ref(), provider.key().as_ref()],
+        bump
+    )]
+    pub liquidity_provider: Account<'info, LiquidityProvider>,
+
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn deposit_liquidity_handler(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
@@ -216,9 +226,125 @@ pub fn deposit_liquidity_handler(ctx: Context<DepositLiquidity>, amount: u64) ->
         .total_liquidity
         .checked_add(amount)
         .ok_or(AgroError::PriceOverflow)?;
+    let total_liquidity = lm.total_liquidity;
+    let lending_market_key = lm.key();
+
+    // Record/increment this provider's net principal in the pool.
+    let lp = &mut ctx.accounts.liquidity_provider;
+    lp.lending_market = lending_market_key;
+    lp.provider = ctx.accounts.provider.key();
+    lp.deposited_usdc = lp
+        .deposited_usdc
+        .checked_add(amount)
+        .ok_or(AgroError::PriceOverflow)?;
+    lp.bump = ctx.bumps.liquidity_provider;
 
     emit!(LiquidityDeposited {
-        lending_market: lm.key(),
+        lending_market: lending_market_key,
+        provider: ctx.accounts.provider.key(),
+        amount,
+        total_liquidity,
+    });
+    Ok(())
+}
+
+// ===========================================================================
+// 2b. withdraw_liquidity
+// ===========================================================================
+
+#[derive(Accounts)]
+pub struct WithdrawLiquidity<'info> {
+    #[account(mut)]
+    pub provider: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
+        bump = lending_market.bump,
+    )]
+    pub lending_market: Account<'info, LendingMarket>,
+
+    #[account(
+        mut,
+        seeds = [LIQUIDITY_PROVIDER_SEED, lending_market.key().as_ref(), provider.key().as_ref()],
+        bump = liquidity_provider.bump,
+        constraint = liquidity_provider.provider == provider.key()
+            @ AgroError::UnauthorizedIssuer,
+        constraint = liquidity_provider.lending_market == lending_market.key()
+            @ AgroError::ListingMismatch,
+    )]
+    pub liquidity_provider: Account<'info, LiquidityProvider>,
+
+    #[account(address = lending_market.usdc_mint @ AgroError::InvalidUsdcMint)]
+    pub usdc_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(mut, address = lending_market.usdc_pool)]
+    pub usdc_pool: InterfaceAccount<'info, TokenAccount>,
+
+    /// CHECK: PDA authority that owns the USDC pool.
+    #[account(
+        seeds = [LENDING_VAULT_SEED, lending_market.key().as_ref()],
+        bump = lending_market.vault_authority_bump,
+    )]
+    pub vault_authority: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        associated_token::mint = usdc_mint,
+        associated_token::authority = provider,
+    )]
+    pub provider_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+}
+
+pub fn withdraw_liquidity_handler(ctx: Context<WithdrawLiquidity>, amount: u64) -> Result<()> {
+    require!(amount > 0, AgroError::InvalidAmount);
+    require!(
+        amount <= ctx.accounts.liquidity_provider.deposited_usdc,
+        AgroError::ExceedsDeposit
+    );
+    // Can't withdraw USDC that's currently lent out.
+    require!(
+        amount <= ctx.accounts.lending_market.total_liquidity,
+        AgroError::InsufficientLiquidity
+    );
+
+    // ---- Move USDC pool -> provider --------------------------------------
+    let lm_key = ctx.accounts.lending_market.key();
+    let vault_bump = ctx.accounts.lending_market.vault_authority_bump;
+    let signer_seeds: &[&[&[u8]]] = &[&[
+        LENDING_VAULT_SEED,
+        lm_key.as_ref(),
+        std::slice::from_ref(&vault_bump),
+    ]];
+    usdc_transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            UsdcTransfer {
+                from: ctx.accounts.usdc_pool.to_account_info(),
+                to: ctx.accounts.provider_usdc_ata.to_account_info(),
+                authority: ctx.accounts.vault_authority.to_account_info(),
+            },
+            signer_seeds,
+        ),
+        amount,
+    )?;
+
+    let lp = &mut ctx.accounts.liquidity_provider;
+    lp.deposited_usdc = lp
+        .deposited_usdc
+        .checked_sub(amount)
+        .ok_or(AgroError::ExceedsDeposit)?;
+
+    let lm = &mut ctx.accounts.lending_market;
+    lm.total_liquidity = lm
+        .total_liquidity
+        .checked_sub(amount)
+        .ok_or(AgroError::InsufficientLiquidity)?;
+
+    emit!(LiquidityWithdrawn {
+        lending_market: lm_key,
         provider: ctx.accounts.provider.key(),
         amount,
         total_liquidity: lm.total_liquidity,
@@ -281,6 +407,10 @@ pub fn set_collateral_config_handler(
     cfg.enabled = enabled;
     cfg.updated_at = now;
     cfg.bump = ctx.bumps.collateral_config;
+    // This instruction is the manual-relay path: setting a price by hand
+    // switches the collateral back to manual mode. Use `set_collateral_oracle`
+    // to (re-)bind a Pyth feed.
+    cfg.oracle_enabled = false;
 
     emit!(CollateralConfigured {
         lending_market: cfg.lending_market,
@@ -407,8 +537,18 @@ pub fn open_loan_handler(
     borrow_amount: u64,
 ) -> Result<()> {
     require!(collateral_amount > 0 && borrow_amount > 0, AgroError::InvalidAmount);
-    let price = ctx.accounts.collateral_config.price_usdc_per_token;
+    let cfg = &ctx.accounts.collateral_config;
+    let price = cfg.price_usdc_per_token;
     require!(price > 0, AgroError::InvalidCollateralPrice);
+
+    // Oracle-driven collateral must have a fresh price: refuse to lend against
+    // a stale Pyth quote. Manual-relay collateral (oracle_enabled == false) is
+    // unaffected.
+    if cfg.oracle_enabled {
+        let now = Clock::get()?.unix_timestamp;
+        let age = now.saturating_sub(cfg.updated_at);
+        require!(age <= cfg.max_staleness_secs, AgroError::StalePrice);
+    }
 
     // collateral_value = collateral_amount * price (USDC base units)
     let collateral_value = (collateral_amount as u128)

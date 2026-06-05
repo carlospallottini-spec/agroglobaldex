@@ -59,6 +59,7 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
 .step .n{width:24px;height:24px;background:var(--nd);border:1px solid var(--nm);color:var(--neon);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;margin-bottom:8px}
 .step .t{font-size:12px;color:var(--t2)}
 </style>
+  <link rel="stylesheet" href="css/enhance.css">
 </head>
 <body>
 <div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Crédito colateralizado on-chain · devnet · NO es oferta de crédito real</div>
@@ -130,10 +131,17 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
       <div class="card">
         <h3>Proveer liquidez</h3>
         <div class="desc">Aportá USDC al pool y financiá a productores. (En MVP el interés acumulado vuelve al pool.)</div>
+        <div class="calc" id="l-pos" style="display:none">
+          <div class="row"><div>Tu aporte en el pool</div><div class="v" id="l-deposited">—</div></div>
+        </div>
         <div class="field"><label>USDC a depositar</label>
           <input type="number" inputmode="decimal" id="l-amount" placeholder="ej. 10000" min="1">
         </div>
         <button class="btn-p" id="l-btn">Depositar liquidez</button>
+        <div class="field" style="margin-top:14px"><label>USDC a retirar</label>
+          <input type="number" inputmode="decimal" id="w-amount" placeholder="hasta tu aporte" min="1">
+        </div>
+        <button class="btn-s" id="w-btn">Retirar liquidez</button>
       </div>
     </div>
   </div>
@@ -145,7 +153,7 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
 import { connectWallet, getPublicKey, isConnected } from './js/wallet-adapter.js';
 import {
   fetchLendingMarket, fetchAllLoans, fetchCollateralConfig, fetchAllAssets,
-  openLoan, repayLoan, depositLiquidity,
+  openLoan, repayLoan, depositLiquidity, withdrawLiquidity, fetchMyLiquidityPosition,
 } from './js/agroglobaldex-client.js';
 import { txUrl, formatUsdc, truncateAddress } from './js/network-config.js';
 
@@ -181,6 +189,19 @@ async function loadAssets() {
   const sel = $('#b-asset');
   sel.innerHTML = '<option value="">Elegí un asset…</option>' +
     _assets.map(a => `<option value="${a.publicKey}">${a.productName || a.account?.productName || a.publicKey.slice(0,8)}</option>`).join('');
+}
+
+async function loadMyPosition() {
+  if (!isConnected()) { $('#l-pos').style.display='none'; return; }
+  try {
+    const pos = await fetchMyLiquidityPosition();
+    if (pos && n(pos.depositedUsdc) > 0) {
+      $('#l-deposited').textContent = formatUsdc(n(pos.depositedUsdc));
+      $('#l-pos').style.display = '';
+    } else {
+      $('#l-pos').style.display = 'none';
+    }
+  } catch (_) { $('#l-pos').style.display='none'; }
 }
 
 async function loadLoans() {
@@ -235,7 +256,7 @@ $('#wallet-btn').addEventListener('click', async () => {
   try { await connectWallet(); const pk=getPublicKey();
     $('#wallet-btn').classList.add('connected');
     $('#wallet-btn').querySelector('span').textContent = pk.slice(0,4)+'…'+pk.slice(-4);
-    await loadLoans();
+    await loadLoans(); await loadMyPosition();
   } catch(e){ toast('Wallet error: '+e.message,'error'); }
 });
 $('#b-asset').addEventListener('change', onAssetChange);
@@ -264,12 +285,30 @@ $('#b-btn').addEventListener('click', async () => {
 $('#l-btn').addEventListener('click', async () => {
   const amt = $('#l-amount').value;
   if (!amt) return toast('Ingresá un monto', 'error');
+  if (!isConnected()) return toast('Conectá tu wallet primero', 'error');
   try {
     $('#l-btn').disabled = true;
     const { tx } = await depositLiquidity({ amount: amt });
-    txToast(tx); await loadPool();
+    txToast(tx); $('#l-amount').value=''; await loadPool(); await loadMyPosition();
   } catch (e) { toast('Error: '+(e.message||e), 'error'); }
   finally { $('#l-btn').disabled = false; }
+});
+
+$('#w-btn').addEventListener('click', async () => {
+  const amt = $('#w-amount').value;
+  if (!amt) return toast('Ingresá un monto', 'error');
+  if (!isConnected()) return toast('Conectá tu wallet primero', 'error');
+  try {
+    $('#w-btn').disabled = true;
+    const { tx } = await withdrawLiquidity({ amount: amt });
+    txToast(tx); $('#w-amount').value=''; await loadPool(); await loadMyPosition();
+  } catch (e) {
+    const m = String(e.message||e);
+    let hint = '';
+    if (m.includes('ExceedsDeposit')) hint = '<br>Pedís más de lo que aportaste al pool.';
+    else if (m.includes('InsufficientLiquidity')) hint = '<br>El pool no tiene suficiente USDC ocioso (parte está prestada). Probá un monto menor o esperá repagos.';
+    toast('Error: ' + m + hint, 'error');
+  } finally { $('#w-btn').disabled = false; }
 });
 
 // init
@@ -277,5 +316,6 @@ $('#l-btn').addEventListener('click', async () => {
 </script>
 
 <script type="module" src="js/pwa-install.js"></script>
+<script src="js/ux.js" defer></script>
 </body>
 </html>

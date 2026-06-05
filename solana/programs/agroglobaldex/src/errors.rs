@@ -130,4 +130,25 @@ pub enum AgroError {
 
     #[msg("Repay amount does not cover the outstanding debt")]
     RepayTooLow,
+
+    #[msg("Withdrawal exceeds provider's deposited liquidity")]
+    ExceedsDeposit,
+
+    #[msg("Oracle account is not a valid Pyth PriceUpdateV2 account")]
+    InvalidOracleAccount,
+
+    #[msg("Pyth feed id does not match the collateral's configured feed")]
+    OracleFeedMismatch,
+
+    #[msg("Pyth price is stale — refresh the collateral price before borrowing")]
+    StalePrice,
+
+    #[msg("Pyth price confidence interval is too wide to trust")]
+    PriceConfidenceTooWide,
+
+    #[msg("Pyth price is non-positive")]
+    InvalidPythPrice,
+
+    #[msg("This collateral is not driven by an oracle")]
+    OracleNotEnabled,
 }

@@ -28,6 +28,7 @@ pub const LENDING_MARKET_SEED: &[u8] = b"lending_market";
 pub const LENDING_VAULT_SEED: &[u8] = b"lending_vault";
 pub const COLLATERAL_CONFIG_SEED: &[u8] = b"collateral_config";
 pub const LOAN_SEED: &[u8] = b"loan";
+pub const LIQUIDITY_PROVIDER_SEED: &[u8] = b"liquidity_provider";
 
 /// Seconds in a (365-day) year, for linear interest accrual.
 pub const SECONDS_PER_YEAR: i64 = 365 * 24 * 60 * 60;
@@ -483,6 +484,19 @@ pub struct CollateralConfig {
     /// Last time the price was refreshed.
     pub updated_at: i64,
     pub bump: u8,
+    // ── Oracle (Pyth) wiring ────────────────────────────────────────────
+    /// When true, `price_usdc_per_token` is driven by the Pyth feed via
+    /// `refresh_collateral_price`, and `open_loan` enforces price staleness.
+    /// When false (default) the authority sets the price manually (relay mode).
+    pub oracle_enabled: bool,
+    /// Pyth price-feed id (32 bytes) this collateral is priced against.
+    /// All-zero when `oracle_enabled == false`.
+    pub oracle_feed_id: [u8; 32],
+    /// Max age (seconds) of a Pyth price before it is considered stale.
+    pub max_staleness_secs: i64,
+    /// Max Pyth confidence-to-price ratio tolerated, in bps (e.g. 200 = 2%).
+    /// Rejects wide/uncertain prints that could be manipulated.
+    pub max_confidence_bps: u16,
 }
 
 /// A single borrower's loan position against one collateral asset.
@@ -511,6 +525,21 @@ pub struct LoanPosition {
     pub loan_index: u64,
     /// Active until fully repaid or liquidated.
     pub active: bool,
+    pub bump: u8,
+}
+
+/// Per-provider record of USDC liquidity contributed to a lending market.
+/// Tracks the running net principal a provider has in the pool so that
+/// withdrawals can be bounded by what each provider actually deposited.
+#[account]
+#[derive(InitSpace)]
+pub struct LiquidityProvider {
+    /// Lending market this record belongs to.
+    pub lending_market: Pubkey,
+    /// The liquidity provider wallet.
+    pub provider: Pubkey,
+    /// Running net principal this provider currently has in the pool.
+    pub deposited_usdc: u64,
     pub bump: u8,
 }
 
@@ -723,11 +752,42 @@ pub struct LiquidityDeposited {
 }
 
 #[event]
+pub struct LiquidityWithdrawn {
+    pub lending_market: Pubkey,
+    pub provider: Pubkey,
+    pub amount: u64,
+    pub total_liquidity: u64,
+}
+
+#[event]
 pub struct CollateralConfigured {
     pub lending_market: Pubkey,
     pub asset_registry: Pubkey,
     pub price_usdc_per_token: u64,
     pub enabled: bool,
+}
+
+/// Emitted when a Pyth feed is bound to a collateral config.
+#[event]
+pub struct CollateralOracleSet {
+    pub lending_market: Pubkey,
+    pub asset_registry: Pubkey,
+    pub oracle_feed_id: [u8; 32],
+    pub max_staleness_secs: i64,
+    pub max_confidence_bps: u16,
+    pub enabled: bool,
+}
+
+/// Emitted each time the cached collateral price is cranked from Pyth.
+#[event]
+pub struct CollateralPriceRefreshed {
+    pub lending_market: Pubkey,
+    pub asset_registry: Pubkey,
+    pub price_usdc_per_token: u64,
+    pub pyth_price: i64,
+    pub pyth_expo: i32,
+    pub pyth_conf: u64,
+    pub publish_time: i64,
 }
 
 #[event]

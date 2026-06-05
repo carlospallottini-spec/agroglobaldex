@@ -313,6 +313,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 @media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}.mp-bottom{grid-template-columns:repeat(2,1fr)}.mp-map-box{height:340px}.cta{padding:50px 20px}.cta-box{padding:40px 24px}}
 @media(max-width:600px){.stats-row{grid-template-columns:1fr}.mp-bottom{grid-template-columns:1fr}.h-btns,.h-stats{gap:12px}}
 </style>
+  <link rel="stylesheet" href="css/enhance.css">
 </head>
 <body>
 
@@ -1147,5 +1148,6 @@ rFeed();
 setInterval(()=>{FEED.unshift(FEED.pop());rFeed()},4500);
 </script>
 <script type="module" src="js/pwa-install.js"></script>
+<script src="js/ux.js" defer></script>
 </body>
 </html>

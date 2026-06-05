@@ -7,7 +7,25 @@ Repository: https://github.com/carlospallottini-spec/agroglobaldex
 
 ## [Unreleased] — 0.5.0 (módulo de crédito colateralizado — ag-finance)
 
-### Programa Solana — Lending module (6 instrucciones nuevas)
+### Frontend — capa de pulido de interacciones (web + app móvil)
+
+Capa de diseño compartida que eleva la calidad de las interacciones en las 12
+páginas manteniendo la misma paleta (neón `#00FF6A`, DM Serif + Outfit). Como
+la app móvil es Capacitor sobre la misma web, mejora ambas a la vez.
+
+- **`css/enhance.css`** — botones táctiles (lift + glow + press), sheen en
+  primarios, underline animado del nav en todas las páginas, focus-ring
+  accesible (`:focus-visible`), glow de foco en inputs/selects, hover-lift en
+  cards/stats, animación de toasts, skeleton shimmer, fade-in de página.
+  Respeta `prefers-reduced-motion`.
+- **`js/ux.js`** — enhancement progresivo dependency-free: ripple táctil en
+  botones + scroll-reveal (IntersectionObserver). Degrada a nada si falla.
+- **Fix nav móvil**: en las páginas funcionales (sin menú burger) los links
+  se amontonaban y tapaban el botón de wallet; ahora son un scroller
+  horizontal con fade-mask, sin tocar `display` (no afecta el burger del
+  landing). Tap targets ≥44px en móvil.
+
+### Programa Solana — Lending module (7 instrucciones nuevas)
 
 La primitiva ag-finance más disruptiva del sector: **crédito USDC instantáneo
 contra cosecha tokenizada, sin banco**. El productor deposita sus tokens
@@ -17,7 +35,13 @@ RWA-agro como colateral y toma un préstamo on-chain. Generaliza cross-sector
 - **`init_lending_market`** (authority) — APR, max LTV, liquidation threshold
   + bonus, crea el pool USDC (ATA owned by vault authority PDA). Valida
   `max_ltv < liquidation_threshold`.
-- **`deposit_liquidity`** (cualquiera) — fondea el pool con USDC.
+- **`deposit_liquidity`** (cualquiera) — fondea el pool con USDC. Ahora
+  trackea el aporte neto de cada LP en un PDA `LiquidityProvider` (vía
+  `init_if_needed`), habilitando retiros acotados.
+- **`withdraw_liquidity`** (LP) — retira hasta `deposited_usdc` del LP,
+  acotado por la liquidez ociosa (`total_liquidity`, no lo prestado).
+  Revierte `ExceedsDeposit` / `InsufficientLiquidity`. Cierra la asimetría
+  depositar-sin-poder-retirar.
 - **`set_collateral_config`** (authority/oráculo) — precio USDC/token +
   enable por asset. `CollateralConfig` PDA por `asset_registry`.
 - **`open_loan`** (borrower) — lockea colateral Token-2022, recibe USDC
@@ -30,13 +54,36 @@ RWA-agro como colateral y toma un préstamo on-chain. Generaliza cross-sector
 Interés lineal: `principal * apr_bps * elapsed_s / (10000 * SECONDS_PER_YEAR)`.
 Sin compounding sorpresa, auditable.
 
-Total instrucciones: **27** (era 21).
+Total instrucciones: **30** (era 21).
+
+### Oracle Pyth — precio de colateral real (no más relay manual)
+
+El precio del colateral ya no depende de que la authority lo tipee a mano:
+se enchufa a un **feed pull de Pyth** y cualquiera puede actualizarlo.
+
+- **`set_collateral_oracle`** (authority) — bindea un `feed_id` Pyth al
+  colateral + `max_staleness_secs` + `max_confidence_bps`. Al habilitarlo
+  marca el precio como stale hasta el primer refresh.
+- **`refresh_collateral_price`** (permissionless) — lee la cuenta
+  `PriceUpdateV2` de Pyth, valida **owner** (receiver program),
+  **discriminator**, **feed_id**, **staleness** y **confidence interval**,
+  convierte `(price, expo)` → USDC 6 decimales y cachea el resultado.
+- **`open_loan`** ahora rechaza prestar contra un precio de oráculo stale
+  (`StalePrice`). El modo manual (`set_collateral_config`) queda intacto.
+
+Parseo de Pyth **sin dependencias externas** (layout `PriceUpdateV2`
+documentado + validado byte a byte) → cero riesgo de conflicto de versiones
+en el build SBF. 8 unit tests Rust de la conversión/parseo (incluyen
+`VerificationLevel` Full y Partial). 6 errores nuevos
+(InvalidOracleAccount, OracleFeedMismatch, StalePrice,
+PriceConfidenceTooWide, InvalidPythPrice, OracleNotEnabled).
 
 ### State nuevo
 - `LendingMarket` (apr, ltv, thresholds, liquidity, borrowed, loan_count)
 - `CollateralConfig` (price + enabled por asset)
 - `LoanPosition` (colateral, principal, accrued_interest, apr snapshot)
-- 9 errores + 6 eventos nuevos.
+- `LiquidityProvider` (aporte neto por LP — soporta `withdraw_liquidity`)
+- 10 errores + 7 eventos nuevos (`LiquidityWithdrawn` incluido).
 
 ### Compliance
 El `vault_authority` PDA necesita `ComplianceRecord` KYC-verified (stampeado

@@ -1441,6 +1441,194 @@
           }
         },
         {
+          "name": "liquidity_provider",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  118,
+                  105,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "provider"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_liquidity",
+      "docs": [
+        "Withdraw USDC liquidity previously deposited. LP-only, bounded by",
+        "idle pool liquidity (cannot pull funds that are currently lent out)."
+      ],
+      "discriminator": [
+        149,
+        158,
+        33,
+        185,
+        47,
+        243,
+        253,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "provider",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lending_market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market.marketplace",
+                "account": "LendingMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidity_provider",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  118,
+                  105,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              },
+              {
+                "kind": "account",
+                "path": "provider"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "usdc_pool",
+          "writable": true
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lending_market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "provider_usdc_ata",
+          "writable": true
+        },
+        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -3357,7 +3545,7 @@
       "name": "register_asset",
       "docs": [
         "Register a new tokenizable asset. `product_name` is the human label",
-        "e.g. \"Viñedo Rioja 2026 Reserva\"."
+        "e.g. \"Vi\u00f1edo Rioja 2026 Reserva\"."
       ],
       "discriminator": [
         21,
@@ -4156,6 +4344,144 @@
           "type": "bool"
         }
       ]
+    },
+    {
+      "name": "set_collateral_oracle",
+      "docs": [
+        "Bind a Pyth price feed to a collateral. Authority-only."
+      ],
+      "discriminator": [
+        175,
+        33,
+        9,
+        136,
+        146,
+        40,
+        69,
+        110
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lending_market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_config",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "oracle_feed_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "max_staleness_secs",
+          "type": "i64"
+        },
+        {
+          "name": "max_confidence_bps",
+          "type": "u16"
+        },
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "refresh_collateral_price",
+      "docs": [
+        "Permissionless crank: read Pyth PriceUpdateV2 and cache the price."
+      ],
+      "discriminator": [
+        135,
+        111,
+        151,
+        33,
+        219,
+        107,
+        41,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "cranker",
+          "signer": true
+        },
+        {
+          "name": "collateral_config",
+          "writable": true
+        },
+        {
+          "name": "price_update"
+        }
+      ],
+      "args": []
     },
     {
       "name": "set_compliance_signer",
@@ -5404,6 +5730,19 @@
         102,
         174
       ]
+    },
+    {
+      "name": "LiquidityProvider",
+      "discriminator": [
+        219,
+        241,
+        238,
+        133,
+        56,
+        225,
+        229,
+        191
+      ]
     }
   ],
   "events": [
@@ -5731,6 +6070,45 @@
         170,
         46
       ]
+    },
+    {
+      "name": "LiquidityWithdrawn",
+      "discriminator": [
+        240,
+        120,
+        73,
+        139,
+        154,
+        31,
+        218,
+        68
+      ]
+    },
+    {
+      "name": "CollateralOracleSet",
+      "discriminator": [
+        72,
+        35,
+        91,
+        74,
+        182,
+        52,
+        202,
+        43
+      ]
+    },
+    {
+      "name": "CollateralPriceRefreshed",
+      "discriminator": [
+        31,
+        192,
+        169,
+        128,
+        184,
+        117,
+        131,
+        141
+      ]
     }
   ],
   "errors": [
@@ -5872,7 +6250,7 @@
     {
       "code": 6027,
       "name": "Paused",
-      "msg": "Marketplace is paused — write operations are temporarily disabled"
+      "msg": "Marketplace is paused \u2014 write operations are temporarily disabled"
     },
     {
       "code": 6028,
@@ -5887,7 +6265,7 @@
     {
       "code": 6030,
       "name": "MetadataFrozen",
-      "msg": "Asset metadata is frozen — the first mint has already happened"
+      "msg": "Asset metadata is frozen \u2014 the first mint has already happened"
     },
     {
       "code": 6031,
@@ -5942,12 +6320,47 @@
     {
       "code": 6041,
       "name": "LoanHealthy",
-      "msg": "Loan is healthy — cannot be liquidated yet"
+      "msg": "Loan is healthy \u2014 cannot be liquidated yet"
     },
     {
       "code": 6042,
       "name": "RepayTooLow",
       "msg": "Repay amount does not cover the outstanding debt"
+    },
+    {
+      "code": 6043,
+      "name": "ExceedsDeposit",
+      "msg": "Withdrawal exceeds provider's deposited liquidity"
+    },
+    {
+      "code": 6044,
+      "name": "InvalidOracleAccount",
+      "msg": "Oracle account is not a valid Pyth PriceUpdateV2 account"
+    },
+    {
+      "code": 6045,
+      "name": "OracleFeedMismatch",
+      "msg": "Pyth feed id does not match the collateral's configured feed"
+    },
+    {
+      "code": 6046,
+      "name": "StalePrice",
+      "msg": "Pyth price is stale \u2014 refresh the collateral price before borrowing"
+    },
+    {
+      "code": 6047,
+      "name": "PriceConfidenceTooWide",
+      "msg": "Pyth price confidence interval is too wide to trust"
+    },
+    {
+      "code": 6048,
+      "name": "InvalidPythPrice",
+      "msg": "Pyth price is non-positive"
+    },
+    {
+      "code": 6049,
+      "name": "OracleNotEnabled",
+      "msg": "This collateral is not driven by an oracle"
     }
   ],
   "types": [
@@ -6072,7 +6485,7 @@
               {
                 "name": "product_kind",
                 "docs": [
-                  "What is being tokenized (vineyard, olive grove, livestock…)."
+                  "What is being tokenized (vineyard, olive grove, livestock\u2026)."
                 ],
                 "type": {
                   "defined": {
@@ -6091,7 +6504,7 @@
                 "name": "expected_yield_bps",
                 "docs": [
                   "Expected yield in basis points (e.g. 900 = 9% target ROI).",
-                  "Capped at 5000 bps (50%) — anything higher is almost certainly",
+                  "Capped at 5000 bps (50%) \u2014 anything higher is almost certainly",
                   "a misconfigured input and would invite obvious abuse."
                 ],
                 "type": "u16"
@@ -6413,7 +6826,7 @@
           {
             "name": "product_name",
             "docs": [
-              "Human-friendly product label, e.g. \"Viñedo Rioja 2026 Reserva\"."
+              "Human-friendly product label, e.g. \"Vi\u00f1edo Rioja 2026 Reserva\"."
             ],
             "type": "string"
           },
@@ -6545,6 +6958,27 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "oracle_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "oracle_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "max_staleness_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "type": "u16"
           }
         ]
       }
@@ -7119,7 +7553,7 @@
       "docs": [
         "On-chain lending market: lets producers borrow USDC against their",
         "tokenized agro-RWA collateral. One per marketplace. The killer ag-finance",
-        "primitive — instant credit against a warehouse receipt / tokenized harvest",
+        "primitive \u2014 instant credit against a warehouse receipt / tokenized harvest",
         "without a bank. USDC liquidity sits in a pool ATA owned by the",
         "`lending_vault` authority PDA."
       ],
@@ -7498,7 +7932,7 @@
             "docs": [
               "Wallet that controls marketplace parameters: fee_bps, treasury",
               "withdrawals, aggregator entries. Can be a human wallet OR a Squads",
-              "(or any other) multisig PDA — the program is agnostic."
+              "(or any other) multisig PDA \u2014 the program is agnostic."
             ],
             "type": "pubkey"
           },
@@ -7515,7 +7949,7 @@
           {
             "name": "compliance_authority",
             "docs": [
-              "PDA derived from [COMPLIANCE_AUTHORITY_SEED, marketplace] — kept for",
+              "PDA derived from [COMPLIANCE_AUTHORITY_SEED, marketplace] \u2014 kept for",
               "backwards compatibility / future use as a CPI signer over hook",
               "programs. Currently informational."
             ],
@@ -7590,7 +8024,7 @@
             "docs": [
               "Monotonic counter of settled trades. Used to derive the",
               "`TradeReceipt` PDA for every buy. Provides a global, queryable,",
-              "immutable proof-of-trade ledger — the structured-data answer to",
+              "immutable proof-of-trade ledger \u2014 the structured-data answer to",
               "AgriDex's per-trade receipt NFTs."
             ],
             "type": "u64"
@@ -7739,7 +8173,7 @@
       "docs": [
         "Top-level sectors for `AssetClass::Commodity`. Cubre los casos de uso 1",
         "del modelo de negocio: tokenizar kg/litros de cualquier producto agro",
-        "físico."
+        "f\u00edsico."
       ],
       "type": {
         "kind": "enum",
@@ -7990,6 +8424,131 @@
           {
             "name": "amount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityProvider",
+      "docs": [
+        "Per-provider net USDC contribution to the lending pool. Created on the",
+        "provider's first deposit; bounds how much they can withdraw."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "deposited_usdc",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_liquidity",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralOracleSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "max_staleness_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "type": "u16"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralPriceRefreshed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_usdc_per_token",
+            "type": "u64"
+          },
+          {
+            "name": "pyth_price",
+            "type": "i64"
+          },
+          {
+            "name": "pyth_expo",
+            "type": "i32"
+          },
+          {
+            "name": "pyth_conf",
+            "type": "u64"
+          },
+          {
+            "name": "publish_time",
+            "type": "i64"
           }
         ]
       }

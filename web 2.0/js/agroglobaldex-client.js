@@ -163,6 +163,12 @@ export function findLoanPda(lendingMarket, borrower, assetRegistry) {
     programIdPk(),
   )[0];
 }
+export function findLiquidityProviderPda(lendingMarket, provider) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('liquidity_provider'), new PublicKey(lendingMarket).toBuffer(), new PublicKey(provider).toBuffer()],
+    programIdPk(),
+  )[0];
+}
 
 // PDAs on the compliance_hook program (NOT on agroglobaldex):
 // hook_config seed = [b"hook_config", mint]
@@ -832,6 +838,52 @@ export async function fetchCollateralConfig(lendingMarket, assetRegistry, networ
   }
 }
 
+/** Parse a Pyth feed-id hex string ("0x..." or bare hex) into a 32-byte array. */
+export function pythFeedIdToBytes(hex) {
+  const clean = String(hex).trim().replace(/^0x/i, '');
+  if (clean.length !== 64) throw new Error('Pyth feed id must be 32 bytes (64 hex chars)');
+  const out = new Array(32);
+  for (let i = 0; i < 32; i++) out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
+/** Bind a Pyth price feed to a collateral. Authority-only. */
+export async function setCollateralOracle({ assetRegistryPubkey, feedIdHex, maxStalenessSecs = 60, maxConfidenceBps = 200, enabled = true, marketplaceAuthority }) {
+  const program = await getProgram();
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const collateralConfig = findCollateralConfigPda(lendingMarket, new PublicKey(assetRegistryPubkey));
+  const tx = await program.methods
+    .setCollateralOracle(pythFeedIdToBytes(feedIdHex), new BN(maxStalenessSecs), maxConfidenceBps, enabled)
+    .accounts({
+      authority: program.provider.wallet.publicKey,
+      marketplace,
+      lendingMarket,
+      collateralConfig,
+    })
+    .rpc();
+  return { tx };
+}
+
+/** Permissionless crank: refresh a collateral price from its Pyth feed. */
+export async function refreshCollateralPrice({ assetRegistryPubkey, priceUpdateAccount, marketplaceAuthority }) {
+  const program = await getProgram();
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const collateralConfig = findCollateralConfigPda(lendingMarket, new PublicKey(assetRegistryPubkey));
+  const tx = await program.methods
+    .refreshCollateralPrice()
+    .accounts({
+      cranker: program.provider.wallet.publicKey,
+      collateralConfig,
+      priceUpdate: new PublicKey(priceUpdateAccount),
+    })
+    .rpc();
+  return { tx };
+}
+
 /** Open a loan: lock collateral, receive USDC. */
 export async function openLoan({ assetRegistryPubkey, collateralAmount, borrowAmount, marketplaceAuthority }) {
   const program = await getProgram();
@@ -933,10 +985,55 @@ export async function depositLiquidity({ amount, marketplaceAuthority }) {
       usdcMint,
       usdcPool: lmAcc.usdcPool,
       providerUsdcAta: getAssociatedTokenAddress(usdcMint, provider, TOKEN_PROGRAM_ID),
+      liquidityProvider: findLiquidityProviderPda(lendingMarket, provider),
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  return { tx };
+}
+
+/** Withdraw USDC liquidity previously deposited. Bounded by idle pool funds. */
+export async function withdrawLiquidity({ amount, marketplaceAuthority }) {
+  const program = await getProgram();
+  const provider = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const mpAcc = await fetchMarketplace(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const lmAcc = await program.account.lendingMarket.fetch(lendingMarket);
+  const usdcMint = mpAcc.usdcMint;
+
+  const tx = await program.methods
+    .withdrawLiquidity(new BN(amount))
+    .accounts({
+      provider,
+      lendingMarket,
+      liquidityProvider: findLiquidityProviderPda(lendingMarket, provider),
+      usdcMint,
+      usdcPool: lmAcc.usdcPool,
+      vaultAuthority: findLendingVaultPda(lendingMarket),
+      providerUsdcAta: getAssociatedTokenAddress(usdcMint, provider, TOKEN_PROGRAM_ID),
       tokenProgram: TOKEN_PROGRAM_ID,
     })
     .rpc();
   return { tx };
+}
+
+/** Read the connected wallet's liquidity-provider record (net deposited USDC).
+ *  Returns null if the wallet has never deposited. */
+export async function fetchMyLiquidityPosition({ marketplaceAuthority } = {}) {
+  const program = await getProgram();
+  const provider = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const lpPda = findLiquidityProviderPda(lendingMarket, provider);
+  try {
+    return await program.account.liquidityProvider.fetch(lpPda);
+  } catch (_) {
+    return null;
+  }
 }
 
 /* ═══════ ATA helper (sync, sin spl-token dep) ═══════ */
@@ -961,9 +1058,11 @@ export default {
   revokeKyc, settleInvestmentOffering, updateMetadata, transferIssuer,
   fetchAllTradeReceipts,
   fetchLendingMarket, fetchAllLoans, fetchCollateralConfig,
-  openLoan, repayLoan, depositLiquidity,
+  setCollateralOracle, refreshCollateralPrice, pythFeedIdToBytes,
+  openLoan, repayLoan, depositLiquidity, withdrawLiquidity, fetchMyLiquidityPosition,
   findMarketplacePda, findAssetRegistryPda, findListingPda, findExternalAssetPda,
   findComplianceRecordPda, findJurisdictionPolicyPda,
   findHookConfigPda, findExtraAccountMetaListPda, findTradeReceiptPda,
   findLendingMarketPda, findLendingVaultPda, findCollateralConfigPda, findLoanPda,
+  findLiquidityProviderPda,
 };
