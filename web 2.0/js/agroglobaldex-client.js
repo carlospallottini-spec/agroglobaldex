@@ -163,6 +163,12 @@ export function findLoanPda(lendingMarket, borrower, assetRegistry) {
     programIdPk(),
   )[0];
 }
+export function findLiquidityProviderPda(lendingMarket, provider) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('liquidity_provider'), new PublicKey(lendingMarket).toBuffer(), new PublicKey(provider).toBuffer()],
+    programIdPk(),
+  )[0];
+}
 
 // PDAs on the compliance_hook program (NOT on agroglobaldex):
 // hook_config seed = [b"hook_config", mint]
@@ -933,10 +939,55 @@ export async function depositLiquidity({ amount, marketplaceAuthority }) {
       usdcMint,
       usdcPool: lmAcc.usdcPool,
       providerUsdcAta: getAssociatedTokenAddress(usdcMint, provider, TOKEN_PROGRAM_ID),
+      liquidityProvider: findLiquidityProviderPda(lendingMarket, provider),
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  return { tx };
+}
+
+/** Withdraw USDC liquidity previously deposited. Bounded by idle pool funds. */
+export async function withdrawLiquidity({ amount, marketplaceAuthority }) {
+  const program = await getProgram();
+  const provider = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const mpAcc = await fetchMarketplace(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const lmAcc = await program.account.lendingMarket.fetch(lendingMarket);
+  const usdcMint = mpAcc.usdcMint;
+
+  const tx = await program.methods
+    .withdrawLiquidity(new BN(amount))
+    .accounts({
+      provider,
+      lendingMarket,
+      liquidityProvider: findLiquidityProviderPda(lendingMarket, provider),
+      usdcMint,
+      usdcPool: lmAcc.usdcPool,
+      vaultAuthority: findLendingVaultPda(lendingMarket),
+      providerUsdcAta: getAssociatedTokenAddress(usdcMint, provider, TOKEN_PROGRAM_ID),
       tokenProgram: TOKEN_PROGRAM_ID,
     })
     .rpc();
   return { tx };
+}
+
+/** Read the connected wallet's liquidity-provider record (net deposited USDC).
+ *  Returns null if the wallet has never deposited. */
+export async function fetchMyLiquidityPosition({ marketplaceAuthority } = {}) {
+  const program = await getProgram();
+  const provider = program.provider.wallet.publicKey;
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const lpPda = findLiquidityProviderPda(lendingMarket, provider);
+  try {
+    return await program.account.liquidityProvider.fetch(lpPda);
+  } catch (_) {
+    return null;
+  }
 }
 
 /* ═══════ ATA helper (sync, sin spl-token dep) ═══════ */
@@ -961,9 +1012,10 @@ export default {
   revokeKyc, settleInvestmentOffering, updateMetadata, transferIssuer,
   fetchAllTradeReceipts,
   fetchLendingMarket, fetchAllLoans, fetchCollateralConfig,
-  openLoan, repayLoan, depositLiquidity,
+  openLoan, repayLoan, depositLiquidity, withdrawLiquidity, fetchMyLiquidityPosition,
   findMarketplacePda, findAssetRegistryPda, findListingPda, findExternalAssetPda,
   findComplianceRecordPda, findJurisdictionPolicyPda,
   findHookConfigPda, findExtraAccountMetaListPda, findTradeReceiptPda,
   findLendingMarketPda, findLendingVaultPda, findCollateralConfigPda, findLoanPda,
+  findLiquidityProviderPda,
 };
