@@ -25,16 +25,13 @@ wallet = "~/.config/solana/id.json"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [test]
-# Cold-start of solana-test-validator on CI (cloning Token-2022 from mainnet)
-# can take well over the 5s default before the first blockhash is available.
+# Headroom for solana-test-validator cold-start before the first blockhash.
 startup_wait = 60000
 
-[test.validator]
-url = "https://api.mainnet-beta.solana.com"
-
-# Clone Token-2022 program from mainnet into local validator for tests
-[[test.validator.clone]]
-address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+# NOTE: we intentionally do NOT clone Token-2022 from mainnet. Agave 3.0's
+# solana-test-validator already bundles Token-2022 (TokenzQd...) as a built-in
+# program, and cloning it from the public mainnet-beta RPC hangs the validator
+# at "Initializing..." in CI (rate-limited/blocked network fetch).
 
 [workspace]
 members = ["programs/agroglobaldex", "programs/compliance-hook"]

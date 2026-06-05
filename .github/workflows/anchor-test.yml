@@ -123,4 +123,6 @@ jobs:
         working-directory: solana
         run: |
           echo "=== test-ledger-log.txt ==="
-          cat .anchor/test-ledger/test-ledger-log.txt 2>/dev/null || echo "(no validator log found)"
+          cat .anchor/test-ledger/test-ledger-log.txt 2>/dev/null || echo "(none)"
+          echo "=== validator.log (tail) ==="
+          tail -n 120 .anchor/test-ledger/validator.log 2>/dev/null || echo "(none)"
