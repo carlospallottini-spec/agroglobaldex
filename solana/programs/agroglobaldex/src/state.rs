@@ -28,6 +28,7 @@ pub const LENDING_MARKET_SEED: &[u8] = b"lending_market";
 pub const LENDING_VAULT_SEED: &[u8] = b"lending_vault";
 pub const COLLATERAL_CONFIG_SEED: &[u8] = b"collateral_config";
 pub const LOAN_SEED: &[u8] = b"loan";
+pub const LIQUIDITY_PROVIDER_SEED: &[u8] = b"liquidity_provider";
 
 /// Seconds in a (365-day) year, for linear interest accrual.
 pub const SECONDS_PER_YEAR: i64 = 365 * 24 * 60 * 60;
@@ -514,6 +515,21 @@ pub struct LoanPosition {
     pub bump: u8,
 }
 
+/// Per-provider record of USDC liquidity contributed to a lending market.
+/// Tracks the running net principal a provider has in the pool so that
+/// withdrawals can be bounded by what each provider actually deposited.
+#[account]
+#[derive(InitSpace)]
+pub struct LiquidityProvider {
+    /// Lending market this record belongs to.
+    pub lending_market: Pubkey,
+    /// The liquidity provider wallet.
+    pub provider: Pubkey,
+    /// Running net principal this provider currently has in the pool.
+    pub deposited_usdc: u64,
+    pub bump: u8,
+}
+
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
@@ -716,6 +732,14 @@ pub struct LendingMarketInitialized {
 
 #[event]
 pub struct LiquidityDeposited {
+    pub lending_market: Pubkey,
+    pub provider: Pubkey,
+    pub amount: u64,
+    pub total_liquidity: u64,
+}
+
+#[event]
+pub struct LiquidityWithdrawn {
     pub lending_market: Pubkey,
     pub provider: Pubkey,
     pub amount: u64,

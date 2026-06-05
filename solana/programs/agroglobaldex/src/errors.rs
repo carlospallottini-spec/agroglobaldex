@@ -130,4 +130,7 @@ pub enum AgroError {
 
     #[msg("Repay amount does not cover the outstanding debt")]
     RepayTooLow,
+
+    #[msg("Withdrawal exceeds provider's deposited liquidity")]
+    ExceedsDeposit,
 }

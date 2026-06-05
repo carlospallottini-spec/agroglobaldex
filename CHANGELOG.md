@@ -7,7 +7,7 @@ Repository: https://github.com/carlospallottini-spec/agroglobaldex
 
 ## [Unreleased] — 0.5.0 (módulo de crédito colateralizado — ag-finance)
 
-### Programa Solana — Lending module (6 instrucciones nuevas)
+### Programa Solana — Lending module (7 instrucciones nuevas)
 
 La primitiva ag-finance más disruptiva del sector: **crédito USDC instantáneo
 contra cosecha tokenizada, sin banco**. El productor deposita sus tokens
@@ -17,7 +17,13 @@ RWA-agro como colateral y toma un préstamo on-chain. Generaliza cross-sector
 - **`init_lending_market`** (authority) — APR, max LTV, liquidation threshold
   + bonus, crea el pool USDC (ATA owned by vault authority PDA). Valida
   `max_ltv < liquidation_threshold`.
-- **`deposit_liquidity`** (cualquiera) — fondea el pool con USDC.
+- **`deposit_liquidity`** (cualquiera) — fondea el pool con USDC. Ahora
+  trackea el aporte neto de cada LP en un PDA `LiquidityProvider` (vía
+  `init_if_needed`), habilitando retiros acotados.
+- **`withdraw_liquidity`** (LP) — retira hasta `deposited_usdc` del LP,
+  acotado por la liquidez ociosa (`total_liquidity`, no lo prestado).
+  Revierte `ExceedsDeposit` / `InsufficientLiquidity`. Cierra la asimetría
+  depositar-sin-poder-retirar.
 - **`set_collateral_config`** (authority/oráculo) — precio USDC/token +
   enable por asset. `CollateralConfig` PDA por `asset_registry`.
 - **`open_loan`** (borrower) — lockea colateral Token-2022, recibe USDC
@@ -30,13 +36,14 @@ RWA-agro como colateral y toma un préstamo on-chain. Generaliza cross-sector
 Interés lineal: `principal * apr_bps * elapsed_s / (10000 * SECONDS_PER_YEAR)`.
 Sin compounding sorpresa, auditable.
 
-Total instrucciones: **27** (era 21).
+Total instrucciones: **28** (era 21).
 
 ### State nuevo
 - `LendingMarket` (apr, ltv, thresholds, liquidity, borrowed, loan_count)
 - `CollateralConfig` (price + enabled por asset)
 - `LoanPosition` (colateral, principal, accrued_interest, apr snapshot)
-- 9 errores + 6 eventos nuevos.
+- `LiquidityProvider` (aporte neto por LP — soporta `withdraw_liquidity`)
+- 10 errores + 7 eventos nuevos (`LiquidityWithdrawn` incluido).
 
 ### Compliance
 El `vault_authority` PDA necesita `ComplianceRecord` KYC-verified (stampeado

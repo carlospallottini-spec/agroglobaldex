@@ -223,6 +223,12 @@ pub mod agroglobaldex {
         instructions::lending::deposit_liquidity_handler(ctx, amount)
     }
 
+    /// Withdraw previously-deposited USDC liquidity, bounded by the provider's
+    /// tracked net principal and the pool's currently-available liquidity.
+    pub fn withdraw_liquidity(ctx: Context<WithdrawLiquidity>, amount: u64) -> Result<()> {
+        instructions::lending::withdraw_liquidity_handler(ctx, amount)
+    }
+
     /// Set the collateral price (USDC per token) + enable flag for an asset.
     /// Authority acts as oracle relay. Production: wire a signed price feed.
     pub fn set_collateral_config(

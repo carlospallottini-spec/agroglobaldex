@@ -66,7 +66,7 @@ npm install
 npx ts-node --project tsconfig.seed.json scripts/seed-localnet.ts
 ```
 
-**27 instrucciones · 2 programas Anchor · 5 AssetClass (Grain · CarbonCredit · HarvestFraction · InvestmentOffering · Commodity con 9 sectores).** Detalles en [`solana/README.md`](solana/README.md).
+**28 instrucciones · 2 programas Anchor · 5 AssetClass (Grain · CarbonCredit · HarvestFraction · InvestmentOffering · Commodity con 9 sectores).** Detalles en [`solana/README.md`](solana/README.md).
 
 ### Cambios v0.3 (audit pre-mainnet)
 
