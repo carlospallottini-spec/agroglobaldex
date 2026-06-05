@@ -407,6 +407,10 @@ pub fn set_collateral_config_handler(
     cfg.enabled = enabled;
     cfg.updated_at = now;
     cfg.bump = ctx.bumps.collateral_config;
+    // This instruction is the manual-relay path: setting a price by hand
+    // switches the collateral back to manual mode. Use `set_collateral_oracle`
+    // to (re-)bind a Pyth feed.
+    cfg.oracle_enabled = false;
 
     emit!(CollateralConfigured {
         lending_market: cfg.lending_market,
@@ -533,8 +537,18 @@ pub fn open_loan_handler(
     borrow_amount: u64,
 ) -> Result<()> {
     require!(collateral_amount > 0 && borrow_amount > 0, AgroError::InvalidAmount);
-    let price = ctx.accounts.collateral_config.price_usdc_per_token;
+    let cfg = &ctx.accounts.collateral_config;
+    let price = cfg.price_usdc_per_token;
     require!(price > 0, AgroError::InvalidCollateralPrice);
+
+    // Oracle-driven collateral must have a fresh price: refuse to lend against
+    // a stale Pyth quote. Manual-relay collateral (oracle_enabled == false) is
+    // unaffected.
+    if cfg.oracle_enabled {
+        let now = Clock::get()?.unix_timestamp;
+        let age = now.saturating_sub(cfg.updated_at);
+        require!(age <= cfg.max_staleness_secs, AgroError::StalePrice);
+    }
 
     // collateral_value = collateral_amount * price (USDC base units)
     let collateral_value = (collateral_amount as u128)

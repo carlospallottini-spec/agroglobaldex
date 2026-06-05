@@ -36,7 +36,29 @@ RWA-agro como colateral y toma un préstamo on-chain. Generaliza cross-sector
 Interés lineal: `principal * apr_bps * elapsed_s / (10000 * SECONDS_PER_YEAR)`.
 Sin compounding sorpresa, auditable.
 
-Total instrucciones: **28** (era 21).
+Total instrucciones: **30** (era 21).
+
+### Oracle Pyth — precio de colateral real (no más relay manual)
+
+El precio del colateral ya no depende de que la authority lo tipee a mano:
+se enchufa a un **feed pull de Pyth** y cualquiera puede actualizarlo.
+
+- **`set_collateral_oracle`** (authority) — bindea un `feed_id` Pyth al
+  colateral + `max_staleness_secs` + `max_confidence_bps`. Al habilitarlo
+  marca el precio como stale hasta el primer refresh.
+- **`refresh_collateral_price`** (permissionless) — lee la cuenta
+  `PriceUpdateV2` de Pyth, valida **owner** (receiver program),
+  **discriminator**, **feed_id**, **staleness** y **confidence interval**,
+  convierte `(price, expo)` → USDC 6 decimales y cachea el resultado.
+- **`open_loan`** ahora rechaza prestar contra un precio de oráculo stale
+  (`StalePrice`). El modo manual (`set_collateral_config`) queda intacto.
+
+Parseo de Pyth **sin dependencias externas** (layout `PriceUpdateV2`
+documentado + validado byte a byte) → cero riesgo de conflicto de versiones
+en el build SBF. 8 unit tests Rust de la conversión/parseo (incluyen
+`VerificationLevel` Full y Partial). 6 errores nuevos
+(InvalidOracleAccount, OracleFeedMismatch, StalePrice,
+PriceConfidenceTooWide, InvalidPythPrice, OracleNotEnabled).
 
 ### State nuevo
 - `LendingMarket` (apr, ltv, thresholds, liquidity, borrowed, loan_count)

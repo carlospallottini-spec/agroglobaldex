@@ -4346,6 +4346,144 @@
       ]
     },
     {
+      "name": "set_collateral_oracle",
+      "docs": [
+        "Bind a Pyth price feed to a collateral. Authority-only."
+      ],
+      "discriminator": [
+        175,
+        33,
+        9,
+        136,
+        146,
+        40,
+        69,
+        110
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lending_market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_config",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "oracle_feed_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "max_staleness_secs",
+          "type": "i64"
+        },
+        {
+          "name": "max_confidence_bps",
+          "type": "u16"
+        },
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "refresh_collateral_price",
+      "docs": [
+        "Permissionless crank: read Pyth PriceUpdateV2 and cache the price."
+      ],
+      "discriminator": [
+        135,
+        111,
+        151,
+        33,
+        219,
+        107,
+        41,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "cranker",
+          "signer": true
+        },
+        {
+          "name": "collateral_config",
+          "writable": true
+        },
+        {
+          "name": "price_update"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "set_compliance_signer",
       "docs": [
         "Rotate the wallet allowed to stamp KYC. Authority-only."
@@ -5945,6 +6083,32 @@
         218,
         68
       ]
+    },
+    {
+      "name": "CollateralOracleSet",
+      "discriminator": [
+        72,
+        35,
+        91,
+        74,
+        182,
+        52,
+        202,
+        43
+      ]
+    },
+    {
+      "name": "CollateralPriceRefreshed",
+      "discriminator": [
+        31,
+        192,
+        169,
+        128,
+        184,
+        117,
+        131,
+        141
+      ]
     }
   ],
   "errors": [
@@ -6167,6 +6331,36 @@
       "code": 6043,
       "name": "ExceedsDeposit",
       "msg": "Withdrawal exceeds provider's deposited liquidity"
+    },
+    {
+      "code": 6044,
+      "name": "InvalidOracleAccount",
+      "msg": "Oracle account is not a valid Pyth PriceUpdateV2 account"
+    },
+    {
+      "code": 6045,
+      "name": "OracleFeedMismatch",
+      "msg": "Pyth feed id does not match the collateral's configured feed"
+    },
+    {
+      "code": 6046,
+      "name": "StalePrice",
+      "msg": "Pyth price is stale \u2014 refresh the collateral price before borrowing"
+    },
+    {
+      "code": 6047,
+      "name": "PriceConfidenceTooWide",
+      "msg": "Pyth price confidence interval is too wide to trust"
+    },
+    {
+      "code": 6048,
+      "name": "InvalidPythPrice",
+      "msg": "Pyth price is non-positive"
+    },
+    {
+      "code": 6049,
+      "name": "OracleNotEnabled",
+      "msg": "This collateral is not driven by an oracle"
     }
   ],
   "types": [
@@ -6764,6 +6958,27 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "oracle_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "oracle_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "max_staleness_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "type": "u16"
           }
         ]
       }
@@ -8261,6 +8476,79 @@
           {
             "name": "total_liquidity",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralOracleSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "max_staleness_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_confidence_bps",
+            "type": "u16"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralPriceRefreshed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_usdc_per_token",
+            "type": "u64"
+          },
+          {
+            "name": "pyth_price",
+            "type": "i64"
+          },
+          {
+            "name": "pyth_expo",
+            "type": "i32"
+          },
+          {
+            "name": "pyth_conf",
+            "type": "u64"
+          },
+          {
+            "name": "publish_time",
+            "type": "i64"
           }
         ]
       }

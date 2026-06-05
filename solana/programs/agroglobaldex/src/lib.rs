@@ -230,13 +230,40 @@ pub mod agroglobaldex {
     }
 
     /// Set the collateral price (USDC per token) + enable flag for an asset.
-    /// Authority acts as oracle relay. Production: wire a signed price feed.
+    /// Authority acts as oracle relay (manual mode). For a real price feed use
+    /// `set_collateral_oracle` + `refresh_collateral_price`.
     pub fn set_collateral_config(
         ctx: Context<SetCollateralConfig>,
         price_usdc_per_token: u64,
         enabled: bool,
     ) -> Result<()> {
         instructions::lending::set_collateral_config_handler(ctx, price_usdc_per_token, enabled)
+    }
+
+    /// Bind a Pyth price feed to a collateral. Authority-only. Once bound the
+    /// price is driven by `refresh_collateral_price` and `open_loan` enforces
+    /// staleness against `max_staleness_secs`.
+    pub fn set_collateral_oracle(
+        ctx: Context<SetCollateralOracle>,
+        oracle_feed_id: [u8; 32],
+        max_staleness_secs: i64,
+        max_confidence_bps: u16,
+        enabled: bool,
+    ) -> Result<()> {
+        instructions::oracle::set_collateral_oracle_handler(
+            ctx,
+            oracle_feed_id,
+            max_staleness_secs,
+            max_confidence_bps,
+            enabled,
+        )
+    }
+
+    /// Permissionless crank: read the Pyth `PriceUpdateV2` account, validate it
+    /// (owner, discriminator, feed id, staleness, confidence) and cache the
+    /// price into the collateral config. Anyone can call this.
+    pub fn refresh_collateral_price(ctx: Context<RefreshCollateralPrice>) -> Result<()> {
+        instructions::oracle::refresh_collateral_price_handler(ctx)
     }
 
     /// Open a loan: lock collateral Token-2022, receive USDC up to max LTV.
