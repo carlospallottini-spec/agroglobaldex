@@ -117,3 +117,10 @@ jobs:
           # RUNBOOK flags this bump as critical to keep it from dying mid-run.
           ulimit -n 65536 || true
           anchor test
+
+      - name: Dump validator log on failure
+        if: failure()
+        working-directory: solana
+        run: |
+          echo "=== test-ledger-log.txt ==="
+          cat .anchor/test-ledger/test-ledger-log.txt 2>/dev/null || echo "(no validator log found)"

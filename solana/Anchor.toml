@@ -24,6 +24,11 @@ wallet = "~/.config/solana/id.json"
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
+[test]
+# Cold-start of solana-test-validator on CI (cloning Token-2022 from mainnet)
+# can take well over the 5s default before the first blockhash is available.
+startup_wait = 60000
+
 [test.validator]
 url = "https://api.mainnet-beta.solana.com"
 
