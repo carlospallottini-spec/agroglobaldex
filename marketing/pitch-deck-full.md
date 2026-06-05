@@ -244,7 +244,7 @@ Año 2:    Expansión LATAM (Argentina, Brasil)
 - **Lead committed [VERIFICAR antes de presentar].**
 
 **Contact:**
-Carlos Pallottini · carlos@agroglobaldex.io · [LinkedIn] · [Calendly link]
+Carlos Pallottini · carlos@agroglobaldex.com · [LinkedIn] · [Calendly link]
 
 ---
 

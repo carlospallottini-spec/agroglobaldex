@@ -24,7 +24,7 @@ with KYC enforced at the token level.
 ## Project URL
 
 - GitHub: https://github.com/carlospallottini-spec/agroglobaldex
-- Web (devnet PoC): https://agroglobaldex.io *[VERIFICAR cuando esté el DNS]*
+- Web (devnet PoC): https://agroglobaldex.com (PWA installable iOS/Android, hosted on Cloudflare Pages)
 - Demo desktop app: see GitHub Releases (Windows .exe, macOS .dmg, Linux .AppImage)
 
 ## Funding requested

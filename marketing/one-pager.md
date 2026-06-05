@@ -54,7 +54,7 @@ Versión imprimible (PDF A4) recomendada. ~300 palabras + key numbers.
 ### Contact
 
 **Carlos Pallottini** · Founder & CEO
-carlos@agroglobaldex.io · LinkedIn `/in/...` · Schedule `cal.com/...`
+carlos@agroglobaldex.com · LinkedIn `/in/...` · Schedule `cal.com/...`
 
 > *AgroGlobalDex is a Demo/PoC. Not yet authorized as a Crypto-Asset Service
 > Provider under MiCA. No solicitation of investment in this jurisdiction.

@@ -26,6 +26,14 @@ Cada vez que tagueamos `v*` el workflow buildea Windows + macOS + Linux en paral
 
 ## 🌐 Probar en el navegador (sin instalar)
 
+### **➡️ https://agroglobaldex.com**
+
+Hosted en Cloudflare Pages con HTTPS válido + CDN global. Re-deploy automático
+en cada push. Desde iPhone: abrir en Safari → Compartir → "Añadir a pantalla
+de inicio" → instala como PWA fullscreen.
+
+### Local (para desarrollo):
+
 ```bash
 git clone https://github.com/carlospallottini-spec/agroglobaldex
 cd agroglobaldex
@@ -144,4 +152,4 @@ MIT (código) · CC-BY-4.0 (docs).
 ## Contacto
 
 **Carlos Pallottini** — Founder
-carlos@agroglobaldex.io
+carlos@agroglobaldex.com
