@@ -1,0 +1,194 @@
+/* ════════════════════════════════════════════════════════════════════
+   AgroGlobalDex — enhance.css
+   Shared interaction-polish layer. Loads AFTER each page's inline <style>
+   so it augments (never replaces) the existing design system. It only adds
+   transitions / hover / focus / active / motion — same color tokens, no
+   layout changes. Powers both the web PWA and the Capacitor mobile app.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Easing tokens used by this layer. (Color tokens come from each page's own
+   :root — we must NOT redeclare --neon here; a self-referential custom prop
+   would invalidate it everywhere.) */
+:root{
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+}
+
+/* ── Global niceties ─────────────────────────────────────────────────── */
+*{ -webkit-tap-highlight-color:transparent; }
+html{ scroll-behavior:smooth; }
+::selection{ background:var(--nm,#00FF6A28); color:var(--txt,#ECF0EC); }
+
+::-webkit-scrollbar{ width:7px; height:7px; }
+::-webkit-scrollbar-track{ background:var(--bg,#05080A); }
+::-webkit-scrollbar-thumb{ background:var(--bd3,#2A3D2C); border-radius:99px; }
+::-webkit-scrollbar-thumb:hover{ background:var(--neon,#00FF6A); }
+
+/* Keyboard accessibility — visible neon focus ring on real keyboard nav. */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible{
+  outline:2px solid var(--neon,#00FF6A);
+  outline-offset:2px;
+  border-radius:var(--r,8px);
+}
+
+/* Page enters with a soft fade+rise (skipped under reduced-motion). */
+@keyframes ag-page-in{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+body{ animation:ag-page-in .5s var(--ease-out) both; }
+
+/* ── Primary buttons — tactile lift + neon glow + press ──────────────── */
+.btn-p, .nbtn-p{
+  transition:transform .18s var(--ease-spring), box-shadow .25s var(--ease-out),
+             background .2s ease, filter .2s ease;
+  will-change:transform;
+}
+.btn-p:hover:not(:disabled), .nbtn-p:hover:not(:disabled){
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px -6px var(--nb,#00FF6A55), 0 0 0 1px var(--nm,#00FF6A28);
+}
+.btn-p:active:not(:disabled), .nbtn-p:active:not(:disabled){
+  transform:translateY(0) scale(.97);
+  box-shadow:0 2px 8px -4px var(--nb,#00FF6A55);
+}
+.btn-p:disabled, .nbtn-p:disabled{ filter:saturate(.4); }
+
+/* Sheen sweep across primary buttons on hover. */
+.btn-p{ position:relative; overflow:hidden; }
+.btn-p::before{
+  content:''; position:absolute; top:0; left:-120%; width:60%; height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);
+  transform:skewX(-18deg); transition:left .6s var(--ease-out); pointer-events:none;
+}
+.btn-p:hover:not(:disabled)::before{ left:140%; }
+
+/* ── Secondary / ghost buttons ───────────────────────────────────────── */
+.btn-s, .nbtn-g, .nwb{
+  transition:transform .18s var(--ease-spring), border-color .2s ease,
+             color .2s ease, background .2s ease, box-shadow .25s var(--ease-out);
+}
+.btn-s:hover:not(:disabled), .nbtn-g:hover:not(:disabled){
+  transform:translateY(-1px);
+  border-color:var(--nm,#00FF6A28);
+  box-shadow:0 6px 18px -8px rgba(0,0,0,.6);
+}
+.btn-s:active:not(:disabled), .nbtn-g:active:not(:disabled),
+.nwb:active{ transform:scale(.97); }
+.nwb:hover{ border-color:var(--nm,#00FF6A28); color:var(--neon,#00FF6A); background:var(--nd,#00FF6A0D); transform:translateY(-1px); }
+
+/* ── Animated nav underline (ports the index.html flourish everywhere) ── */
+.nav-links a{ position:relative; transition:color .2s ease, background .2s ease; }
+.nav-links a::after{
+  content:''; position:absolute; left:13px; right:13px; bottom:4px; height:1.5px;
+  background:var(--neon,#00FF6A); border-radius:2px;
+  transform:scaleX(0); transform-origin:left;
+  transition:transform .3s var(--ease-spring);
+}
+.nav-links a:hover::after, .nav-links a.active::after{ transform:scaleX(1); }
+.nav-logo{ transition:opacity .2s ease; }
+.nav-logo:hover{ opacity:.82; }
+.nli{ transition:transform .3s var(--ease-spring), box-shadow .3s var(--ease-out); }
+.nav-logo:hover .nli{ transform:rotate(-8deg) scale(1.06); box-shadow:0 0 18px -2px var(--nb,#00FF6A55); }
+
+/* ── Inputs / selects — focus glow ring ──────────────────────────────── */
+.field input, .field select, .field textarea, input[type=text],
+input[type=number], input[type=email], select, textarea{
+  transition:border-color .2s ease, box-shadow .25s var(--ease-out), background .2s ease;
+}
+.field input:hover, .field select:hover, .field textarea:hover{ border-color:var(--bd3,#2A3D2C); }
+.field input:focus, .field select:focus, .field textarea:focus,
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color:var(--nm,#00FF6A28);
+  box-shadow:0 0 0 3px var(--nd,#00FF6A0D), 0 0 0 1px var(--nm,#00FF6A28);
+  background:var(--bg3,#101610);
+}
+
+/* ── Cards — hover lift + border brighten + soft glow ────────────────── */
+.card, .pstat, .step, .loan-row, .wallet-option{
+  transition:transform .25s var(--ease-out), border-color .25s ease,
+             box-shadow .3s var(--ease-out), background .2s ease;
+}
+.card:hover{
+  transform:translateY(-3px);
+  border-color:var(--bd3,#2A3D2C);
+  box-shadow:0 16px 40px -16px rgba(0,0,0,.7), 0 0 0 1px var(--bd2,#1E2D20);
+}
+.pstat:hover{
+  transform:translateY(-2px);
+  border-color:var(--nm,#00FF6A28);
+  box-shadow:0 12px 30px -14px rgba(0,0,0,.6);
+}
+.pstat .v{ transition:text-shadow .3s var(--ease-out); }
+.pstat:hover .v{ text-shadow:0 0 22px var(--nb,#00FF6A55); }
+.loan-row:hover{ border-color:var(--bd3,#2A3D2C); transform:translateX(2px); }
+
+/* ── Toasts — slide+fade in (pages append nodes into #toast-stack) ───── */
+@keyframes ag-toast-in{ from{opacity:0; transform:translateY(10px) scale(.96);} to{opacity:1; transform:none;} }
+#toast-stack > *{ animation:ag-toast-in .35s var(--ease-spring) both; transition:opacity .3s ease, transform .3s ease; }
+
+/* ── Skeleton shimmer utility (add class="ag-skeleton" while loading) ── */
+@keyframes ag-shimmer{ 0%{background-position:-180% 0;} 100%{background-position:180% 0;} }
+.ag-skeleton{
+  color:transparent !important; border-radius:6px; pointer-events:none;
+  background:linear-gradient(90deg,var(--bg3,#101610) 25%,var(--bg4,#171F18) 37%,var(--bg3,#101610) 63%);
+  background-size:200% 100%; animation:ag-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Scroll reveal (driven by js/ux.js) — only if JS marks it ────────── */
+.ag-reveal{ opacity:0; transform:translateY(20px); }
+.ag-reveal.ag-in{
+  opacity:1; transform:none;
+  transition:opacity .6s var(--ease-out), transform .6s var(--ease-out);
+}
+
+/* ── Live dot pulse fallback (some pages reuse .wdot / .dot) ──────────── */
+@keyframes ag-pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+.nwb.connected .wdot{ animation:ag-pulse 2s ease-in-out infinite; }
+
+/* ── Mobile: comfy tap targets + smoother momentum scroll ────────────── */
+@media (max-width:760px){
+  .btn-p, .btn-s, .nbtn-p, .nbtn-g, .nwb{ min-height:44px; }
+  .nav-links a{ padding-top:9px; padding-bottom:9px; }
+  body{ -webkit-overflow-scrolling:touch; }
+
+  /* Functional pages (no burger menu) wrapped their nav links into the nav
+     bar and overlapped the wallet button. Turn the link row into a tidy
+     horizontal scroller instead. Pages that hide .nav-links on mobile (the
+     landing's burger menu) are unaffected — we never touch `display`. */
+  nav.main-nav{ gap:10px; padding-left:14px; padding-right:14px; }
+  nav.main-nav .nav-links{
+    flex-wrap:nowrap; flex:1 1 0%; min-width:0; margin-left:6px;
+    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; -ms-overflow-style:none;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8px,#000 calc(100% - 18px),transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 8px,#000 calc(100% - 18px),transparent);
+  }
+  nav.main-nav .nav-links::-webkit-scrollbar{ display:none; }
+  nav.main-nav .nav-links a{ white-space:nowrap; flex:0 0 auto; }
+  nav.main-nav .nav-r{ flex:0 0 auto; }
+}
+
+/* ── Ripple (driven by js/ux.js) ─────────────────────────────────────── */
+.ag-ripple-host{ position:relative; overflow:hidden; }
+@keyframes ag-ripple{ to{ transform:scale(2.6); opacity:0; } }
+.ag-ripple{
+  position:absolute; border-radius:50%; pointer-events:none;
+  transform:scale(0); opacity:.45;
+  background:radial-gradient(circle, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 70%);
+  animation:ag-ripple .6s var(--ease-out) forwards;
+}
+/* On dark/ghost buttons the ink should be neon, not black. */
+.btn-s .ag-ripple, .nbtn-g .ag-ripple, .nwb .ag-ripple{
+  background:radial-gradient(circle, var(--nm,#00FF6A28) 0%, rgba(0,0,0,0) 70%);
+}
+
+/* ── Respect users who prefer reduced motion ─────────────────────────── */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+  .ag-reveal{ opacity:1; transform:none; }
+}

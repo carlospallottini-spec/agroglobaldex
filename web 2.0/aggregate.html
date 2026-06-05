@@ -54,6 +54,7 @@ td{padding:14px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}
 .warn{padding:12px 14px;background:#F0A02012;border:1px solid #F0A02055;border-radius:var(--r);color:#F4C078;font-size:13px;margin-bottom:18px}
 .empty{text-align:center;padding:40px;color:var(--t3)}
 </style>
+  <link rel="stylesheet" href="css/enhance.css">
 </head>
 <body>
 <div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Pantalla admin. Sólo accesible para la authority del marketplace en devnet.</div>
@@ -242,5 +243,6 @@ window.addEventListener('wallet:connected', () => { checkAuth(); refresh(); });
 checkAuth(); refresh();
 </script>
 <script type="module" src="js/pwa-install.js"></script>
+<script src="js/ux.js" defer></script>
 </body>
 </html>

@@ -7,6 +7,24 @@ Repository: https://github.com/carlospallottini-spec/agroglobaldex
 
 ## [Unreleased] — 0.5.0 (módulo de crédito colateralizado — ag-finance)
 
+### Frontend — capa de pulido de interacciones (web + app móvil)
+
+Capa de diseño compartida que eleva la calidad de las interacciones en las 12
+páginas manteniendo la misma paleta (neón `#00FF6A`, DM Serif + Outfit). Como
+la app móvil es Capacitor sobre la misma web, mejora ambas a la vez.
+
+- **`css/enhance.css`** — botones táctiles (lift + glow + press), sheen en
+  primarios, underline animado del nav en todas las páginas, focus-ring
+  accesible (`:focus-visible`), glow de foco en inputs/selects, hover-lift en
+  cards/stats, animación de toasts, skeleton shimmer, fade-in de página.
+  Respeta `prefers-reduced-motion`.
+- **`js/ux.js`** — enhancement progresivo dependency-free: ripple táctil en
+  botones + scroll-reveal (IntersectionObserver). Degrada a nada si falla.
+- **Fix nav móvil**: en las páginas funcionales (sin menú burger) los links
+  se amontonaban y tapaban el botón de wallet; ahora son un scroller
+  horizontal con fade-mask, sin tocar `display` (no afecta el burger del
+  landing). Tap targets ≥44px en móvil.
+
 ### Programa Solana — Lending module (7 instrucciones nuevas)
 
 La primitiva ag-finance más disruptiva del sector: **crédito USDC instantáneo
