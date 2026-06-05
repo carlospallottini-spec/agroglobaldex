@@ -706,15 +706,26 @@ describe("agroglobaldex", function () {
     // 100k USDC en base units (6 decimals)
     await mintTo(provider.connection, payer, usdcMint, authorityUsdcAta, payer, 100_000_000_000);
 
+    // PDA que trackea el aporte neto de este LP (init_if_needed en el deposito).
+    const lpRecord = pda(
+      [Buffer.from("liquidity_provider"), lm.toBuffer(), authority.publicKey.toBuffer()],
+      programId,
+    );
     await program.methods.depositLiquidity(new BN(100_000_000_000))
       .accounts({
         provider: authority.publicKey, lendingMarket: lm,
         usdcMint, usdcPool, providerUsdcAta: authorityUsdcAta,
+        liquidityProvider: lpRecord,
         tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       }).rpc();
     const lmAccAfter = await program.account.lendingMarket.fetch(lm);
     const delta = new BN(lmAccAfter.totalLiquidity.toString()).sub(new BN(lmAccBefore.totalLiquidity.toString()));
     assert.equal(delta.toString(), "100000000000");
+
+    // El aporte del LP quedo registrado (habilita withdraw_liquidity).
+    const lpAcc = await program.account.liquidityProvider.fetch(lpRecord);
+    assert.equal(lpAcc.depositedUsdc.toString(), "100000000000");
   });
 
   it("33 open_loan happy: issuer lockea 50k grain → recibe 20k USDC (40% LTV)", async () => {
@@ -831,6 +842,417 @@ describe("agroglobaldex", function () {
         })
         .signers([borrower2]).rpc(),
       "", // cualquier revert sirve — TransferChecked insufficient o ATA no init
+    );
+  });
+
+  // ---------------- Lending lifecycle: repay + liquidate ------------------
+  //
+  // Helper: registra un asset Grain FRESCO con `assetIssuer` como issuer y
+  // mintea `mintAmount` base units directamente a su ATA (mint_to NO dispara
+  // el transfer hook, asi que el balance queda disponible sin gating). Devuelve
+  // las PDAs utiles para abrir un loan contra el. Reutiliza exactamente las
+  // mismas derivaciones de seeds que los tests 06/17/30-33.
+  async function registerFreshGrain(
+    assetIssuer: Keypair,
+    mintAmount: anchor.BN,
+  ): Promise<{ reg: PublicKey; mint: PublicKey; issuerAta: PublicKey }> {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    await program.methods.registerAsset(
+      { grain: { kind: { corn: {} }, tons: new BN(200) } },
+      new BN(1_000_000_000_000), Array.from(createHash("sha256").update("fresh-grain-" + reg.toBase58()).digest()),
+      "ipfs://demo/fresh-grain-wp.pdf", "ipfs://demo/fresh-grain-meta.json", "Maiz AR Lending",
+    )
+      .accounts({ issuer: assetIssuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+      .signers([assetIssuer]).rpc();
+
+    const issuerAta = getAssociatedTokenAddressSync(m, assetIssuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    await program.methods.mintToken(mintAmount)
+      .accounts({
+        issuer: assetIssuer.publicKey,
+        assetRegistry: reg,
+        mint: m,
+        issuerTokenAccount: issuerAta,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([assetIssuer]).rpc();
+    return { reg, mint: m, issuerAta };
+  }
+
+  it("35 repay_loan happy: issuer repaga principal + interes → recupera 50k grain", async () => {
+    // El loan del test 33: borrower = issuer, collateral = Grain idx 0 (50k
+    // tokens), principal = 20k USDC. Aca el issuer repaga el total adeudado
+    // (principal + interes acumulado linealmente) y recupera su colateral.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const collateralMint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const issuerCollateralAta = getAssociatedTokenAddressSync(collateralMint, issuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const collateralVault = getAssociatedTokenAddressSync(collateralMint, vaultAuth, true, TOKEN_2022_PROGRAM_ID);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const issuerUsdcAta = getAssociatedTokenAddressSync(usdcMint, issuer.publicKey, true, TOKEN_PROGRAM_ID);
+    const loan = pda(
+      [Buffer.from("loan"), lm.toBuffer(), issuer.publicKey.toBuffer(), reg.toBuffer()],
+      programId,
+    );
+
+    // Pre-condiciones: loan activo del test 33.
+    const loanBefore = await program.account.loanPosition.fetch(loan);
+    assert.equal(loanBefore.active, true);
+    const lmBefore = await program.account.lendingMarket.fetch(lm);
+
+    // El issuer recibio 20k USDC al abrir el loan; el interes acumulado es
+    // pequeño pero > 0. Le mintamos un buffer extra de fake USDC (mismo mint
+    // del test 01, mintAuthority = payer) para cubrir principal + interes.
+    await mintTo(provider.connection, payer, usdcMint, issuerUsdcAta, payer, 1_000_000_000);
+
+    // Saldo de colateral del issuer ANTES de repagar (debe subir tras repay).
+    const collBefore = (await provider.connection.getTokenAccountBalance(issuerCollateralAta)).value.amount;
+
+    await program.methods.repayLoan()
+      .accounts({
+        borrower: issuer.publicKey,
+        lendingMarket: lm,
+        loan,
+        collateralMint,
+        borrowerCollateralAta: issuerCollateralAta,
+        vaultAuthority: vaultAuth,
+        collateralVault,
+        usdcMint,
+        usdcPool,
+        borrowerUsdcAta: issuerUsdcAta,
+        collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+        usdcTokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([issuer]).rpc();
+
+    const loanAfter = await program.account.loanPosition.fetch(loan);
+    assert.equal(loanAfter.active, false);
+    assert.equal(loanAfter.principalUsdc.toString(), "0");
+    assert.equal(loanAfter.accruedInterestUsdc.toString(), "0");
+
+    // Colateral devuelto: el ATA del issuer sube exactamente collateral_amount.
+    const collAfter = (await provider.connection.getTokenAccountBalance(issuerCollateralAta)).value.amount;
+    const collDelta = new BN(collAfter).sub(new BN(collBefore));
+    assert.equal(collDelta.toString(), loanBefore.collateralAmount.toString());
+
+    // total_borrowed baja en el principal repagado (20k USDC).
+    const lmAfter = await program.account.lendingMarket.fetch(lm);
+    const borrowedDelta = new BN(lmBefore.totalBorrowed.toString()).sub(new BN(lmAfter.totalBorrowed.toString()));
+    assert.equal(borrowedDelta.toString(), loanBefore.principalUsdc.toString());
+  });
+
+  it("36 sad: liquidate sobre un loan sano revierte LoanHealthy", async () => {
+    // Abrimos un loan FRESCO bien colateralizado al precio corriente y luego
+    // intentamos liquidarlo: debe revertir LoanHealthy porque
+    // debt*10000 < collateral_value*liquidation_threshold_bps.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+
+    // Nuevo borrower KYC'd que ademas es el issuer del asset fresco.
+    const borrower3 = Keypair.generate();
+    await airdrop(borrower3.publicKey, 5);
+    const borrower3Rec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), borrower3.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.updateKyc(true, Array.from(Buffer.from("AR")), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet: borrower3.publicKey,
+        complianceRecord: borrower3Rec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+
+    // Registramos grain fresco emitido por borrower3 y le minteamos 50k tokens.
+    const { reg, mint: collateralMint, issuerAta: borrower3CollateralAta } =
+      await registerFreshGrain(borrower3, new BN(50_000_000_000));
+
+    // Config de colateral: 1.00 USDC/token, habilitado.
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+    await program.methods.setCollateralConfig(new BN(1_000_000), true)
+      .accounts({
+        authority: authority.publicKey, marketplace, lendingMarket: lm,
+        assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId,
+      }).rpc();
+
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const collateralVault = getAssociatedTokenAddressSync(collateralMint, vaultAuth, true, TOKEN_2022_PROGRAM_ID);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const borrower3UsdcAta = await createAssociatedTokenAccount(
+      provider.connection, payer, usdcMint, borrower3.publicKey,
+    );
+    const loan3 = pda(
+      [Buffer.from("loan"), lm.toBuffer(), borrower3.publicKey.toBuffer(), reg.toBuffer()],
+      programId,
+    );
+
+    // 50k tokens * 1 USDC = 50k valor. max_ltv 50% → pedimos 20k (40% LTV).
+    await program.methods.openLoan(new BN(50_000_000_000), new BN(20_000_000_000))
+      .accounts({
+        borrower: borrower3.publicKey, marketplace,
+        lendingMarket: lm, collateralConfig: cfg, assetRegistry: reg,
+        borrowerCompliance: borrower3Rec,
+        collateralMint, borrowerCollateralAta: borrower3CollateralAta,
+        vaultAuthority: vaultAuth, collateralVault,
+        usdcMint, usdcPool, borrowerUsdcAta: borrower3UsdcAta, loan: loan3,
+        collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+        usdcTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([borrower3]).rpc();
+
+    // El liquidador debe ser KYC'd y tener USDC + ATA de colateral.
+    const liquidator = Keypair.generate();
+    await airdrop(liquidator.publicKey, 5);
+    const liquidatorRec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), liquidator.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.updateKyc(true, Array.from(Buffer.from("AR")), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet: liquidator.publicKey,
+        complianceRecord: liquidatorRec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+    const liquidatorUsdcAta = await createAssociatedTokenAccount(
+      provider.connection, payer, usdcMint, liquidator.publicKey,
+    );
+    await mintTo(provider.connection, payer, usdcMint, liquidatorUsdcAta, payer, 100_000_000_000);
+    // ATA de colateral del liquidador (recibiria el grain incautado).
+    const liquidatorCollateralAta = await createAssociatedTokenAccount(
+      provider.connection, payer, collateralMint, liquidator.publicKey, undefined,
+      TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+    // Loan sano (40% LTV << 80% threshold) → liquidate revierte LoanHealthy.
+    await expectRevert(
+      program.methods.liquidate()
+        .accounts({
+          liquidator: liquidator.publicKey,
+          lendingMarket: lm,
+          collateralConfig: cfg,
+          loan: loan3,
+          liquidatorCompliance: liquidatorRec,
+          collateralMint,
+          liquidatorCollateralAta,
+          vaultAuthority: vaultAuth,
+          collateralVault,
+          usdcMint,
+          usdcPool,
+          liquidatorUsdcAta,
+          collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+          usdcTokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([liquidator]).rpc(),
+      "LoanHealthy",
+    );
+  });
+
+  it("37 liquidate happy: tras caida de precio el liquidador incauta el colateral", async () => {
+    // Abrimos un loan fresco, bajamos el precio del colateral via
+    // set_collateral_config hasta que el loan quede liquidable, y liquidamos.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+
+    // Borrower fresco KYC'd que tambien emite su propio grain.
+    const borrower4 = Keypair.generate();
+    await airdrop(borrower4.publicKey, 5);
+    const borrower4Rec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), borrower4.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.updateKyc(true, Array.from(Buffer.from("AR")), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet: borrower4.publicKey,
+        complianceRecord: borrower4Rec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+
+    const { reg, mint: collateralMint, issuerAta: borrower4CollateralAta } =
+      await registerFreshGrain(borrower4, new BN(50_000_000_000));
+
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+    // Precio inicial: 1.00 USDC/token (loan abre sano a 40% LTV).
+    await program.methods.setCollateralConfig(new BN(1_000_000), true)
+      .accounts({
+        authority: authority.publicKey, marketplace, lendingMarket: lm,
+        assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId,
+      }).rpc();
+
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const collateralVault = getAssociatedTokenAddressSync(collateralMint, vaultAuth, true, TOKEN_2022_PROGRAM_ID);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const borrower4UsdcAta = await createAssociatedTokenAccount(
+      provider.connection, payer, usdcMint, borrower4.publicKey,
+    );
+    const loan4 = pda(
+      [Buffer.from("loan"), lm.toBuffer(), borrower4.publicKey.toBuffer(), reg.toBuffer()],
+      programId,
+    );
+
+    // IMPORTANTE sobre unidades: el handler valua el colateral como
+    //   collateral_value = collateral_amount(base units) * price_usdc_per_token
+    // donde price es USDC base-units por UN base-unit de colateral. Para que
+    // un drop de precio entero (>= 1) pueda volver el loan liquidable elegimos
+    // un loan chico y cercano al max LTV:
+    //   C = 1_000 base units, price = 1_000_000 → collateral_value = 1e9.
+    //   max_borrow = 1e9 * 5000/10000 = 5e8. Pedimos B = 4e8 (sano al abrir).
+    const COLLATERAL = new BN(1_000);
+    const BORROW = new BN(400_000_000);
+    await program.methods.openLoan(COLLATERAL, BORROW)
+      .accounts({
+        borrower: borrower4.publicKey, marketplace,
+        lendingMarket: lm, collateralConfig: cfg, assetRegistry: reg,
+        borrowerCompliance: borrower4Rec,
+        collateralMint, borrowerCollateralAta: borrower4CollateralAta,
+        vaultAuthority: vaultAuth, collateralVault,
+        usdcMint, usdcPool, borrowerUsdcAta: borrower4UsdcAta, loan: loan4,
+        collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+        usdcTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([borrower4]).rpc();
+
+    const loanBefore = await program.account.loanPosition.fetch(loan4);
+    assert.equal(loanBefore.active, true);
+
+    // Caida de precio a 400_000 → collateral_value = 1_000 * 400_000 = 4e8.
+    // debt (~4e8) * 10000 = 4e12 >= collateral_value * 8000 = 3.2e12 → liquidable.
+    await program.methods.setCollateralConfig(new BN(400_000), true)
+      .accounts({
+        authority: authority.publicKey, marketplace, lendingMarket: lm,
+        assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId,
+      }).rpc();
+
+    // Liquidador KYC'd con USDC suficiente + ATA de colateral.
+    const liquidator = Keypair.generate();
+    await airdrop(liquidator.publicKey, 5);
+    const liquidatorRec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), liquidator.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.updateKyc(true, Array.from(Buffer.from("AR")), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet: liquidator.publicKey,
+        complianceRecord: liquidatorRec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+    const liquidatorUsdcAta = await createAssociatedTokenAccount(
+      provider.connection, payer, usdcMint, liquidator.publicKey,
+    );
+    await mintTo(provider.connection, payer, usdcMint, liquidatorUsdcAta, payer, 100_000_000_000);
+    const liquidatorCollateralAta = await createAssociatedTokenAccount(
+      provider.connection, payer, collateralMint, liquidator.publicKey, undefined,
+      TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+    const poolBefore = (await provider.connection.getTokenAccountBalance(usdcPool)).value.amount;
+    const liqCollBefore = (await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount;
+
+    await program.methods.liquidate()
+      .accounts({
+        liquidator: liquidator.publicKey,
+        lendingMarket: lm,
+        collateralConfig: cfg,
+        loan: loan4,
+        liquidatorCompliance: liquidatorRec,
+        collateralMint,
+        liquidatorCollateralAta,
+        vaultAuthority: vaultAuth,
+        collateralVault,
+        usdcMint,
+        usdcPool,
+        liquidatorUsdcAta,
+        collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+        usdcTokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([liquidator]).rpc();
+
+    // Loan cerrado.
+    const loanAfter = await program.account.loanPosition.fetch(loan4);
+    assert.equal(loanAfter.active, false);
+    assert.equal(loanAfter.principalUsdc.toString(), "0");
+
+    // El liquidador recibio TODO el colateral incautado.
+    const liqCollAfter = (await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount;
+    const seized = new BN(liqCollAfter).sub(new BN(liqCollBefore));
+    assert.equal(seized.toString(), loanBefore.collateralAmount.toString());
+
+    // El pool USDC subio en la deuda repagada (principal + interes).
+    const poolAfter = (await provider.connection.getTokenAccountBalance(usdcPool)).value.amount;
+    const poolDelta = new BN(poolAfter).sub(new BN(poolBefore));
+    const expectedDebt = new BN(loanBefore.principalUsdc.toString())
+      .add(new BN(loanBefore.accruedInterestUsdc.toString()));
+    // La deuda incluye interes acumulado hasta el instante de liquidacion, que
+    // es >= el interes al momento del fetch previo. Verificamos cota inferior.
+    assert.isTrue(poolDelta.gte(expectedDebt));
+  });
+
+  it("38 withdraw_liquidity: el LP retira 50k USDC del pool", async () => {
+    // El authority (LP del test 32) aporto 100k. Retira 50k de la liquidez
+    // ociosa. Debe quedar deposited_usdc = 50k y bajar total_liquidity en 50k.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const authorityUsdcAta = getAssociatedTokenAddressSync(usdcMint, authority.publicKey, true, TOKEN_PROGRAM_ID);
+    const lpRecord = pda(
+      [Buffer.from("liquidity_provider"), lm.toBuffer(), authority.publicKey.toBuffer()],
+      programId,
+    );
+
+    const lmBefore = await program.account.lendingMarket.fetch(lm);
+    const ataBefore = (await provider.connection.getTokenAccountBalance(authorityUsdcAta)).value.amount;
+    const WITHDRAW = new BN(50_000_000_000);
+    // Pre-condicion: la liquidez ociosa debe cubrir el retiro.
+    assert.isTrue(new BN(lmBefore.totalLiquidity.toString()).gte(WITHDRAW));
+
+    await program.methods.withdrawLiquidity(WITHDRAW)
+      .accounts({
+        provider: authority.publicKey, lendingMarket: lm,
+        liquidityProvider: lpRecord,
+        usdcMint, usdcPool, vaultAuthority: vaultAuth,
+        providerUsdcAta: authorityUsdcAta,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      }).rpc();
+
+    const lmAfter = await program.account.lendingMarket.fetch(lm);
+    const liqDelta = new BN(lmBefore.totalLiquidity.toString()).sub(new BN(lmAfter.totalLiquidity.toString()));
+    assert.equal(liqDelta.toString(), WITHDRAW.toString());
+
+    const lpAcc = await program.account.liquidityProvider.fetch(lpRecord);
+    assert.equal(lpAcc.depositedUsdc.toString(), "50000000000");
+
+    const ataAfter = (await provider.connection.getTokenAccountBalance(authorityUsdcAta)).value.amount;
+    const ataDelta = new BN(ataAfter).sub(new BN(ataBefore));
+    assert.equal(ataDelta.toString(), WITHDRAW.toString());
+  });
+
+  it("39 sad: withdraw_liquidity > aporte del LP revierte ExceedsDeposit", async () => {
+    // Al LP le quedan 50k registrados; pedir 60k debe revertir ExceedsDeposit.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const authorityUsdcAta = getAssociatedTokenAddressSync(usdcMint, authority.publicKey, true, TOKEN_PROGRAM_ID);
+    const lpRecord = pda(
+      [Buffer.from("liquidity_provider"), lm.toBuffer(), authority.publicKey.toBuffer()],
+      programId,
+    );
+
+    await expectRevert(
+      program.methods.withdrawLiquidity(new BN(60_000_000_000))
+        .accounts({
+          provider: authority.publicKey, lendingMarket: lm,
+          liquidityProvider: lpRecord,
+          usdcMint, usdcPool, vaultAuthority: vaultAuth,
+          providerUsdcAta: authorityUsdcAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        }).rpc(),
+      "ExceedsDeposit",
     );
   });
 });
