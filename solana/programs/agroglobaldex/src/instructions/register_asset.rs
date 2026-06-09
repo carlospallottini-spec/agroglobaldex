@@ -219,12 +219,17 @@ pub fn handler(
         .map_err(|_| AgroError::InvalidAssetMetadata)?;
     // TokenMetadata extension overhead: TLV header (4) + struct overhead.
     // Body: update_authority(33) + mint(32) + name + symbol + uri + Vec<(...)>(4).
+    // We fund rent for the MAXIMUM `name`/`uri` lengths (not the initial ones)
+    // so a later `update_metadata` can grow the embedded metadata up to the
+    // limits without the mint dropping below rent-exemption. The account is
+    // still ALLOCATED at base_size and grown on demand by the metadata CPIs;
+    // only the pre-funded lamports use this worst-case size.
     let metadata_extension_size = 4 // TLV header
         + 33                                 // update_authority Option<Pubkey>
         + 32                                 // mint pubkey
-        + (4 + name.len())                   // name
-        + (4 + symbol.len())                 // symbol
-        + (4 + token_uri.len())              // uri
+        + (4 + MAX_PRODUCT_NAME_LEN)         // name (worst case)
+        + (4 + symbol.len())                 // symbol (derived, immutable)
+        + (4 + MAX_URI_LEN)                  // uri (worst case)
         + 4; // additional_metadata empty Vec
     let mint_space = base_size + metadata_extension_size;
     let rent_lamports = Rent::get()?.minimum_balance(mint_space);

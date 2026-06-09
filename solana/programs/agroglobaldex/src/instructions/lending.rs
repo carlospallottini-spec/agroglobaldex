@@ -82,7 +82,7 @@ pub struct InitLendingMarket<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         init,
@@ -91,7 +91,7 @@ pub struct InitLendingMarket<'info> {
         seeds = [LENDING_MARKET_SEED, marketplace.key().as_ref()],
         bump
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     /// CHECK: PDA authority that owns the USDC pool + collateral vaults.
     #[account(
@@ -101,7 +101,7 @@ pub struct InitLendingMarket<'info> {
     pub vault_authority: UncheckedAccount<'info>,
 
     #[account(address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init,
@@ -109,7 +109,7 @@ pub struct InitLendingMarket<'info> {
         associated_token::mint = usdc_mint,
         associated_token::authority = vault_authority,
     )]
-    pub usdc_pool: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_pool: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -171,23 +171,23 @@ pub struct DepositLiquidity<'info> {
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(address = lending_market.usdc_mint @ AgroError::InvalidUsdcMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
         address = lending_market.usdc_pool,
     )]
-    pub usdc_pool: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_pool: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = usdc_mint,
         associated_token::authority = provider,
     )]
-    pub provider_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub provider_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -196,7 +196,7 @@ pub struct DepositLiquidity<'info> {
         seeds = [LIQUIDITY_PROVIDER_SEED, lending_market.key().as_ref(), provider.key().as_ref()],
         bump
     )]
-    pub liquidity_provider: Account<'info, LiquidityProvider>,
+    pub liquidity_provider: Box<Account<'info, LiquidityProvider>>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -262,7 +262,7 @@ pub struct WithdrawLiquidity<'info> {
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(
         mut,
@@ -273,13 +273,13 @@ pub struct WithdrawLiquidity<'info> {
         constraint = liquidity_provider.lending_market == lending_market.key()
             @ AgroError::ListingMismatch,
     )]
-    pub liquidity_provider: Account<'info, LiquidityProvider>,
+    pub liquidity_provider: Box<Account<'info, LiquidityProvider>>,
 
     #[account(address = lending_market.usdc_mint @ AgroError::InvalidUsdcMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(mut, address = lending_market.usdc_pool)]
-    pub usdc_pool: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_pool: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: PDA authority that owns the USDC pool.
     #[account(
@@ -293,7 +293,7 @@ pub struct WithdrawLiquidity<'info> {
         associated_token::mint = usdc_mint,
         associated_token::authority = provider,
     )]
-    pub provider_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub provider_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
 }
@@ -367,19 +367,19 @@ pub struct SetCollateralConfig<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         seeds = [LENDING_MARKET_SEED, marketplace.key().as_ref()],
         bump = lending_market.bump,
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(
         init_if_needed,
@@ -388,7 +388,7 @@ pub struct SetCollateralConfig<'info> {
         seeds = [COLLATERAL_CONFIG_SEED, lending_market.key().as_ref(), asset_registry.key().as_ref()],
         bump
     )]
-    pub collateral_config: Account<'info, CollateralConfig>,
+    pub collateral_config: Box<Account<'info, CollateralConfig>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -435,21 +435,21 @@ pub struct OpenLoan<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         mut,
         seeds = [LENDING_MARKET_SEED, marketplace.key().as_ref()],
         bump = lending_market.bump,
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(
         seeds = [COLLATERAL_CONFIG_SEED, lending_market.key().as_ref(), asset_registry.key().as_ref()],
         bump = collateral_config.bump,
         constraint = collateral_config.enabled @ AgroError::CollateralNotEnabled,
     )]
-    pub collateral_config: Account<'info, CollateralConfig>,
+    pub collateral_config: Box<Account<'info, CollateralConfig>>,
 
     #[account(
         seeds = [
@@ -461,7 +461,7 @@ pub struct OpenLoan<'info> {
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     /// Borrower must be KYC-verified to take a loan.
     #[account(
@@ -469,13 +469,13 @@ pub struct OpenLoan<'info> {
         bump = borrower_compliance.bump,
         constraint = borrower_compliance.kyc_verified @ AgroError::KycNotVerified,
     )]
-    pub borrower_compliance: Account<'info, ComplianceRecord>,
+    pub borrower_compliance: Box<Account<'info, ComplianceRecord>>,
 
     #[account(
         mut,
         address = asset_registry.mint,
     )]
-    pub collateral_mint: InterfaceAccount<'info, Mint>,
+    pub collateral_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -483,7 +483,7 @@ pub struct OpenLoan<'info> {
         associated_token::authority = borrower,
         associated_token::token_program = collateral_token_program,
     )]
-    pub borrower_collateral_ata: InterfaceAccount<'info, TokenAccount>,
+    pub borrower_collateral_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: PDA authority over vaults.
     #[account(
@@ -499,14 +499,14 @@ pub struct OpenLoan<'info> {
         associated_token::authority = vault_authority,
         associated_token::token_program = collateral_token_program,
     )]
-    pub collateral_vault: InterfaceAccount<'info, TokenAccount>,
+    pub collateral_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     // ---- USDC side ----
     #[account(address = lending_market.usdc_mint @ AgroError::InvalidUsdcMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(mut, address = lending_market.usdc_pool)]
-    pub usdc_pool: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_pool: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -514,7 +514,7 @@ pub struct OpenLoan<'info> {
         associated_token::authority = borrower,
         associated_token::token_program = usdc_token_program,
     )]
-    pub borrower_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub borrower_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -523,7 +523,7 @@ pub struct OpenLoan<'info> {
         seeds = [LOAN_SEED, lending_market.key().as_ref(), borrower.key().as_ref(), asset_registry.key().as_ref()],
         bump
     )]
-    pub loan: Account<'info, LoanPosition>,
+    pub loan: Box<Account<'info, LoanPosition>>,
 
     pub collateral_token_program: Interface<'info, TokenInterface>,
     pub usdc_token_program: Program<'info, Token>,
@@ -655,7 +655,7 @@ pub struct RepayLoan<'info> {
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(
         mut,
@@ -664,10 +664,10 @@ pub struct RepayLoan<'info> {
         constraint = loan.active @ AgroError::LoanInactive,
         constraint = loan.borrower == borrower.key() @ AgroError::UnauthorizedIssuer,
     )]
-    pub loan: Account<'info, LoanPosition>,
+    pub loan: Box<Account<'info, LoanPosition>>,
 
     #[account(mut, address = loan.collateral_mint)]
-    pub collateral_mint: InterfaceAccount<'info, Mint>,
+    pub collateral_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -675,7 +675,7 @@ pub struct RepayLoan<'info> {
         associated_token::authority = borrower,
         associated_token::token_program = collateral_token_program,
     )]
-    pub borrower_collateral_ata: InterfaceAccount<'info, TokenAccount>,
+    pub borrower_collateral_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: PDA authority over vaults.
     #[account(
@@ -685,13 +685,13 @@ pub struct RepayLoan<'info> {
     pub vault_authority: UncheckedAccount<'info>,
 
     #[account(mut, address = loan.collateral_vault)]
-    pub collateral_vault: InterfaceAccount<'info, TokenAccount>,
+    pub collateral_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(address = lending_market.usdc_mint @ AgroError::InvalidUsdcMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(mut, address = lending_market.usdc_pool)]
-    pub usdc_pool: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_pool: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -699,7 +699,7 @@ pub struct RepayLoan<'info> {
         associated_token::authority = borrower,
         associated_token::token_program = usdc_token_program,
     )]
-    pub borrower_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub borrower_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub collateral_token_program: Interface<'info, TokenInterface>,
     pub usdc_token_program: Program<'info, Token>,
@@ -793,13 +793,13 @@ pub struct Liquidate<'info> {
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(
         seeds = [COLLATERAL_CONFIG_SEED, lending_market.key().as_ref(), loan.asset_registry.as_ref()],
         bump = collateral_config.bump,
     )]
-    pub collateral_config: Account<'info, CollateralConfig>,
+    pub collateral_config: Box<Account<'info, CollateralConfig>>,
 
     #[account(
         mut,
@@ -807,7 +807,7 @@ pub struct Liquidate<'info> {
         bump = loan.bump,
         constraint = loan.active @ AgroError::LoanInactive,
     )]
-    pub loan: Account<'info, LoanPosition>,
+    pub loan: Box<Account<'info, LoanPosition>>,
 
     /// Liquidator must be KYC-verified to receive the seized collateral.
     #[account(
@@ -815,10 +815,10 @@ pub struct Liquidate<'info> {
         bump = liquidator_compliance.bump,
         constraint = liquidator_compliance.kyc_verified @ AgroError::KycNotVerified,
     )]
-    pub liquidator_compliance: Account<'info, ComplianceRecord>,
+    pub liquidator_compliance: Box<Account<'info, ComplianceRecord>>,
 
     #[account(mut, address = loan.collateral_mint)]
-    pub collateral_mint: InterfaceAccount<'info, Mint>,
+    pub collateral_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -826,7 +826,7 @@ pub struct Liquidate<'info> {
         associated_token::authority = liquidator,
         associated_token::token_program = collateral_token_program,
     )]
-    pub liquidator_collateral_ata: InterfaceAccount<'info, TokenAccount>,
+    pub liquidator_collateral_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: PDA authority over vaults.
     #[account(
@@ -836,13 +836,13 @@ pub struct Liquidate<'info> {
     pub vault_authority: UncheckedAccount<'info>,
 
     #[account(mut, address = loan.collateral_vault)]
-    pub collateral_vault: InterfaceAccount<'info, TokenAccount>,
+    pub collateral_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(address = lending_market.usdc_mint @ AgroError::InvalidUsdcMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(mut, address = lending_market.usdc_pool)]
-    pub usdc_pool: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_pool: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -850,7 +850,7 @@ pub struct Liquidate<'info> {
         associated_token::authority = liquidator,
         associated_token::token_program = usdc_token_program,
     )]
-    pub liquidator_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub liquidator_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub collateral_token_program: Interface<'info, TokenInterface>,
     pub usdc_token_program: Program<'info, Token>,
