@@ -51,7 +51,7 @@ use anchor_lang::solana_program::system_instruction;
 use spl_tlv_account_resolution::{
     account::ExtraAccountMeta, seeds::Seed, state::ExtraAccountMetaList,
 };
-use spl_transfer_hook_interface::instruction::ExecuteInstruction;
+use spl_transfer_hook_interface::instruction::{ExecuteInstruction, TransferHookInstruction};
 
 declare_id!("GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL");
 
@@ -66,6 +66,28 @@ pub const JURISDICTION_POLICY_SEED: &[u8] = b"jurisdiction_policy";
 #[program]
 pub mod compliance_hook {
     use super::*;
+
+    /// Token-2022 invokes the transfer hook using the
+    /// `spl-transfer-hook-interface` Execute discriminator, which Anchor's
+    /// normal dispatch (keyed on `global:execute`) does not match — so without
+    /// this fallback every hooked transfer reverts with
+    /// `InstructionFallbackNotFound`. We unpack the interface instruction and
+    /// route `Execute` to the `execute` handler.
+    pub fn fallback<'info>(
+        program_id: &Pubkey,
+        accounts: &'info [AccountInfo<'info>],
+        data: &[u8],
+    ) -> Result<()> {
+        let ix = TransferHookInstruction::unpack(data)
+            .map_err(|_| ProgramError::InvalidInstructionData)?;
+        match ix {
+            TransferHookInstruction::Execute { amount } => {
+                let amount_bytes = amount.to_le_bytes();
+                __private::__global::execute(program_id, accounts, &amount_bytes)
+            }
+            _ => Err(ProgramError::InvalidInstructionData.into()),
+        }
+    }
 
     /// Wire up the per-mint validation data. Called once per AgroGlobalDex
     /// mint, right after the mint itself is created. The caller is the main
