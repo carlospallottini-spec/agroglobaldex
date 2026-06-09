@@ -8,3 +8,6 @@ test-ledger/
 
 # Cargo lock — committed for reproducibility (uncomment to exclude)
 # Cargo.lock
+
+# Token-2022 program fixture for local validator (loaded via Anchor.toml genesis)
+!tests/fixtures/token_2022.so
