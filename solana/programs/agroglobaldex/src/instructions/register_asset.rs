@@ -236,6 +236,12 @@ pub fn handler(
         std::slice::from_ref(&mint_bump),
     ];
 
+    // Allocate ONLY the fixed-length extensions (TransferHook + MetadataPointer).
+    // The variable-length TokenMetadata extension must NOT be pre-allocated:
+    // `initialize_mint2` on an over-sized account reverts InvalidAccountData
+    // (it reads the reserved trailing bytes as a malformed extension TLV).
+    // `token_metadata_initialize` reallocs the account later; we still fund the
+    // rent for the FINAL size up front so that realloc keeps it rent-exempt.
     create_account(
         CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
@@ -246,7 +252,7 @@ pub fn handler(
             &[mint_seeds],
         ),
         rent_lamports,
-        mint_space as u64,
+        base_size as u64,
         &token_program_id,
     )?;
 
