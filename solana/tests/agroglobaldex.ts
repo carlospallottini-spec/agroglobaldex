@@ -86,6 +86,40 @@ describe("agroglobaldex", function () {
     await provider.connection.confirmTransaction(sig, "confirmed");
   }
 
+  // Extra accounts the Token-2022 compliance TransferHook needs, resolved off
+  // the ExtraAccountMetaList. Passed as `remainingAccounts` to any instruction
+  // that moves collateral (open_loan / repay / liquidate). `srcOwner` is the
+  // transfer authority (source token-account owner); `dstOwner` is the
+  // destination token-account owner.
+  function hookRemaining(mint: PublicKey, srcOwner: PublicKey, dstOwner: PublicKey) {
+    const ro = (pubkey: PublicKey) => ({ pubkey, isSigner: false, isWritable: false });
+    return [
+      ro(HOOK_PROGRAM_ID),
+      ro(pda([Buffer.from("extra-account-metas"), mint.toBuffer()], HOOK_PROGRAM_ID)),
+      ro(pda([Buffer.from("hook_config"), mint.toBuffer()], HOOK_PROGRAM_ID)),
+      ro(marketplace),
+      ro(programId),
+      ro(pda([Buffer.from("jurisdiction_policy"), marketplace.toBuffer()], programId)),
+      ro(pda([Buffer.from("compliance_record"), marketplace.toBuffer(), srcOwner.toBuffer()], programId)),
+      ro(pda([Buffer.from("compliance_record"), marketplace.toBuffer(), dstOwner.toBuffer()], programId)),
+    ];
+  }
+
+  // Stamp a KYC ComplianceRecord for an arbitrary wallet/PDA (e.g. the lending
+  // vault authority, which must be KYC'd so collateral can be transferred into
+  // and out of the vault through the hook). Idempotent-ish: skips if present.
+  async function ensureKyc(wallet: PublicKey, jur = "AR") {
+    const rec = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), wallet.toBuffer()], programId);
+    const existing = await provider.connection.getAccountInfo(rec);
+    if (existing) return rec;
+    await program.methods.updateKyc(true, Array.from(Buffer.from(jur)), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet, complianceRecord: rec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+    return rec;
+  }
+
   it("01 setup: fund dev wallets + create fake USDC", async () => {
     await airdrop(complianceSigner.publicKey, 5);
     await airdrop(issuer.publicKey, 10);
@@ -754,7 +788,13 @@ describe("agroglobaldex", function () {
       programId,
     );
 
-    await program.methods.openLoan(new BN(50_000_000_000), new BN(20_000_000_000))
+    // The vault PDA receives the collateral, so it must be KYC'd for the hook.
+    await ensureKyc(vaultAuth);
+
+    // El issuer tiene 40k grain (50k minteados en #17 − 10k quemados en #19),
+    // asi que lockeamos 30k (deja margen). 30k * 1 USDC = valor amplio; pedir
+    // 20k USDC sigue muy por debajo del max LTV.
+    await program.methods.openLoan(new BN(30_000_000_000), new BN(20_000_000_000))
       .accounts({
         borrower: issuer.publicKey, marketplace,
         lendingMarket: lm, collateralConfig: cfg, assetRegistry: reg,
@@ -767,10 +807,11 @@ describe("agroglobaldex", function () {
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
+      .remainingAccounts(hookRemaining(collateralMint, issuer.publicKey, vaultAuth))
       .signers([issuer]).rpc();
 
     const loanAcc = await program.account.loanPosition.fetch(loan);
-    assert.equal(loanAcc.collateralAmount.toString(), "50000000000");
+    assert.equal(loanAcc.collateralAmount.toString(), "30000000000");
     assert.equal(loanAcc.principalUsdc.toString(), "20000000000");
     assert.equal(loanAcc.active, true);
     assert.equal(loanAcc.borrower.toBase58(), issuer.publicKey.toBase58());
@@ -929,6 +970,7 @@ describe("agroglobaldex", function () {
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
         usdcTokenProgram: TOKEN_PROGRAM_ID,
       })
+      .remainingAccounts(hookRemaining(collateralMint, vaultAuth, issuer.publicKey))
       .signers([issuer]).rpc();
 
     const loanAfter = await program.account.loanPosition.fetch(loan);
@@ -1004,6 +1046,7 @@ describe("agroglobaldex", function () {
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
+      .remainingAccounts(hookRemaining(collateralMint, borrower3.publicKey, vaultAuth))
       .signers([borrower3]).rpc();
 
     // El liquidador debe ser KYC'd y tener USDC + ATA de colateral.
@@ -1116,6 +1159,7 @@ describe("agroglobaldex", function () {
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
+      .remainingAccounts(hookRemaining(collateralMint, borrower4.publicKey, vaultAuth))
       .signers([borrower4]).rpc();
 
     const loanBefore = await program.account.loanPosition.fetch(loan4);
@@ -1171,6 +1215,7 @@ describe("agroglobaldex", function () {
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
         usdcTokenProgram: TOKEN_PROGRAM_ID,
       })
+      .remainingAccounts(hookRemaining(collateralMint, vaultAuth, liquidator.publicKey))
       .signers([liquidator]).rpc();
 
     // Loan cerrado.

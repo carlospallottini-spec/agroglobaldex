@@ -32,9 +32,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::Token;
 use anchor_spl::token::{transfer as usdc_transfer, Transfer as UsdcTransfer};
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::errors::AgroError;
 use crate::state::*;
@@ -65,6 +63,40 @@ fn accrue_interest(loan: &mut LoanPosition, now: i64) -> Result<()> {
         .ok_or(AgroError::PriceOverflow)?;
     loan.last_accrued_at = now;
     Ok(())
+}
+
+/// Transfer Token-2022 collateral honoring the compliance `TransferHook`.
+/// A plain `transfer_checked` CPI omits the hook program + its extra accounts
+/// and fails with "An account required by the instruction is missing". This
+/// resolves the hook from the mint and forwards the extra accounts provided in
+/// `remaining` (hook program, ExtraAccountMetaList, hook_config, marketplace,
+/// agroglobaldex program, jurisdiction_policy, source/destination compliance
+/// records). `seeds` are the signer seeds for a PDA authority (empty for a
+/// wallet signer).
+#[allow(clippy::too_many_arguments)]
+fn hook_transfer<'info>(
+    token_program: &AccountInfo<'info>,
+    source: &AccountInfo<'info>,
+    mint: &AccountInfo<'info>,
+    destination: &AccountInfo<'info>,
+    authority: &AccountInfo<'info>,
+    remaining: &[AccountInfo<'info>],
+    amount: u64,
+    decimals: u8,
+    seeds: &[&[&[u8]]],
+) -> Result<()> {
+    spl_token_2022::onchain::invoke_transfer_checked(
+        token_program.key,
+        source.clone(),
+        mint.clone(),
+        destination.clone(),
+        authority.clone(),
+        remaining,
+        amount,
+        decimals,
+        seeds,
+    )
+    .map_err(Into::into)
 }
 
 // ===========================================================================
@@ -531,8 +563,8 @@ pub struct OpenLoan<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn open_loan_handler(
-    ctx: Context<OpenLoan>,
+pub fn open_loan_handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, OpenLoan<'info>>,
     collateral_amount: u64,
     borrow_amount: u64,
 ) -> Result<()> {
@@ -567,18 +599,16 @@ pub fn open_loan_handler(
 
     // ---- Move collateral borrower -> vault (Token-2022, hook fires) -------
     let decimals = ctx.accounts.collateral_mint.decimals;
-    transfer_checked(
-        CpiContext::new(
-            ctx.accounts.collateral_token_program.to_account_info(),
-            TransferChecked {
-                from: ctx.accounts.borrower_collateral_ata.to_account_info(),
-                mint: ctx.accounts.collateral_mint.to_account_info(),
-                to: ctx.accounts.collateral_vault.to_account_info(),
-                authority: ctx.accounts.borrower.to_account_info(),
-            },
-        ),
+    hook_transfer(
+        &ctx.accounts.collateral_token_program.to_account_info(),
+        &ctx.accounts.borrower_collateral_ata.to_account_info(),
+        &ctx.accounts.collateral_mint.to_account_info(),
+        &ctx.accounts.collateral_vault.to_account_info(),
+        &ctx.accounts.borrower.to_account_info(),
+        ctx.remaining_accounts,
         collateral_amount,
         decimals,
+        &[],
     )?;
 
     // ---- Move USDC pool -> borrower --------------------------------------
@@ -705,7 +735,9 @@ pub struct RepayLoan<'info> {
     pub usdc_token_program: Program<'info, Token>,
 }
 
-pub fn repay_loan_handler(ctx: Context<RepayLoan>) -> Result<()> {
+pub fn repay_loan_handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, RepayLoan<'info>>,
+) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     accrue_interest(&mut ctx.accounts.loan, now)?;
 
@@ -742,19 +774,16 @@ pub fn repay_loan_handler(ctx: Context<RepayLoan>) -> Result<()> {
         std::slice::from_ref(&vault_bump),
     ]];
     let decimals = ctx.accounts.collateral_mint.decimals;
-    transfer_checked(
-        CpiContext::new_with_signer(
-            ctx.accounts.collateral_token_program.to_account_info(),
-            TransferChecked {
-                from: ctx.accounts.collateral_vault.to_account_info(),
-                mint: ctx.accounts.collateral_mint.to_account_info(),
-                to: ctx.accounts.borrower_collateral_ata.to_account_info(),
-                authority: ctx.accounts.vault_authority.to_account_info(),
-            },
-            signer_seeds,
-        ),
+    hook_transfer(
+        &ctx.accounts.collateral_token_program.to_account_info(),
+        &ctx.accounts.collateral_vault.to_account_info(),
+        &ctx.accounts.collateral_mint.to_account_info(),
+        &ctx.accounts.borrower_collateral_ata.to_account_info(),
+        &ctx.accounts.vault_authority.to_account_info(),
+        ctx.remaining_accounts,
         collateral_amount,
         decimals,
+        signer_seeds,
     )?;
 
     let lm = &mut ctx.accounts.lending_market;
@@ -856,7 +885,9 @@ pub struct Liquidate<'info> {
     pub usdc_token_program: Program<'info, Token>,
 }
 
-pub fn liquidate_handler(ctx: Context<Liquidate>) -> Result<()> {
+pub fn liquidate_handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, Liquidate<'info>>,
+) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     accrue_interest(&mut ctx.accounts.loan, now)?;
 
@@ -910,19 +941,16 @@ pub fn liquidate_handler(ctx: Context<Liquidate>) -> Result<()> {
         std::slice::from_ref(&vault_bump),
     ]];
     let decimals = ctx.accounts.collateral_mint.decimals;
-    transfer_checked(
-        CpiContext::new_with_signer(
-            ctx.accounts.collateral_token_program.to_account_info(),
-            TransferChecked {
-                from: ctx.accounts.collateral_vault.to_account_info(),
-                mint: ctx.accounts.collateral_mint.to_account_info(),
-                to: ctx.accounts.liquidator_collateral_ata.to_account_info(),
-                authority: ctx.accounts.vault_authority.to_account_info(),
-            },
-            signer_seeds,
-        ),
+    hook_transfer(
+        &ctx.accounts.collateral_token_program.to_account_info(),
+        &ctx.accounts.collateral_vault.to_account_info(),
+        &ctx.accounts.collateral_mint.to_account_info(),
+        &ctx.accounts.liquidator_collateral_ata.to_account_info(),
+        &ctx.accounts.vault_authority.to_account_info(),
+        ctx.remaining_accounts,
         collateral_amount,
         decimals,
+        signer_seeds,
     )?;
 
     let lm = &mut ctx.accounts.lending_market;
