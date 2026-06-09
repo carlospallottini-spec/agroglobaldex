@@ -1,0 +1,128 @@
+name: anchor-test
+
+# Runs the on-chain test suite (anchor test) and the fast Rust unit tests for
+# the AgroGlobalDex Solana programs. Toolchain pinned to the versions in
+# Anchor.toml: Solana/Agave 3.0.0 + Anchor 0.31.1.
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "solana/**"
+      - ".github/workflows/anchor-test.yml"
+  pull_request:
+    paths:
+      - "solana/**"
+      - ".github/workflows/anchor-test.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: anchor-test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOLANA_VERSION: "3.0.0"
+  ANCHOR_VERSION: "0.31.1"
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────
+  # Fast signal: pure-Rust unit tests (oracle price math + Pyth parsing) and
+  # a type-check of the whole program. No Solana/Anchor toolchain required, so
+  # this completes in a couple of minutes and gates obvious regressions early.
+  # ───────────────────────────────────────────────────────────────────────
+  rust-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: solana
+      - name: cargo test (lib unit tests)
+        working-directory: solana
+        run: cargo test -p agroglobaldex --lib
+
+  # ───────────────────────────────────────────────────────────────────────
+  # Full integration: build both programs to SBF and run the mocha suite
+  # against a local validator (which clones Token-2022 from mainnet, per
+  # Anchor.toml). This is the real on-chain gate for the lending + oracle work.
+  # ───────────────────────────────────────────────────────────────────────
+  anchor-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
+
+      - name: Rust toolchain (host)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.85.0"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: solana
+
+      - name: Install Solana CLI ${{ env.SOLANA_VERSION }}
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Solana version
+        run: solana --version
+
+      - name: Cache Anchor CLI binary
+        id: anchor-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/anchor
+          key: anchor-cli-${{ env.ANCHOR_VERSION }}-${{ runner.os }}
+
+      - name: Install Anchor CLI ${{ env.ANCHOR_VERSION }}
+        if: steps.anchor-cache.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/coral-xyz/anchor --tag v${ANCHOR_VERSION} anchor-cli --locked
+
+      - name: Anchor version
+        run: anchor --version
+
+      - name: Create local validator wallet
+        run: |
+          mkdir -p ~/.config/solana
+          solana-keygen new --no-bip39-passphrase --force -o ~/.config/solana/id.json
+          solana config set --url localhost
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache JS dependencies
+        uses: actions/cache@v4
+        with:
+          path: solana/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('solana/package-lock.json') }}
+
+      - name: Install JS dependencies
+        working-directory: solana
+        run: yarn install --non-interactive
+
+      - name: anchor test
+        working-directory: solana
+        run: |
+          # The local validator opens many sockets/file descriptors; the repo
+          # RUNBOOK flags this bump as critical to keep it from dying mid-run.
+          ulimit -n 65536 || true
+          anchor test
+
+      - name: Dump validator log on failure
+        if: failure()
+        working-directory: solana
+        run: |
+          echo "=== test-ledger-log.txt ==="
+          cat .anchor/test-ledger/test-ledger-log.txt 2>/dev/null || echo "(none)"
+          echo "=== validator.log (tail) ==="
+          tail -n 120 .anchor/test-ledger/validator.log 2>/dev/null || echo "(none)"

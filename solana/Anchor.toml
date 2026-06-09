@@ -24,12 +24,20 @@ wallet = "~/.config/solana/id.json"
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
-[test.validator]
-url = "https://api.mainnet-beta.solana.com"
+[test]
+# Headroom for solana-test-validator cold-start before the first blockhash.
+startup_wait = 60000
 
-# Clone Token-2022 program from mainnet into local validator for tests
-[[test.validator.clone]]
+# Load Token-2022 from a committed fixture (mainnet's program, dumped to
+# tests/fixtures/token_2022.so) at its canonical address. Rationale:
+#  - the validator's built-in Token-2022 rejects our MetadataPointer + token
+#    metadata mint init with InvalidAccountData;
+#  - cloning it from the public mainnet RPC hangs the validator at
+#    "Initializing..." in CI (rate-limited fetch).
+# A local genesis program is deterministic and needs zero network at runtime.
+[[test.genesis]]
 address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+program = "tests/fixtures/token_2022.so"
 
 [workspace]
 members = ["programs/agroglobaldex", "programs/compliance-hook"]

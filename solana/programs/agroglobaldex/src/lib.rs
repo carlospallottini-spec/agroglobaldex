@@ -267,8 +267,9 @@ pub mod agroglobaldex {
     }
 
     /// Open a loan: lock collateral Token-2022, receive USDC up to max LTV.
-    pub fn open_loan(
-        ctx: Context<OpenLoan>,
+    /// Pass the compliance TransferHook accounts as `remaining_accounts`.
+    pub fn open_loan<'info>(
+        ctx: Context<'_, '_, '_, 'info, OpenLoan<'info>>,
         collateral_amount: u64,
         borrow_amount: u64,
     ) -> Result<()> {
@@ -276,12 +277,14 @@ pub mod agroglobaldex {
     }
 
     /// Repay principal + accrued interest, unlock collateral.
-    pub fn repay_loan(ctx: Context<RepayLoan>) -> Result<()> {
+    /// Pass the compliance TransferHook accounts as `remaining_accounts`.
+    pub fn repay_loan<'info>(ctx: Context<'_, '_, '_, 'info, RepayLoan<'info>>) -> Result<()> {
         instructions::lending::repay_loan_handler(ctx)
     }
 
     /// Liquidate an unhealthy loan: repay the debt, seize the collateral.
-    pub fn liquidate(ctx: Context<Liquidate>) -> Result<()> {
+    /// Pass the compliance TransferHook accounts as `remaining_accounts`.
+    pub fn liquidate<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>>) -> Result<()> {
         instructions::lending::liquidate_handler(ctx)
     }
 }

@@ -193,6 +193,23 @@ export function findJurisdictionPolicyPda(marketplace) {
   )[0];
 }
 
+/** Extra accounts the Token-2022 compliance TransferHook needs, for a collateral
+ *  move from `srcOwner` to `dstOwner`. Pass via `.remainingAccounts(...)` on any
+ *  instruction that transfers hooked collateral (openLoan / repayLoan). */
+export function hookRemainingAccounts(mint, marketplace, srcOwner, dstOwner) {
+  const ro = (pk) => ({ pubkey: new PublicKey(pk), isSigner: false, isWritable: false });
+  return [
+    ro(hookProgramIdPk()),
+    ro(findExtraAccountMetaListPda(mint)),
+    ro(findHookConfigPda(mint)),
+    ro(new PublicKey(marketplace)),
+    ro(programIdPk()),
+    ro(findJurisdictionPolicyPda(marketplace)),
+    ro(findComplianceRecordPda(marketplace, srcOwner)),
+    ro(findComplianceRecordPda(marketplace, dstOwner)),
+  ];
+}
+
 export function findExternalAssetPda(marketplace, index) {
   const idx = new BN(index).toArrayLike(Buffer, 'le', 8);
   return PublicKey.findProgramAddressSync(
@@ -925,6 +942,7 @@ export async function openLoan({ assetRegistryPubkey, collateralAmount, borrowAm
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
+    .remainingAccounts(hookRemainingAccounts(collateralMint, marketplace, borrower, vaultAuthority))
     .rpc();
   return { tx, loan: loan.toString() };
 }
@@ -962,6 +980,7 @@ export async function repayLoan({ assetRegistryPubkey, marketplaceAuthority }) {
       collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
     })
+    .remainingAccounts(hookRemainingAccounts(collateralMint, marketplace, vaultAuthority, borrower))
     .rpc();
   return { tx };
 }

@@ -7,6 +7,33 @@ Repository: https://github.com/carlospallottini-spec/agroglobaldex
 
 ## [Unreleased] — 0.5.0 (módulo de crédito colateralizado — ag-finance)
 
+### CI — `anchor test` gate verde (39/39) + bugs reales encontrados
+
+Primera vez que el repo corre la suite on-chain en CI (workflow
+`anchor-test.yml`, Solana 3.0.0 + Anchor 0.31.1). Correr los tests de verdad
+destapó **6 bugs latentes** del contrato que ahora están fixeados:
+
+- **`register_asset`**: la cuenta del mint pre-alocaba la extensión variable
+  `TokenMetadata` antes de `initialize_mint2` → `InvalidAccountData`. Ahora
+  aloca solo las extensiones fijas y deja que `token_metadata_initialize`
+  realloque (rent del tamaño máximo pre-fondeado para `update_metadata`).
+- **Lending stack overflow**: `OpenLoan`/`RepayLoan`/`Liquidate` (≥14 cuentas)
+  excedían el frame de 4 KB de SBF → `Box<>` en las cuentas.
+- **Transferencias de colateral hook-aware**: `open_loan`/`repay`/`liquidate`
+  usaban `transfer_checked` plano que no incluye el hook → ahora
+  `spl_token_2022::onchain::invoke_transfer_checked` + `remaining_accounts`
+  (con lifetime `'info` explícito).
+- **`compliance_hook` fallback**: Token-2022 invoca el hook con el
+  discriminador de `spl-transfer-hook-interface`, no `global:execute` → se
+  agregó la función `fallback` que enruta el `Execute`.
+- **Toolchain SBF (cargo/rustc 1.84)**: pins de `blake3`/`cpufeatures`/
+  `proc-macro-crate`/`indexmap`/`unicode-segmentation` para evitar
+  `edition2024`/MSRV-1.85; Token-2022 cargado como fixture genesis (sin clone
+  de mainnet que colgaba el validator).
+
+Cliente web (`openLoan`/`repayLoan`) actualizado con `hookRemainingAccounts`
+para que la app respete el transfer-hook igual que el contrato.
+
 ### Frontend — capa de pulido de interacciones (web + app móvil)
 
 Capa de diseño compartida que eleva la calidad de las interacciones en las 12
