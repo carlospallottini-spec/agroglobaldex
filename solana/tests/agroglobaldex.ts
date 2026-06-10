@@ -44,6 +44,10 @@ import * as path from "path";
 import { createHash } from "crypto";
 
 const HOOK_PROGRAM_ID = new PublicKey("GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL");
+// Synthetic Pyth PriceUpdateV2 fixture loaded by Anchor.toml (tests/fixtures/pyth_price.json):
+// price 6.50 @ expo -8 → 6_500_000 USDC (6dp), feed id = sha256("agroglobaldex:grain-usd").
+const PYTH_PRICE_ACCOUNT = new PublicKey("3tACy7sXfF7hF8mXcmQsLgQMYshk6Rx5y3X7E5yFDwVy");
+const GRAIN_FEED_HEX = "d3585096391d368b178133ba9b9b8c4beeb4c7f0919d0e488f68ee5b58502b56";
 const IDL_PATH = path.join(__dirname, "..", "target", "idl", "agroglobaldex.json");
 
 function pda(seeds: (Buffer | Uint8Array)[], programId: PublicKey) {
@@ -1298,6 +1302,137 @@ describe("agroglobaldex", function () {
           tokenProgram: TOKEN_PROGRAM_ID,
         }).rpc(),
       "ExceedsDeposit",
+    );
+  });
+
+  it("40 list_asset + buy_asset: trade nativo a traves del compliance hook", async () => {
+    // Vendedor fresco que emite su propio grain (10k) y lista 5k. El escrow lo
+    // controla el PDA del listing, asi que ambas transferencias (deposito a
+    // escrow y escrow->comprador) disparan el TransferHook de compliance.
+    const sellerL = Keypair.generate();
+    await airdrop(sellerL.publicKey, 5);
+    await ensureKyc(sellerL.publicKey);
+    const { reg, mint, issuerAta: sellerTokenAccount } =
+      await registerFreshGrain(sellerL, new BN(10_000_000_000));
+
+    const listing = pda([Buffer.from("listing"), reg.toBuffer(), sellerL.publicKey.toBuffer()], programId);
+    await ensureKyc(listing); // el owner del escrow (listing PDA) debe estar KYC'd
+    const escrow = getAssociatedTokenAddressSync(mint, listing, true, TOKEN_2022_PROGRAM_ID);
+
+    // price = 1 base-USDC por base-unit de token; listamos 5k.
+    await program.methods.listAsset(new BN(1), new BN(5_000_000_000))
+      .accounts({
+        seller: sellerL.publicKey, marketplace, assetRegistry: reg, mint,
+        sellerTokenAccount, listing, escrow,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      })
+      .remainingAccounts(hookRemaining(mint, sellerL.publicKey, listing))
+      .signers([sellerL]).rpc();
+
+    assert.equal((await provider.connection.getTokenAccountBalance(escrow)).value.amount, "5000000000");
+
+    // Comprador KYC'd con USDC.
+    const buyerL = Keypair.generate();
+    await airdrop(buyerL.publicKey, 5);
+    const buyerRec = await ensureKyc(buyerL.publicKey);
+    const buyerUsdcAta = await createAssociatedTokenAccount(provider.connection, payer, usdcMint, buyerL.publicKey);
+    await mintTo(provider.connection, payer, usdcMint, buyerUsdcAta, payer, 5_000_000_000);
+    const sellerUsdcAta = await createAssociatedTokenAccount(provider.connection, payer, usdcMint, sellerL.publicKey);
+
+    const treasury = pda([Buffer.from("treasury"), marketplace.toBuffer()], programId);
+    const treasuryUsdcAta = getAssociatedTokenAddressSync(usdcMint, treasury, true, TOKEN_PROGRAM_ID);
+    const buyerTokenAccount = getAssociatedTokenAddressSync(mint, buyerL.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const jurisdictionPolicy = pda([Buffer.from("jurisdiction_policy"), marketplace.toBuffer()], programId);
+    const mpAcc = await program.account.marketplace.fetch(marketplace);
+    const tradeReceipt = pda(
+      [Buffer.from("trade_receipt"), marketplace.toBuffer(), new BN(mpAcc.tradeCount).toArrayLike(Buffer, "le", 8)],
+      programId,
+    );
+
+    // Compra 2k tokens (gross = 2e9 base-USDC; fee 0.5% = 1e7; vendedor 1.99e9).
+    await program.methods.buyAsset(new BN(2_000_000_000))
+      .accounts({
+        buyer: buyerL.publicKey, marketplace, assetRegistry: reg, listing, escrow,
+        seller: sellerL.publicKey, mint, buyerTokenAccount,
+        buyerCompliance: buyerRec, jurisdictionPolicy,
+        usdcMint, buyerUsdcAta, sellerUsdcAta, treasuryUsdcAta, treasury,
+        tradeReceipt,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        usdcTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(hookRemaining(mint, listing, buyerL.publicKey))
+      .signers([buyerL]).rpc();
+
+    assert.equal((await provider.connection.getTokenAccountBalance(buyerTokenAccount)).value.amount, "2000000000");
+    const listingAcc = await program.account.marketplaceListing.fetch(listing);
+    assert.equal(listingAcc.remaining.toString(), "3000000000");
+    assert.equal((await provider.connection.getTokenAccountBalance(sellerUsdcAta)).value.amount, "1990000000");
+    assert.equal((await provider.connection.getTokenAccountBalance(treasuryUsdcAta)).value.amount, "10000000");
+  });
+
+  it("41 oracle Pyth: set_collateral_oracle + refresh_collateral_price cachea el precio", async () => {
+    // Grain fresco con su CollateralConfig, luego lo enchufamos a un feed Pyth
+    // (fixture PriceUpdateV2 cargado en el validator) y cranqueamos el precio.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const issuerO = Keypair.generate();
+    await airdrop(issuerO.publicKey, 5);
+    await ensureKyc(issuerO.publicKey);
+    const { reg } = await registerFreshGrain(issuerO, new BN(1_000_000_000));
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+
+    // 1) crea el CollateralConfig (modo manual).
+    await program.methods.setCollateralConfig(new BN(1_000_000), true)
+      .accounts({
+        authority: authority.publicKey, marketplace, lendingMarket: lm,
+        assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId,
+      }).rpc();
+
+    // 2) bindea el feed Pyth (staleness enorme; confidence check off).
+    const feedId = Array.from(Buffer.from(GRAIN_FEED_HEX, "hex"));
+    await program.methods.setCollateralOracle(feedId, new BN("100000000000"), 0, true)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm, collateralConfig: cfg })
+      .rpc();
+    let cfgAcc = await program.account.collateralConfig.fetch(cfg);
+    assert.equal(cfgAcc.oracleEnabled, true);
+
+    // 3) crank permissionless: lee el PriceUpdateV2 y cachea el precio.
+    await program.methods.refreshCollateralPrice()
+      .accounts({ cranker: authority.publicKey, collateralConfig: cfg, priceUpdate: PYTH_PRICE_ACCOUNT })
+      .rpc();
+    cfgAcc = await program.account.collateralConfig.fetch(cfg);
+    assert.equal(cfgAcc.priceUsdcPerToken.toString(), "6500000"); // 6.50 USDC @ expo -8
+    assert.isTrue(Number(cfgAcc.updatedAt.toString()) > 0);
+  });
+
+  it("42 sad: refresh_collateral_price con feed_id distinto revierte OracleFeedMismatch", async () => {
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const issuerO = Keypair.generate();
+    await airdrop(issuerO.publicKey, 5);
+    await ensureKyc(issuerO.publicKey);
+    const { reg } = await registerFreshGrain(issuerO, new BN(1_000_000_000));
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+
+    await program.methods.setCollateralConfig(new BN(1_000_000), true)
+      .accounts({
+        authority: authority.publicKey, marketplace, lendingMarket: lm,
+        assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId,
+      }).rpc();
+    // Bindea un feed_id que NO matchea el del fixture.
+    const wrongFeed = Array.from(Buffer.alloc(32, 9));
+    await program.methods.setCollateralOracle(wrongFeed, new BN("100000000000"), 0, true)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm, collateralConfig: cfg })
+      .rpc();
+
+    await expectRevert(
+      program.methods.refreshCollateralPrice()
+        .accounts({ cranker: authority.publicKey, collateralConfig: cfg, priceUpdate: PYTH_PRICE_ACCOUNT })
+        .rpc(),
+      "OracleFeedMismatch",
     );
   });
 });

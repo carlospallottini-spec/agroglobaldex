@@ -39,5 +39,11 @@ startup_wait = 60000
 address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 program = "tests/fixtures/token_2022.so"
 
+# Synthetic Pyth PriceUpdateV2 account (owner = Pyth receiver) so the oracle
+# path (refresh_collateral_price) can be exercised on-chain without a live feed.
+[[test.validator.account]]
+address = "3tACy7sXfF7hF8mXcmQsLgQMYshk6Rx5y3X7E5yFDwVy"
+filename = "tests/fixtures/pyth_price.json"
+
 [workspace]
 members = ["programs/agroglobaldex", "programs/compliance-hook"]

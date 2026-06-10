@@ -101,7 +101,13 @@ pub mod agroglobaldex {
         instructions::update_kyc::handler(ctx, kyc_verified, jurisdiction, accredited_investor)
     }
 
-    pub fn list_asset(ctx: Context<ListAsset>, price_usdc: u64, amount: u64) -> Result<()> {
+    /// List a native asset. Pass the compliance TransferHook accounts as
+    /// `remaining_accounts` (the deposit into escrow fires the hook).
+    pub fn list_asset<'info>(
+        ctx: Context<'_, '_, '_, 'info, ListAsset<'info>>,
+        price_usdc: u64,
+        amount: u64,
+    ) -> Result<()> {
         instructions::list_asset::handler(ctx, price_usdc, amount)
     }
 
@@ -116,7 +122,12 @@ pub mod agroglobaldex {
         instructions::cancel_listing::handler(ctx)
     }
 
-    pub fn buy_asset(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
+    /// Buy from a native listing. Pass the compliance TransferHook accounts as
+    /// `remaining_accounts` (the escrow→buyer transfer fires the hook).
+    pub fn buy_asset<'info>(
+        ctx: Context<'_, '_, '_, 'info, BuyAsset<'info>>,
+        amount: u64,
+    ) -> Result<()> {
         instructions::buy_asset::handler(ctx, amount)
     }
 

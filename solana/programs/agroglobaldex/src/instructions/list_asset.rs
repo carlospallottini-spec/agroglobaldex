@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::errors::AgroError;
 use crate::state::*;
@@ -71,21 +69,30 @@ pub struct ListAsset<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<ListAsset>, price_usdc: u64, amount: u64) -> Result<()> {
+pub fn handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, ListAsset<'info>>,
+    price_usdc: u64,
+    amount: u64,
+) -> Result<()> {
     require!(amount > 0, AgroError::InvalidAmount);
     require!(price_usdc > 0, AgroError::InvalidAmount);
 
+    // Asset tokens are Token-2022 with the compliance TransferHook, so the
+    // deposit into escrow must forward the hook program + its extra accounts
+    // (passed as remaining_accounts). The escrow owner is the listing PDA,
+    // which must therefore be KYC'd.
     let decimals = ctx.accounts.mint.decimals;
-    let cpi_ctx = CpiContext::new(
-        ctx.accounts.token_program.to_account_info(),
-        TransferChecked {
-            from: ctx.accounts.seller_token_account.to_account_info(),
-            mint: ctx.accounts.mint.to_account_info(),
-            to: ctx.accounts.escrow.to_account_info(),
-            authority: ctx.accounts.seller.to_account_info(),
-        },
-    );
-    transfer_checked(cpi_ctx, amount, decimals)?;
+    spl_token_2022::onchain::invoke_transfer_checked(
+        &ctx.accounts.token_program.key(),
+        ctx.accounts.seller_token_account.to_account_info(),
+        ctx.accounts.mint.to_account_info(),
+        ctx.accounts.escrow.to_account_info(),
+        ctx.accounts.seller.to_account_info(),
+        ctx.remaining_accounts,
+        amount,
+        decimals,
+        &[],
+    )?;
 
     let listing = &mut ctx.accounts.listing;
     listing.marketplace = ctx.accounts.marketplace.key();
