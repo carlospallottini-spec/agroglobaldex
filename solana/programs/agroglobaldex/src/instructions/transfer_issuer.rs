@@ -24,7 +24,7 @@ pub struct TransferIssuer<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         mut,
@@ -39,7 +39,7 @@ pub struct TransferIssuer<'info> {
         constraint = asset_registry.issuer == current_issuer.key()
             @ AgroError::UnauthorizedIssuer,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     /// CHECK: the wallet receiving the issuer role. Must already have a
     /// valid ComplianceRecord (verified by the constraint on `new_issuer_compliance`).
@@ -55,7 +55,7 @@ pub struct TransferIssuer<'info> {
         bump = new_issuer_compliance.bump,
         constraint = new_issuer_compliance.kyc_verified @ AgroError::KycNotVerified,
     )]
-    pub new_issuer_compliance: Account<'info, ComplianceRecord>,
+    pub new_issuer_compliance: Box<Account<'info, ComplianceRecord>>,
 }
 
 pub fn handler(ctx: Context<TransferIssuer>) -> Result<()> {

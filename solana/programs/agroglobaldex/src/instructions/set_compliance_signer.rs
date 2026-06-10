@@ -15,7 +15,7 @@ pub struct SetComplianceSigner<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     /// CHECK: any pubkey — becomes the new compliance signer.
     pub new_signer: UncheckedAccount<'info>,

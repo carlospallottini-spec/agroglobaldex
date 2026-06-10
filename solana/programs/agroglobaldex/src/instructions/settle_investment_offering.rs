@@ -25,7 +25,7 @@ pub struct SettleInvestmentOffering<'info> {
         seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
         bump = marketplace.bump,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         mut,
@@ -40,7 +40,7 @@ pub struct SettleInvestmentOffering<'info> {
         constraint = asset_registry.issuer == issuer.key()
             @ AgroError::UnauthorizedIssuer,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 }
 
 pub fn handler(

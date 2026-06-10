@@ -24,14 +24,14 @@ pub struct MintToken<'info> {
         has_one = issuer @ AgroError::UnauthorizedIssuer,
         has_one = mint,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(
         mut,
         seeds = [ASSET_MINT_SEED, asset_registry.key().as_ref()],
         bump,
     )]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init_if_needed,
@@ -40,7 +40,7 @@ pub struct MintToken<'info> {
         associated_token::authority = issuer,
         associated_token::token_program = token_program,
     )]
-    pub issuer_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub issuer_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token2022>,
     pub associated_token_program: Program<'info, AssociatedToken>,

@@ -17,7 +17,7 @@ pub struct InitJurisdictionPolicy<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         init,
@@ -26,7 +26,7 @@ pub struct InitJurisdictionPolicy<'info> {
         seeds = [JURISDICTION_POLICY_SEED, marketplace.key().as_ref()],
         bump
     )]
-    pub policy: Account<'info, JurisdictionPolicy>,
+    pub policy: Box<Account<'info, JurisdictionPolicy>>,
 
     pub system_program: Program<'info, System>,
 }

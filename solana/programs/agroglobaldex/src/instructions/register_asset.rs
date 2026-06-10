@@ -35,7 +35,7 @@ pub struct RegisterAsset<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         init,
@@ -48,7 +48,7 @@ pub struct RegisterAsset<'info> {
         ],
         bump
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     /// CHECK: validated by seeds + initialized via CPI inside the handler.
     #[account(

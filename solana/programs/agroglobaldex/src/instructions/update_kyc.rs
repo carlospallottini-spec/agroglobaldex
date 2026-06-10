@@ -20,7 +20,7 @@ pub struct UpdateKyc<'info> {
         constraint = marketplace.compliance_signer == compliance_signer.key()
             @ AgroError::UnauthorizedComplianceAuthority
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     /// CHECK: any wallet — does not need to sign, the record is about them.
     pub wallet: UncheckedAccount<'info>,
@@ -36,7 +36,7 @@ pub struct UpdateKyc<'info> {
         ],
         bump
     )]
-    pub compliance_record: Account<'info, ComplianceRecord>,
+    pub compliance_record: Box<Account<'info, ComplianceRecord>>,
 
     pub system_program: Program<'info, System>,
 }

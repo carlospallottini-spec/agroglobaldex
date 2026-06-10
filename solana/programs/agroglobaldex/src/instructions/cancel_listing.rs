@@ -19,9 +19,9 @@ pub struct CancelListing<'info> {
         seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
         bump = marketplace.bump
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(
         mut,
@@ -36,16 +36,16 @@ pub struct CancelListing<'info> {
         constraint = listing.source_registry == asset_registry.key()
             @ AgroError::ListingMismatch,
     )]
-    pub listing: Account<'info, MarketplaceListing>,
+    pub listing: Box<Account<'info, MarketplaceListing>>,
 
     #[account(
         mut,
         address = listing.escrow,
     )]
-    pub escrow: InterfaceAccount<'info, TokenAccount>,
+    pub escrow: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, address = listing.mint)]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -53,7 +53,7 @@ pub struct CancelListing<'info> {
         associated_token::authority = seller,
         associated_token::token_program = token_program,
     )]
-    pub seller_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub seller_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
