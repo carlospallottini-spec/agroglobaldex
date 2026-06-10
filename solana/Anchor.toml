@@ -28,6 +28,12 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 # Headroom for solana-test-validator cold-start before the first blockhash.
 startup_wait = 60000
 
+# Pin the validator's gossip/bind addresses: on recent GitHub runner images the
+# test-validator panics resolving its gossip IP (UnspecifiedIpAddr 0.0.0.0).
+[test.validator]
+bind_address = "0.0.0.0"
+gossip_host = "127.0.0.1"
+
 # Load Token-2022 from a committed fixture (mainnet's program, dumped to
 # tests/fixtures/token_2022.so) at its canonical address. Rationale:
 #  - the validator's built-in Token-2022 rejects our MetadataPointer + token
