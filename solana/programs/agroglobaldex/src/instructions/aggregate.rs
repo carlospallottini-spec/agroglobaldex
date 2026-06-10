@@ -33,7 +33,7 @@ pub struct AggregateExternalAsset<'info> {
         constraint = marketplace.authority == curator.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         init,
@@ -46,7 +46,7 @@ pub struct AggregateExternalAsset<'info> {
         ],
         bump
     )]
-    pub external_asset: Account<'info, ExternalAssetRegistry>,
+    pub external_asset: Box<Account<'info, ExternalAssetRegistry>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -148,7 +148,7 @@ pub struct UpdateExternalAsset<'info> {
         constraint = marketplace.authority == curator.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         mut,
@@ -161,7 +161,7 @@ pub struct UpdateExternalAsset<'info> {
         constraint = external_asset.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
-    pub external_asset: Account<'info, ExternalAssetRegistry>,
+    pub external_asset: Box<Account<'info, ExternalAssetRegistry>>,
 }
 
 pub fn update_handler(

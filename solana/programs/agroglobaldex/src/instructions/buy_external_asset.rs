@@ -28,7 +28,7 @@ pub struct BuyExternalAsset<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         seeds = [
@@ -42,7 +42,7 @@ pub struct BuyExternalAsset<'info> {
         constraint = external_asset.active @ AgroError::ExternalAssetInactive,
         constraint = external_asset.mint.is_some() @ AgroError::CrossChainNotTradable,
     )]
-    pub external_asset: Account<'info, ExternalAssetRegistry>,
+    pub external_asset: Box<Account<'info, ExternalAssetRegistry>>,
 
     #[account(
         mut,
@@ -58,17 +58,17 @@ pub struct BuyExternalAsset<'info> {
         constraint = listing.source_registry == external_asset.key()
             @ AgroError::ListingMismatch,
     )]
-    pub listing: Account<'info, MarketplaceListing>,
+    pub listing: Box<Account<'info, MarketplaceListing>>,
 
     #[account(mut, address = listing.escrow)]
-    pub escrow: InterfaceAccount<'info, TokenAccount>,
+    pub escrow: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: identity verified by listing.seller.
     #[account(address = listing.seller)]
     pub seller: UncheckedAccount<'info>,
 
     #[account(mut, address = listing.mint)]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init_if_needed,
@@ -77,7 +77,7 @@ pub struct BuyExternalAsset<'info> {
         associated_token::authority = buyer,
         associated_token::token_program = token_program,
     )]
-    pub buyer_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub buyer_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         seeds = [
@@ -89,7 +89,7 @@ pub struct BuyExternalAsset<'info> {
         constraint = buyer_compliance.wallet == buyer.key()
             @ AgroError::KycNotVerified,
     )]
-    pub buyer_compliance: Account<'info, ComplianceRecord>,
+    pub buyer_compliance: Box<Account<'info, ComplianceRecord>>,
 
     #[account(
         seeds = [JURISDICTION_POLICY_SEED, marketplace.key().as_ref()],
@@ -97,10 +97,10 @@ pub struct BuyExternalAsset<'info> {
         constraint = jurisdiction_policy.marketplace == marketplace.key()
             @ AgroError::JurisdictionPolicyMismatch,
     )]
-    pub jurisdiction_policy: Account<'info, JurisdictionPolicy>,
+    pub jurisdiction_policy: Box<Account<'info, JurisdictionPolicy>>,
 
     #[account(address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint)]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -108,7 +108,7 @@ pub struct BuyExternalAsset<'info> {
         associated_token::authority = buyer,
         associated_token::token_program = usdc_token_program,
     )]
-    pub buyer_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub buyer_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -116,7 +116,7 @@ pub struct BuyExternalAsset<'info> {
         associated_token::authority = seller,
         associated_token::token_program = usdc_token_program,
     )]
-    pub seller_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub seller_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -124,7 +124,7 @@ pub struct BuyExternalAsset<'info> {
         associated_token::authority = treasury,
         associated_token::token_program = usdc_token_program,
     )]
-    pub treasury_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: PDA validated by seeds.
     #[account(
@@ -143,7 +143,7 @@ pub struct BuyExternalAsset<'info> {
         seeds = [TRADE_RECEIPT_SEED, marketplace.key().as_ref(), &marketplace.trade_count.to_le_bytes()],
         bump
     )]
-    pub trade_receipt: Account<'info, TradeReceipt>,
+    pub trade_receipt: Box<Account<'info, TradeReceipt>>,
 
     pub token_program: Interface<'info, TokenInterface>,
     pub usdc_token_program: Program<'info, Token>,

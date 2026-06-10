@@ -21,7 +21,7 @@ pub struct UpdateAssetMetadata<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         mut,
@@ -37,7 +37,7 @@ pub struct UpdateAssetMetadata<'info> {
             @ AgroError::UnauthorizedIssuer,
         constraint = !asset_registry.frozen_metadata @ AgroError::MetadataFrozen,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     /// CHECK: address-checked against asset_registry.mint and used as the
     /// TokenMetadata target.
@@ -45,7 +45,7 @@ pub struct UpdateAssetMetadata<'info> {
         mut,
         address = asset_registry.mint,
     )]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     pub token_program: Interface<'info, TokenInterface>,
 }

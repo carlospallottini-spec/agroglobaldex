@@ -8,7 +8,7 @@ use crate::state::*;
 pub struct UpdateListingPrice<'info> {
     pub seller: Signer<'info>,
 
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(
         mut,
@@ -23,7 +23,7 @@ pub struct UpdateListingPrice<'info> {
         constraint = listing.source_registry == asset_registry.key()
             @ AgroError::ListingMismatch,
     )]
-    pub listing: Account<'info, MarketplaceListing>,
+    pub listing: Box<Account<'info, MarketplaceListing>>,
 }
 
 pub fn handler(ctx: Context<UpdateListingPrice>, new_price_usdc: u64) -> Result<()> {

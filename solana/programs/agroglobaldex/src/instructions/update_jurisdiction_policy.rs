@@ -14,7 +14,7 @@ pub struct UpdateJurisdictionPolicy<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         mut,
@@ -23,7 +23,7 @@ pub struct UpdateJurisdictionPolicy<'info> {
         constraint = policy.marketplace == marketplace.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub policy: Account<'info, JurisdictionPolicy>,
+    pub policy: Box<Account<'info, JurisdictionPolicy>>,
 }
 
 pub fn handler(

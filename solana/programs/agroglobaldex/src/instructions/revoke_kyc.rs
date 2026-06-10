@@ -26,7 +26,7 @@ pub struct RevokeKyc<'info> {
         constraint = marketplace.compliance_signer == compliance_signer.key()
             @ AgroError::UnauthorizedComplianceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     /// CHECK: identified by the existing ComplianceRecord PDA seeds.
     pub wallet: UncheckedAccount<'info>,
@@ -42,7 +42,7 @@ pub struct RevokeKyc<'info> {
         constraint = compliance_record.wallet == wallet.key()
             @ AgroError::KycNotVerified,
     )]
-    pub compliance_record: Account<'info, ComplianceRecord>,
+    pub compliance_record: Box<Account<'info, ComplianceRecord>>,
 }
 
 pub fn handler(ctx: Context<RevokeKyc>, reason_code: u8) -> Result<()> {

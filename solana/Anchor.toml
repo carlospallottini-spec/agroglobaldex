@@ -28,6 +28,13 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 # Headroom for solana-test-validator cold-start before the first blockhash.
 startup_wait = 60000
 
+# Bind the validator to a concrete loopback IP: on recent GitHub runner images
+# the default (0.0.0.0) makes test-validator panic resolving its gossip IP
+# (UnspecifiedIpAddr 0.0.0.0). Note: Agave 3.0's test-validator has no
+# --gossip-host flag, only --bind-address.
+[test.validator]
+bind_address = "127.0.0.1"
+
 # Load Token-2022 from a committed fixture (mainnet's program, dumped to
 # tests/fixtures/token_2022.so) at its canonical address. Rationale:
 #  - the validator's built-in Token-2022 rejects our MetadataPointer + token
@@ -38,6 +45,12 @@ startup_wait = 60000
 [[test.genesis]]
 address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 program = "tests/fixtures/token_2022.so"
+
+# Synthetic Pyth PriceUpdateV2 account (owner = Pyth receiver) so the oracle
+# path (refresh_collateral_price) can be exercised on-chain without a live feed.
+[[test.validator.account]]
+address = "3tACy7sXfF7hF8mXcmQsLgQMYshk6Rx5y3X7E5yFDwVy"
+filename = "tests/fixtures/pyth_price.json"
 
 [workspace]
 members = ["programs/agroglobaldex", "programs/compliance-hook"]

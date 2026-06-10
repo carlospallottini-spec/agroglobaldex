@@ -23,7 +23,7 @@ pub struct Initialize<'info> {
         seeds = [MARKETPLACE_SEED, authority.key().as_ref()],
         bump
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     /// CHECK: PDA — informational only (legacy).
     #[account(
@@ -39,7 +39,7 @@ pub struct Initialize<'info> {
     )]
     pub treasury: UncheckedAccount<'info>,
 
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init,
@@ -47,7 +47,7 @@ pub struct Initialize<'info> {
         associated_token::mint = usdc_mint,
         associated_token::authority = treasury,
     )]
-    pub treasury_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,

@@ -536,6 +536,9 @@ export async function buyAsset({ listingPubkey, amount }) {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
+    // The escrow→buyer transfer fires the Token-2022 compliance hook; src owner
+    // is the listing PDA (escrow authority), dst is the buyer.
+    .remainingAccounts(hookRemainingAccounts(regAcc.mint, marketplace, listing, buyer))
     .rpc();
   return { tx };
 }

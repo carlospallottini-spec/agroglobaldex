@@ -19,7 +19,7 @@ pub struct SetPaused<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 }
 
 pub fn handler(ctx: Context<SetPaused>, paused: bool) -> Result<()> {

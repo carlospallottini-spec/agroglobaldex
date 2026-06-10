@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::errors::AgroError;
 use crate::state::*;
@@ -22,17 +20,17 @@ pub struct ListAsset<'info> {
         bump = marketplace.bump,
     constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         has_one = mint,
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(mut)]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -40,7 +38,7 @@ pub struct ListAsset<'info> {
         associated_token::authority = seller,
         associated_token::token_program = token_program,
     )]
-    pub seller_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub seller_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -53,7 +51,7 @@ pub struct ListAsset<'info> {
         ],
         bump
     )]
-    pub listing: Account<'info, MarketplaceListing>,
+    pub listing: Box<Account<'info, MarketplaceListing>>,
 
     /// Escrow token account owned by the listing PDA.
     #[account(
@@ -63,7 +61,7 @@ pub struct ListAsset<'info> {
         associated_token::authority = listing,
         associated_token::token_program = token_program,
     )]
-    pub escrow: InterfaceAccount<'info, TokenAccount>,
+    pub escrow: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -71,21 +69,30 @@ pub struct ListAsset<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<ListAsset>, price_usdc: u64, amount: u64) -> Result<()> {
+pub fn handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, ListAsset<'info>>,
+    price_usdc: u64,
+    amount: u64,
+) -> Result<()> {
     require!(amount > 0, AgroError::InvalidAmount);
     require!(price_usdc > 0, AgroError::InvalidAmount);
 
+    // Asset tokens are Token-2022 with the compliance TransferHook, so the
+    // deposit into escrow must forward the hook program + its extra accounts
+    // (passed as remaining_accounts). The escrow owner is the listing PDA,
+    // which must therefore be KYC'd.
     let decimals = ctx.accounts.mint.decimals;
-    let cpi_ctx = CpiContext::new(
-        ctx.accounts.token_program.to_account_info(),
-        TransferChecked {
-            from: ctx.accounts.seller_token_account.to_account_info(),
-            mint: ctx.accounts.mint.to_account_info(),
-            to: ctx.accounts.escrow.to_account_info(),
-            authority: ctx.accounts.seller.to_account_info(),
-        },
-    );
-    transfer_checked(cpi_ctx, amount, decimals)?;
+    spl_token_2022::onchain::invoke_transfer_checked(
+        &ctx.accounts.token_program.key(),
+        ctx.accounts.seller_token_account.to_account_info(),
+        ctx.accounts.mint.to_account_info(),
+        ctx.accounts.escrow.to_account_info(),
+        ctx.accounts.seller.to_account_info(),
+        ctx.remaining_accounts,
+        amount,
+        decimals,
+        &[],
+    )?;
 
     let listing = &mut ctx.accounts.listing;
     listing.marketplace = ctx.accounts.marketplace.key();

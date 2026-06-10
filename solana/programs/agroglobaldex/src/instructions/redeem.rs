@@ -21,7 +21,7 @@ pub struct Redeem<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         mut,
@@ -35,13 +35,13 @@ pub struct Redeem<'info> {
             @ AgroError::ListingMismatch,
         constraint = asset_registry.redeemable @ AgroError::AssetNotRedeemable,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(
         mut,
         address = asset_registry.mint,
     )]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -49,7 +49,7 @@ pub struct Redeem<'info> {
         associated_token::authority = holder,
         associated_token::token_program = token_program,
     )]
-    pub holder_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub holder_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token2022>,
 }

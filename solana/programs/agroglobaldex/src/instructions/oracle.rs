@@ -178,20 +178,20 @@ pub struct SetCollateralOracle<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         seeds = [LENDING_MARKET_SEED, marketplace.key().as_ref()],
         bump = lending_market.bump,
     )]
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(
         mut,
         seeds = [COLLATERAL_CONFIG_SEED, lending_market.key().as_ref(), collateral_config.asset_registry.as_ref()],
         bump = collateral_config.bump,
     )]
-    pub collateral_config: Account<'info, CollateralConfig>,
+    pub collateral_config: Box<Account<'info, CollateralConfig>>,
 }
 
 pub fn set_collateral_oracle_handler(
@@ -239,7 +239,7 @@ pub struct RefreshCollateralPrice<'info> {
         seeds = [COLLATERAL_CONFIG_SEED, collateral_config.lending_market.as_ref(), collateral_config.asset_registry.as_ref()],
         bump = collateral_config.bump,
     )]
-    pub collateral_config: Account<'info, CollateralConfig>,
+    pub collateral_config: Box<Account<'info, CollateralConfig>>,
 
     /// CHECK: validated by owner + discriminator + feed id inside the handler.
     #[account(owner = PYTH_RECEIVER_PROGRAM_ID @ AgroError::InvalidOracleAccount)]

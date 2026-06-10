@@ -2,9 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::Token;
 use anchor_spl::token::{transfer as usdc_transfer, Transfer as UsdcTransfer};
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::errors::AgroError;
 use crate::instructions::update_kyc::enforce_compliance;
@@ -28,7 +26,7 @@ pub struct BuyAsset<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         seeds = [
@@ -40,7 +38,7 @@ pub struct BuyAsset<'info> {
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(
         mut,
@@ -58,13 +56,13 @@ pub struct BuyAsset<'info> {
         constraint = listing.mint == asset_registry.mint
             @ AgroError::ListingMismatch,
     )]
-    pub listing: Account<'info, MarketplaceListing>,
+    pub listing: Box<Account<'info, MarketplaceListing>>,
 
     #[account(
         mut,
         address = listing.escrow,
     )]
-    pub escrow: InterfaceAccount<'info, TokenAccount>,
+    pub escrow: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: identity verified by listing.seller; only needs to receive USDC.
     #[account(address = listing.seller)]
@@ -74,7 +72,7 @@ pub struct BuyAsset<'info> {
         mut,
         address = asset_registry.mint,
     )]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init_if_needed,
@@ -83,7 +81,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = buyer,
         associated_token::token_program = token_program,
     )]
-    pub buyer_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub buyer_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         seeds = [
@@ -95,7 +93,7 @@ pub struct BuyAsset<'info> {
         constraint = buyer_compliance.wallet == buyer.key()
             @ AgroError::KycNotVerified,
     )]
-    pub buyer_compliance: Account<'info, ComplianceRecord>,
+    pub buyer_compliance: Box<Account<'info, ComplianceRecord>>,
 
     #[account(
         seeds = [JURISDICTION_POLICY_SEED, marketplace.key().as_ref()],
@@ -103,13 +101,13 @@ pub struct BuyAsset<'info> {
         constraint = jurisdiction_policy.marketplace == marketplace.key()
             @ AgroError::JurisdictionPolicyMismatch,
     )]
-    pub jurisdiction_policy: Account<'info, JurisdictionPolicy>,
+    pub jurisdiction_policy: Box<Account<'info, JurisdictionPolicy>>,
 
     // ---- USDC side ---------------------------------------------------------
     #[account(
         address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint,
     )]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -117,7 +115,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = buyer,
         associated_token::token_program = usdc_token_program,
     )]
-    pub buyer_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub buyer_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -125,7 +123,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = seller,
         associated_token::token_program = usdc_token_program,
     )]
-    pub seller_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub seller_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -133,7 +131,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = treasury,
         associated_token::token_program = usdc_token_program,
     )]
-    pub treasury_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: PDA validated by seeds + matches marketplace.treasury.
     #[account(
@@ -153,7 +151,7 @@ pub struct BuyAsset<'info> {
         seeds = [TRADE_RECEIPT_SEED, marketplace.key().as_ref(), &marketplace.trade_count.to_le_bytes()],
         bump
     )]
-    pub trade_receipt: Account<'info, TradeReceipt>,
+    pub trade_receipt: Box<Account<'info, TradeReceipt>>,
 
     // Two token programs because USDC is classic SPL Token and asset tokens
     // are SPL Token-2022.
@@ -163,7 +161,7 @@ pub struct BuyAsset<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
+pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, BuyAsset<'info>>, amount: u64) -> Result<()> {
     require!(amount > 0, AgroError::InvalidAmount);
     // Defense in depth: initialize already caps fee_bps at 1000 (10%) but we
     // re-check here so this handler is correct on its own — protects against
@@ -172,8 +170,10 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
         ctx.accounts.marketplace.fee_bps <= 10_000,
         AgroError::FeeTooHigh
     );
-    let listing = &mut ctx.accounts.listing;
-    require!(listing.remaining >= amount, AgroError::ListingUnavailable);
+    require!(
+        ctx.accounts.listing.remaining >= amount,
+        AgroError::ListingUnavailable
+    );
 
     enforce_compliance(
         &ctx.accounts.buyer_compliance,
@@ -183,7 +183,7 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
 
     // ---- Settlement math ---------------------------------------------------
     let gross = (amount as u128)
-        .checked_mul(listing.price_usdc as u128)
+        .checked_mul(ctx.accounts.listing.price_usdc as u128)
         .ok_or(AgroError::PriceOverflow)?;
     let fee = gross
         .checked_mul(ctx.accounts.marketplace.fee_bps as u128)
@@ -230,10 +230,10 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
         )?;
     }
 
-    // ---- Asset token: listing escrow -> buyer ------------------------------
+    // ---- Asset token: listing escrow -> buyer (Token-2022 hook fires) ------
     let asset_registry_key = ctx.accounts.asset_registry.key();
-    let seller_key = listing.seller;
-    let listing_bump = listing.bump;
+    let seller_key = ctx.accounts.listing.seller;
+    let listing_bump = ctx.accounts.listing.bump;
     let signer_seeds: &[&[&[u8]]] = &[&[
         LISTING_SEED,
         asset_registry_key.as_ref(),
@@ -242,18 +242,19 @@ pub fn handler(ctx: Context<BuyAsset>, amount: u64) -> Result<()> {
     ]];
 
     let decimals = ctx.accounts.mint.decimals;
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
-        TransferChecked {
-            from: ctx.accounts.escrow.to_account_info(),
-            mint: ctx.accounts.mint.to_account_info(),
-            to: ctx.accounts.buyer_token_account.to_account_info(),
-            authority: listing.to_account_info(),
-        },
+    spl_token_2022::onchain::invoke_transfer_checked(
+        &ctx.accounts.token_program.key(),
+        ctx.accounts.escrow.to_account_info(),
+        ctx.accounts.mint.to_account_info(),
+        ctx.accounts.buyer_token_account.to_account_info(),
+        ctx.accounts.listing.to_account_info(),
+        ctx.remaining_accounts,
+        amount,
+        decimals,
         signer_seeds,
-    );
-    transfer_checked(cpi_ctx, amount, decimals)?;
+    )?;
 
+    let listing = &mut ctx.accounts.listing;
     listing.remaining = listing.remaining.saturating_sub(amount);
     if listing.remaining == 0 {
         listing.active = false;

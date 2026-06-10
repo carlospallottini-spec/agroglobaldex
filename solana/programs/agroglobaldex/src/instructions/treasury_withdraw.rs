@@ -19,7 +19,7 @@ pub struct TreasuryWithdraw<'info> {
         constraint = marketplace.authority == authority.key()
             @ AgroError::UnauthorizedMarketplaceAuthority,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     /// CHECK: PDA validated by seeds + matches marketplace.treasury.
     #[account(
@@ -33,14 +33,14 @@ pub struct TreasuryWithdraw<'info> {
     #[account(
         address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint,
     )]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
         associated_token::mint = usdc_mint,
         associated_token::authority = treasury,
     )]
-    pub treasury_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: any wallet — recipient of the withdrawn USDC.
     pub destination: UncheckedAccount<'info>,
@@ -50,7 +50,7 @@ pub struct TreasuryWithdraw<'info> {
         associated_token::mint = usdc_mint,
         associated_token::authority = destination,
     )]
-    pub destination_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub destination_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
