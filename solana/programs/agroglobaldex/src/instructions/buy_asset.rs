@@ -26,7 +26,7 @@ pub struct BuyAsset<'info> {
         bump = marketplace.bump,
         constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         seeds = [
@@ -38,7 +38,7 @@ pub struct BuyAsset<'info> {
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(
         mut,
@@ -56,13 +56,13 @@ pub struct BuyAsset<'info> {
         constraint = listing.mint == asset_registry.mint
             @ AgroError::ListingMismatch,
     )]
-    pub listing: Account<'info, MarketplaceListing>,
+    pub listing: Box<Account<'info, MarketplaceListing>>,
 
     #[account(
         mut,
         address = listing.escrow,
     )]
-    pub escrow: InterfaceAccount<'info, TokenAccount>,
+    pub escrow: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: identity verified by listing.seller; only needs to receive USDC.
     #[account(address = listing.seller)]
@@ -72,7 +72,7 @@ pub struct BuyAsset<'info> {
         mut,
         address = asset_registry.mint,
     )]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init_if_needed,
@@ -81,7 +81,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = buyer,
         associated_token::token_program = token_program,
     )]
-    pub buyer_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub buyer_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         seeds = [
@@ -93,7 +93,7 @@ pub struct BuyAsset<'info> {
         constraint = buyer_compliance.wallet == buyer.key()
             @ AgroError::KycNotVerified,
     )]
-    pub buyer_compliance: Account<'info, ComplianceRecord>,
+    pub buyer_compliance: Box<Account<'info, ComplianceRecord>>,
 
     #[account(
         seeds = [JURISDICTION_POLICY_SEED, marketplace.key().as_ref()],
@@ -101,13 +101,13 @@ pub struct BuyAsset<'info> {
         constraint = jurisdiction_policy.marketplace == marketplace.key()
             @ AgroError::JurisdictionPolicyMismatch,
     )]
-    pub jurisdiction_policy: Account<'info, JurisdictionPolicy>,
+    pub jurisdiction_policy: Box<Account<'info, JurisdictionPolicy>>,
 
     // ---- USDC side ---------------------------------------------------------
     #[account(
         address = marketplace.usdc_mint @ AgroError::InvalidUsdcMint,
     )]
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -115,7 +115,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = buyer,
         associated_token::token_program = usdc_token_program,
     )]
-    pub buyer_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub buyer_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -123,7 +123,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = seller,
         associated_token::token_program = usdc_token_program,
     )]
-    pub seller_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub seller_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -131,7 +131,7 @@ pub struct BuyAsset<'info> {
         associated_token::authority = treasury,
         associated_token::token_program = usdc_token_program,
     )]
-    pub treasury_usdc_ata: InterfaceAccount<'info, TokenAccount>,
+    pub treasury_usdc_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK: PDA validated by seeds + matches marketplace.treasury.
     #[account(
@@ -151,7 +151,7 @@ pub struct BuyAsset<'info> {
         seeds = [TRADE_RECEIPT_SEED, marketplace.key().as_ref(), &marketplace.trade_count.to_le_bytes()],
         bump
     )]
-    pub trade_receipt: Account<'info, TradeReceipt>,
+    pub trade_receipt: Box<Account<'info, TradeReceipt>>,
 
     // Two token programs because USDC is classic SPL Token and asset tokens
     // are SPL Token-2022.

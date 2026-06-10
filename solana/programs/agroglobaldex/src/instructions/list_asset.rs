@@ -20,17 +20,17 @@ pub struct ListAsset<'info> {
         bump = marketplace.bump,
     constraint = !marketplace.paused @ AgroError::Paused,
     )]
-    pub marketplace: Account<'info, Marketplace>,
+    pub marketplace: Box<Account<'info, Marketplace>>,
 
     #[account(
         has_one = mint,
         constraint = asset_registry.marketplace == marketplace.key()
             @ AgroError::ListingMismatch,
     )]
-    pub asset_registry: Account<'info, AssetRegistry>,
+    pub asset_registry: Box<Account<'info, AssetRegistry>>,
 
     #[account(mut)]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -38,7 +38,7 @@ pub struct ListAsset<'info> {
         associated_token::authority = seller,
         associated_token::token_program = token_program,
     )]
-    pub seller_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub seller_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -51,7 +51,7 @@ pub struct ListAsset<'info> {
         ],
         bump
     )]
-    pub listing: Account<'info, MarketplaceListing>,
+    pub listing: Box<Account<'info, MarketplaceListing>>,
 
     /// Escrow token account owned by the listing PDA.
     #[account(
@@ -61,7 +61,7 @@ pub struct ListAsset<'info> {
         associated_token::authority = listing,
         associated_token::token_program = token_program,
     )]
-    pub escrow: InterfaceAccount<'info, TokenAccount>,
+    pub escrow: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
