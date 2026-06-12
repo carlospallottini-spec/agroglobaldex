@@ -19,7 +19,7 @@
   --bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--bg5:#1E2820;
   --neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--nb:#00FF6A55;
   --gold:#C8A84B;--gd:#C8A84B0D;--gm:#C8A84B28;
-  --txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--t4:#202E22;
+  --txt:#ECF0EC;--t2:#7A9080;--t3:#647E6A;--t4:#202E22;
   --red:#FF3D4A;--amb:#F0A020;--blu:#3A9EF5;--pur:#8A78F0;
   --bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;
   --r:8px;--r2:14px;--r3:20px;--r4:28px;
@@ -302,6 +302,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 </head>
 <body>
 
+<a href="#main" class="skip-link">Saltar al contenido</a>
+
 <!-- DEMO BANNER -->
 <div style="background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px;line-height:1.55;letter-spacing:0.2px;font-family:Outfit,sans-serif">
   DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Casos de uso ilustrativos. AgroGlobalDex no es una plataforma operativa. No constituye oferta de inversión ni servicios sobre criptoactivos. No autorizado actualmente como CASP MiCA.
@@ -311,24 +313,25 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 
 <nav class="main-nav">
   <a href="index.html" class="nav-logo">
-    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nli"><svg viewBox="0 0 24 24" role="img" aria-labelledby="logo-title-nav"><title id="logo-title-nav">AgroGlobalDex</title><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
     <div class="nlt">AgroGlobal<span>Dex</span></div>
   </a>
   <div class="nav-links">
     <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="tokenize.html">Tokenizar</a><a href="borrow.html">Crédito</a><a href="invest.html">Invertir</a><a href="receipts.html">Comprobantes</a><a href="investors.html">Inversores</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
   </div>
   <div class="nav-r">
-    <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+    <button class="nwb" aria-label="Conectar wallet"><div class="wdot"></div><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
     <a href="#marketplace" class="nbtn-p">Explorar</a>
   </div>
-  <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
+  <div class="nav-burger" id="burger" role="button" tabindex="0" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></div>
 </nav>
 <div class="mobile-overlay" id="mob-overlay"></div>
 <div class="mobile-menu" id="mob-menu">
   <a href="index.html">Inicio</a><a href="about.html">Nosotros</a><a href="marketplace.html">Marketplace</a><a href="tokenize.html">Tokenizar</a><a href="borrow.html">Crédito</a><a href="invest.html">Invertir</a><a href="receipts.html">Comprobantes</a><a href="investors.html">Inversores</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a>
-  <button class="nwb wallet-btn" style="margin-top:16px"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+  <button class="nwb wallet-btn" style="margin-top:16px" aria-label="Conectar wallet"><div class="wdot"></div><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
 </div>
 
+<main id="main">
 <section class="page-hero">
   <div class="page-hero-grid"></div>
   <div class="page-hero-content">
@@ -435,6 +438,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
     </div>
   </div>
 </section>
+</main>
 
 <footer>
   <div class="fg3">

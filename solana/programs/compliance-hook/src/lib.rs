@@ -537,10 +537,8 @@ const PUBKEY_LEN: usize = 32;
 // compliance_hook for CPI). Tests verify these match the live discriminators
 // — if you rename `ComplianceRecord` or `JurisdictionPolicy` you MUST update
 // these constants and bump the program version.
-const COMPLIANCE_RECORD_DISCRIMINATOR: [u8; 8] =
-    [147, 228, 164, 27, 251, 44, 67, 185]; // sha256("account:ComplianceRecord")[..8]
-const JURISDICTION_POLICY_DISCRIMINATOR: [u8; 8] =
-    [63, 121, 124, 194, 172, 129, 209, 132]; // sha256("account:JurisdictionPolicy")[..8]
+const COMPLIANCE_RECORD_DISCRIMINATOR: [u8; 8] = [147, 228, 164, 27, 251, 44, 67, 185]; // sha256("account:ComplianceRecord")[..8]
+const JURISDICTION_POLICY_DISCRIMINATOR: [u8; 8] = [63, 121, 124, 194, 172, 129, 209, 132]; // sha256("account:JurisdictionPolicy")[..8]
 
 fn check_discriminator(data: &[u8], expected: &[u8; 8]) -> Result<()> {
     require!(

@@ -189,8 +189,7 @@ pub fn handler(
             require!(*grams_per_token > 0, AgroError::InvalidAssetMetadata);
             // Sanity: ISO-3166 alpha-2 must be uppercase ASCII letters.
             require!(
-                origin_country[0].is_ascii_uppercase()
-                    && origin_country[1].is_ascii_uppercase(),
+                origin_country[0].is_ascii_uppercase() && origin_country[1].is_ascii_uppercase(),
                 AgroError::InvalidAssetMetadata
             );
         }

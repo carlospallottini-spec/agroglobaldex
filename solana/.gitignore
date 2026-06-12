@@ -1,10 +1,18 @@
 # Anchor / Solana build artifacts
 target/
-!target/deploy/agroglobaldex-keypair.json
 node_modules/
 .anchor/
 test-ledger/
 *.so
+
+# ⚠️ DEVNET-ONLY program keypairs, committed on purpose so CI (`anchor test`)
+# and devnet deploys get DETERMINISTIC program IDs matching `declare_id!`. The
+# program ADDRESS is public anyway; their only sensitivity is being the *upgrade
+# authority*. For MAINNET you MUST NOT reuse these — generate fresh keys offline
+# and hand the upgrade authority to a Squads multisig. See scripts/deploy-mainnet.sh
+# and SECURITY.md.
+!target/deploy/agroglobaldex-keypair.json
+!target/deploy/compliance_hook-keypair.json
 
 # Cargo lock — committed for reproducibility (uncomment to exclude)
 # Cargo.lock

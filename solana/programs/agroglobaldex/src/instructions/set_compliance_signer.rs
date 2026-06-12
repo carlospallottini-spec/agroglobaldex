@@ -29,10 +29,7 @@ pub fn handler(ctx: Context<SetComplianceSigner>) -> Result<()> {
     );
     let mp = &mut ctx.accounts.marketplace;
     let old = mp.compliance_signer;
-    require!(
-        new_signer != old,
-        AgroError::InvalidComplianceSigner
-    );
+    require!(new_signer != old, AgroError::InvalidComplianceSigner);
     mp.compliance_signer = new_signer;
 
     emit!(ComplianceSignerRotated {

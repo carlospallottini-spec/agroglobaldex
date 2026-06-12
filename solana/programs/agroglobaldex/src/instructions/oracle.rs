@@ -42,11 +42,19 @@ use crate::state::*;
 
 /// Pyth pull-oracle "receiver" program. Every `PriceUpdateV2` account is owned
 /// by this program on both devnet and mainnet-beta.
-pub const PYTH_RECEIVER_PROGRAM_ID: Pubkey =
-    pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");
+pub const PYTH_RECEIVER_PROGRAM_ID: Pubkey = pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");
 
 /// Anchor discriminator of `PriceUpdateV2` (= sha256("account:PriceUpdateV2")[..8]).
 pub const PRICE_UPDATE_V2_DISCRIMINATOR: [u8; 8] = [34, 241, 35, 99, 157, 126, 244, 205];
+
+/// Minimum guardian signatures we accept for a `Partial` Pyth price. A `Full`
+/// update (all guardians) is always accepted. Pyth's default is 5.
+pub const MIN_PYTH_SIGNATURES: u8 = 5;
+
+/// How far in the future a Pyth `publish_time` may be (clock skew tolerance)
+/// before we reject it as bogus. Prevents a future-dated price from defeating
+/// the staleness check via `saturating_sub` underflow-to-zero.
+pub const MAX_PYTH_FUTURE_SKEW_SECS: i64 = 60;
 
 /// Minimal, validated view of a Pyth price message.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -56,6 +64,17 @@ pub struct PythPrice {
     pub conf: u64,
     pub expo: i32,
     pub publish_time: i64,
+    /// 1 = Full (all guardian sigs verified), 0 = Partial.
+    pub verification_level: u8,
+    /// Number of guardian signatures when `verification_level == 0` (Partial).
+    pub num_signatures: u8,
+}
+
+/// A price is trustworthy if it is `Full` or a `Partial` with at least
+/// [`MIN_PYTH_SIGNATURES`] guardian signatures. A `Partial { 0 }` (an update
+/// the receiver wrote WITHOUT verifying signatures) is rejected.
+pub fn is_price_verified(verification_level: u8, num_signatures: u8) -> bool {
+    verification_level == 1 || num_signatures >= MIN_PYTH_SIGNATURES
 }
 
 /// Parse + validate the raw bytes of a `PriceUpdateV2` account. Caller MUST
@@ -71,9 +90,9 @@ pub fn parse_price_update_v2(data: &[u8]) -> Result<PythPrice> {
 
     // verification_level is a borsh enum right after the 32-byte authority.
     let vlevel_tag = data[40];
-    let msg_start = match vlevel_tag {
-        0 => 42, // Partial { num_signatures: u8 } — 2 bytes consumed
-        1 => 41, // Full — 1 byte consumed
+    let (msg_start, num_signatures) = match vlevel_tag {
+        0 => (42, data[41]), // Partial { num_signatures: u8 } — 2 bytes consumed
+        1 => (41, 0u8),      // Full — 1 byte consumed
         _ => return err!(AgroError::InvalidOracleAccount),
     };
 
@@ -96,6 +115,8 @@ pub fn parse_price_update_v2(data: &[u8]) -> Result<PythPrice> {
         conf,
         expo,
         publish_time,
+        verification_level: vlevel_tag,
+        num_signatures,
     })
 }
 
@@ -135,9 +156,7 @@ pub fn pyth_to_usdc_6dp(price: i64, expo: i32) -> Result<u64> {
     } else {
         let down = (-net) as u32;
         require!(down <= 24, AgroError::PriceOverflow);
-        let divisor = 10i128
-            .checked_pow(down)
-            .ok_or(AgroError::PriceOverflow)?;
+        let divisor = 10i128.checked_pow(down).ok_or(AgroError::PriceOverflow)?;
         p / divisor
     };
 
@@ -253,6 +272,17 @@ pub fn refresh_collateral_price_handler(ctx: Context<RefreshCollateralPrice>) ->
     let data = ctx.accounts.price_update.try_borrow_data()?;
     let pyth = parse_price_update_v2(&data)?;
 
+    // Reject unverified prices: a `Partial { num_signatures: 0 }` update is one
+    // the receiver wrote WITHOUT verifying guardian signatures — accepting it
+    // would let anyone set an arbitrary collateral price.
+    require!(
+        is_price_verified(pyth.verification_level, pyth.num_signatures),
+        AgroError::PythPriceUnverified
+    );
+    // Positive price first — guards the confidence-ratio division below and the
+    // USDC conversion.
+    require!(pyth.price > 0, AgroError::InvalidPythPrice);
+
     // The price MUST come from the feed this collateral is bound to.
     require!(
         pyth.feed_id == cfg.oracle_feed_id,
@@ -260,6 +290,12 @@ pub fn refresh_collateral_price_handler(ctx: Context<RefreshCollateralPrice>) ->
     );
 
     let now = Clock::get()?.unix_timestamp;
+    // Reject future-dated prints (clock skew tolerated) so a crafted
+    // `publish_time > now` can't defeat the staleness gate via saturating_sub.
+    require!(
+        pyth.publish_time <= now.saturating_add(MAX_PYTH_FUTURE_SKEW_SECS),
+        AgroError::StalePrice
+    );
     let age = now.saturating_sub(pyth.publish_time);
     require!(age <= cfg.max_staleness_secs, AgroError::StalePrice);
 
@@ -311,6 +347,35 @@ mod tests {
     fn usdc_conversion_rejects_non_positive() {
         assert!(pyth_to_usdc_6dp(0, -8).is_err());
         assert!(pyth_to_usdc_6dp(-1, -8).is_err());
+    }
+
+    #[test]
+    fn verification_gate() {
+        assert!(is_price_verified(1, 0)); // Full always ok
+        assert!(is_price_verified(0, 5)); // Partial w/ >= MIN sigs ok
+        assert!(is_price_verified(0, 9));
+        assert!(!is_price_verified(0, 0)); // Partial { 0 } rejected
+        assert!(!is_price_verified(0, 4)); // below MIN
+    }
+
+    #[test]
+    fn parse_exposes_verification_fields() {
+        // Full
+        let mut full = vec![0u8; 8 + 32 + 1 + 60 + 8];
+        full[..8].copy_from_slice(&PRICE_UPDATE_V2_DISCRIMINATOR);
+        full[40] = 1;
+        let p = parse_price_update_v2(&full).unwrap();
+        assert_eq!(p.verification_level, 1);
+        assert_eq!(p.num_signatures, 0);
+        // Partial { 3 }
+        let mut part = vec![0u8; 8 + 32 + 2 + 60 + 8];
+        part[..8].copy_from_slice(&PRICE_UPDATE_V2_DISCRIMINATOR);
+        part[40] = 0;
+        part[41] = 3;
+        let p2 = parse_price_update_v2(&part).unwrap();
+        assert_eq!(p2.verification_level, 0);
+        assert_eq!(p2.num_signatures, 3);
+        assert!(!is_price_verified(p2.verification_level, p2.num_signatures));
     }
 
     #[test]

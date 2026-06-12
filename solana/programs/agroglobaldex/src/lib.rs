@@ -176,12 +176,7 @@ pub mod agroglobaldex {
         yield_paid_usdc: u64,
         attestation: [u8; 32],
     ) -> Result<()> {
-        instructions::settle_investment_offering::handler(
-            ctx,
-            epoch,
-            yield_paid_usdc,
-            attestation,
-        )
+        instructions::settle_investment_offering::handler(ctx, epoch, yield_paid_usdc, attestation)
     }
 
     /// Update mutable asset metadata BEFORE the first mint. Issuer-only.
@@ -192,12 +187,7 @@ pub mod agroglobaldex {
         metadata_uri: String,
         white_paper_uri: String,
     ) -> Result<()> {
-        instructions::update_metadata::handler(
-            ctx,
-            product_name,
-            metadata_uri,
-            white_paper_uri,
-        )
+        instructions::update_metadata::handler(ctx, product_name, metadata_uri, white_paper_uri)
     }
 
     /// Transfer the `issuer` role of an AssetRegistry to a new wallet.
@@ -234,10 +224,10 @@ pub mod agroglobaldex {
         instructions::lending::deposit_liquidity_handler(ctx, amount)
     }
 
-    /// Withdraw previously-deposited USDC liquidity, bounded by the provider's
-    /// tracked net principal and the pool's currently-available liquidity.
-    pub fn withdraw_liquidity(ctx: Context<WithdrawLiquidity>, amount: u64) -> Result<()> {
-        instructions::lending::withdraw_liquidity_handler(ctx, amount)
+    /// Redeem `shares` of pool liquidity for USDC (shares * pool_value /
+    /// total_shares), bounded by the provider's shares and idle pool liquidity.
+    pub fn withdraw_liquidity(ctx: Context<WithdrawLiquidity>, shares: u64) -> Result<()> {
+        instructions::lending::withdraw_liquidity_handler(ctx, shares)
     }
 
     /// Set the collateral price (USDC per token) + enable flag for an asset.

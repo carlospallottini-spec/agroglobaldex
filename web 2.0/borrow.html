@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--red:#FF3D4A;--amb:#F0A020;--bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;--r:8px;--r2:14px;--fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif}
+:root{--bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--txt:#ECF0EC;--t2:#7A9080;--t3:#647E6A;--red:#FF3D4A;--amb:#F0A020;--bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;--r:8px;--r2:14px;--fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif}
 body{font-family:var(--fb);background:var(--bg);color:var(--txt);min-height:100vh}
 a{color:inherit;text-decoration:none}
 nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
@@ -132,14 +132,14 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
         <h3>Proveer liquidez</h3>
         <div class="desc">Aportá USDC al pool y financiá a productores. (En MVP el interés acumulado vuelve al pool.)</div>
         <div class="calc" id="l-pos" style="display:none">
-          <div class="row"><div>Tu aporte en el pool</div><div class="v" id="l-deposited">—</div></div>
+          <div class="row"><div>Tus shares del pool</div><div class="v" id="l-deposited">—</div></div>
         </div>
         <div class="field"><label>USDC a depositar</label>
           <input type="number" inputmode="decimal" id="l-amount" placeholder="ej. 10000" min="1">
         </div>
         <button class="btn-p" id="l-btn">Depositar liquidez</button>
-        <div class="field" style="margin-top:14px"><label>USDC a retirar</label>
-          <input type="number" inputmode="decimal" id="w-amount" placeholder="hasta tu aporte" min="1">
+        <div class="field" style="margin-top:14px"><label>Shares a retirar</label>
+          <input type="number" inputmode="decimal" id="w-amount" placeholder="hasta tus shares" min="1">
         </div>
         <button class="btn-s" id="w-btn">Retirar liquidez</button>
       </div>
@@ -195,8 +195,8 @@ async function loadMyPosition() {
   if (!isConnected()) { $('#l-pos').style.display='none'; return; }
   try {
     const pos = await fetchMyLiquidityPosition();
-    if (pos && n(pos.depositedUsdc) > 0) {
-      $('#l-deposited').textContent = formatUsdc(n(pos.depositedUsdc));
+    if (pos && n(pos.shares) > 0) {
+      $('#l-deposited').textContent = n(pos.shares).toLocaleString('es-ES');
       $('#l-pos').style.display = '';
     } else {
       $('#l-pos').style.display = 'none';

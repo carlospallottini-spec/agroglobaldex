@@ -33,6 +33,11 @@ pub const LIQUIDITY_PROVIDER_SEED: &[u8] = b"liquidity_provider";
 /// Seconds in a (365-day) year, for linear interest accrual.
 pub const SECONDS_PER_YEAR: i64 = 365 * 24 * 60 * 60;
 
+/// Permanently-locked shares minted to nobody on the first deposit, so the
+/// share price can't be inflated by a first-depositor donation attack
+/// (Uniswap-V2-style minimum liquidity).
+pub const MINIMUM_LIQUIDITY_SHARES: u64 = 1_000;
+
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
@@ -461,6 +466,11 @@ pub struct LendingMarket {
     pub total_borrowed: u64,
     /// Monotonic counter of loans ever opened.
     pub loan_count: u64,
+    /// Total LP shares outstanding. Pool value (= total_liquidity +
+    /// total_borrowed) is split pro-rata across shares, so accrued interest
+    /// (which grows total_liquidity on repay/liquidate) appreciates every LP's
+    /// shares instead of being stranded.
+    pub total_shares: u64,
     /// Bump for this PDA.
     pub bump: u8,
     /// Bump for the vault authority PDA (owns usdc_pool + collateral ATAs).
@@ -528,9 +538,9 @@ pub struct LoanPosition {
     pub bump: u8,
 }
 
-/// Per-provider record of USDC liquidity contributed to a lending market.
-/// Tracks the running net principal a provider has in the pool so that
-/// withdrawals can be bounded by what each provider actually deposited.
+/// Per-provider record of LP shares in a lending market. Shares (not a flat
+/// USDC amount) are tracked so that pool growth from interest is shared
+/// pro-rata and one LP can never withdraw another LP's principal.
 #[account]
 #[derive(InitSpace)]
 pub struct LiquidityProvider {
@@ -538,8 +548,8 @@ pub struct LiquidityProvider {
     pub lending_market: Pubkey,
     /// The liquidity provider wallet.
     pub provider: Pubkey,
-    /// Running net principal this provider currently has in the pool.
-    pub deposited_usdc: u64,
+    /// Pool shares owned by this provider.
+    pub shares: u64,
     pub bump: u8,
 }
 
@@ -748,6 +758,7 @@ pub struct LiquidityDeposited {
     pub lending_market: Pubkey,
     pub provider: Pubkey,
     pub amount: u64,
+    pub shares_minted: u64,
     pub total_liquidity: u64,
 }
 
@@ -756,6 +767,7 @@ pub struct LiquidityWithdrawn {
     pub lending_market: Pubkey,
     pub provider: Pubkey,
     pub amount: u64,
+    pub shares_burned: u64,
     pub total_liquidity: u64,
 }
 
@@ -817,4 +829,6 @@ pub struct LoanLiquidated {
     pub liquidator: Pubkey,
     pub debt_repaid_usdc: u64,
     pub collateral_seized: u64,
+    /// Collateral returned to the borrower (kept their equity above debt+bonus).
+    pub collateral_returned: u64,
 }
