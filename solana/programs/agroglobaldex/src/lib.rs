@@ -8,8 +8,7 @@
 //! - `Grain`               — physically-backed commodity tokens (soy, corn, wheat)
 //! - `CarbonCredit`        — agro carbon credits (kg CO2eq)
 //! - `HarvestFraction`     — fractional future harvests (hectares + year)
-//! - `InvestmentOffering`  — yield-bearing investment products (e.g. "Viñedo
-//!                            Rioja 2026, 12 months @ 9% expected ROI")
+//! - `InvestmentOffering`  — yield products (e.g. "Viñedo Rioja 2026, 9% ROI")
 //!
 //! ## Compliance model
 //! Every wallet must have a `ComplianceRecord` PDA stamped by the marketplace

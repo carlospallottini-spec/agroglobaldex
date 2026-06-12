@@ -1,3 +1,7 @@
+// Anchor's per-instruction modules each `pub use` their generated helpers; the
+// glob re-exports below can name-collide on those — benign for this program.
+#![allow(ambiguous_glob_reexports)]
+
 pub mod aggregate;
 pub mod buy_asset;
 pub mod buy_external_asset;
