@@ -106,6 +106,9 @@ pub fn handler(ctx: Context<CancelListing>) -> Result<()> {
         signer_seeds,
     ))?;
 
-    msg!("Listing cancelled. amount_returned={} escrow_closed=true", amount);
+    msg!(
+        "Listing cancelled. amount_returned={} escrow_closed=true",
+        amount
+    );
     Ok(())
 }

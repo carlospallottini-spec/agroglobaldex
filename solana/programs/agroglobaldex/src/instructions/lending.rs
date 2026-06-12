@@ -164,7 +164,10 @@ pub fn init_lending_market_handler(
         liquidation_threshold_bps <= 10_000,
         AgroError::InvalidLendingParams
     );
-    require!(liquidation_bonus_bps <= 5_000, AgroError::InvalidLendingParams);
+    require!(
+        liquidation_bonus_bps <= 5_000,
+        AgroError::InvalidLendingParams
+    );
 
     let lm = &mut ctx.accounts.lending_market;
     lm.marketplace = ctx.accounts.marketplace.key();
@@ -253,21 +256,53 @@ pub fn deposit_liquidity_handler(ctx: Context<DepositLiquidity>, amount: u64) ->
         amount,
     )?;
 
+    // ---- Mint pool shares proportional to the pool's CURRENT value ---------
+    // pool_value (idle + lent out) and total_shares are read BEFORE crediting
+    // this deposit, so `shares = amount * total_shares / pool_value` prices the
+    // new shares against the appreciated pool (interest already accrued).
+    let lending_market_key = ctx.accounts.lending_market.key();
+    let pool_value = (ctx.accounts.lending_market.total_liquidity as u128)
+        .checked_add(ctx.accounts.lending_market.total_borrowed as u128)
+        .ok_or(AgroError::PriceOverflow)?;
+    let total_shares = ctx.accounts.lending_market.total_shares as u128;
+
+    let (provider_shares, minted_total) = if total_shares == 0 {
+        // First deposit: mint `amount` shares, permanently lock
+        // MINIMUM_LIQUIDITY_SHARES (assigned to nobody) to block the
+        // first-depositor inflation attack.
+        require!(
+            amount as u128 > MINIMUM_LIQUIDITY_SHARES as u128,
+            AgroError::InvalidAmount
+        );
+        (amount - MINIMUM_LIQUIDITY_SHARES, amount)
+    } else {
+        let delta = (amount as u128)
+            .checked_mul(total_shares)
+            .ok_or(AgroError::PriceOverflow)?
+            / pool_value;
+        // Reject dust deposits that would mint zero shares (free donation).
+        require!(delta > 0, AgroError::InvalidAmount);
+        let d = delta as u64;
+        (d, d)
+    };
+
     let lm = &mut ctx.accounts.lending_market;
     lm.total_liquidity = lm
         .total_liquidity
         .checked_add(amount)
         .ok_or(AgroError::PriceOverflow)?;
+    lm.total_shares = lm
+        .total_shares
+        .checked_add(minted_total)
+        .ok_or(AgroError::PriceOverflow)?;
     let total_liquidity = lm.total_liquidity;
-    let lending_market_key = lm.key();
 
-    // Record/increment this provider's net principal in the pool.
     let lp = &mut ctx.accounts.liquidity_provider;
     lp.lending_market = lending_market_key;
     lp.provider = ctx.accounts.provider.key();
-    lp.deposited_usdc = lp
-        .deposited_usdc
-        .checked_add(amount)
+    lp.shares = lp
+        .shares
+        .checked_add(provider_shares)
         .ok_or(AgroError::PriceOverflow)?;
     lp.bump = ctx.bumps.liquidity_provider;
 
@@ -275,6 +310,7 @@ pub fn deposit_liquidity_handler(ctx: Context<DepositLiquidity>, amount: u64) ->
         lending_market: lending_market_key,
         provider: ctx.accounts.provider.key(),
         amount,
+        shares_minted: provider_shares,
         total_liquidity,
     });
     Ok(())
@@ -330,13 +366,26 @@ pub struct WithdrawLiquidity<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn withdraw_liquidity_handler(ctx: Context<WithdrawLiquidity>, amount: u64) -> Result<()> {
-    require!(amount > 0, AgroError::InvalidAmount);
+/// `shares` is the number of pool shares to redeem (NOT a USDC amount). The
+/// USDC paid out = shares * pool_value / total_shares, so an LP that held
+/// through interest accrual receives more than they put in.
+pub fn withdraw_liquidity_handler(ctx: Context<WithdrawLiquidity>, shares: u64) -> Result<()> {
+    require!(shares > 0, AgroError::InvalidAmount);
     require!(
-        amount <= ctx.accounts.liquidity_provider.deposited_usdc,
+        shares <= ctx.accounts.liquidity_provider.shares,
         AgroError::ExceedsDeposit
     );
-    // Can't withdraw USDC that's currently lent out.
+
+    let pool_value = (ctx.accounts.lending_market.total_liquidity as u128)
+        .checked_add(ctx.accounts.lending_market.total_borrowed as u128)
+        .ok_or(AgroError::PriceOverflow)?;
+    let total_shares = ctx.accounts.lending_market.total_shares as u128;
+    let amount = ((shares as u128)
+        .checked_mul(pool_value)
+        .ok_or(AgroError::PriceOverflow)?
+        / total_shares) as u64;
+    require!(amount > 0, AgroError::InvalidAmount);
+    // Can't withdraw USDC that's currently lent out — only idle liquidity.
     require!(
         amount <= ctx.accounts.lending_market.total_liquidity,
         AgroError::InsufficientLiquidity
@@ -364,12 +413,16 @@ pub fn withdraw_liquidity_handler(ctx: Context<WithdrawLiquidity>, amount: u64) 
     )?;
 
     let lp = &mut ctx.accounts.liquidity_provider;
-    lp.deposited_usdc = lp
-        .deposited_usdc
-        .checked_sub(amount)
+    lp.shares = lp
+        .shares
+        .checked_sub(shares)
         .ok_or(AgroError::ExceedsDeposit)?;
 
     let lm = &mut ctx.accounts.lending_market;
+    lm.total_shares = lm
+        .total_shares
+        .checked_sub(shares)
+        .ok_or(AgroError::PriceOverflow)?;
     lm.total_liquidity = lm
         .total_liquidity
         .checked_sub(amount)
@@ -379,6 +432,7 @@ pub fn withdraw_liquidity_handler(ctx: Context<WithdrawLiquidity>, amount: u64) 
         lending_market: lm_key,
         provider: ctx.accounts.provider.key(),
         amount,
+        shares_burned: shares,
         total_liquidity: lm.total_liquidity,
     });
     Ok(())
@@ -568,7 +622,10 @@ pub fn open_loan_handler<'info>(
     collateral_amount: u64,
     borrow_amount: u64,
 ) -> Result<()> {
-    require!(collateral_amount > 0 && borrow_amount > 0, AgroError::InvalidAmount);
+    require!(
+        collateral_amount > 0 && borrow_amount > 0,
+        AgroError::InvalidAmount
+    );
     let cfg = &ctx.accounts.collateral_config;
     let price = cfg.price_usdc_per_token;
     require!(price > 0, AgroError::InvalidCollateralPrice);
@@ -591,7 +648,10 @@ pub fn open_loan_handler<'info>(
         .checked_mul(ctx.accounts.lending_market.max_ltv_bps as u128)
         .ok_or(AgroError::PriceOverflow)?
         / 10_000u128;
-    require!((borrow_amount as u128) <= max_borrow, AgroError::ExceedsMaxLtv);
+    require!(
+        (borrow_amount as u128) <= max_borrow,
+        AgroError::ExceedsMaxLtv
+    );
     require!(
         ctx.accounts.usdc_pool.amount >= borrow_amount,
         AgroError::InsufficientLiquidity
@@ -657,7 +717,10 @@ pub fn open_loan_handler<'info>(
         .total_borrowed
         .checked_add(borrow_amount)
         .ok_or(AgroError::PriceOverflow)?;
-    lm.loan_count = lm.loan_count.checked_add(1).ok_or(AgroError::PriceOverflow)?;
+    lm.loan_count = lm
+        .loan_count
+        .checked_add(1)
+        .ok_or(AgroError::PriceOverflow)?;
 
     emit!(LoanOpened {
         loan: loan.key(),
@@ -735,9 +798,7 @@ pub struct RepayLoan<'info> {
     pub usdc_token_program: Program<'info, Token>,
 }
 
-pub fn repay_loan_handler<'info>(
-    ctx: Context<'_, '_, '_, 'info, RepayLoan<'info>>,
-) -> Result<()> {
+pub fn repay_loan_handler<'info>(ctx: Context<'_, '_, '_, 'info, RepayLoan<'info>>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     accrue_interest(&mut ctx.accounts.loan, now)?;
 
@@ -857,6 +918,19 @@ pub struct Liquidate<'info> {
     )]
     pub liquidator_collateral_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
+    /// CHECK: the loan's borrower — receives any collateral left over after the
+    /// liquidator's seized share, so they keep their equity buffer.
+    #[account(address = loan.borrower)]
+    pub borrower: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        associated_token::mint = collateral_mint,
+        associated_token::authority = borrower,
+        associated_token::token_program = collateral_token_program,
+    )]
+    pub borrower_collateral_ata: Box<InterfaceAccount<'info, TokenAccount>>,
+
     /// CHECK: PDA authority over vaults.
     #[account(
         seeds = [LENDING_VAULT_SEED, lending_market.key().as_ref()],
@@ -885,14 +959,26 @@ pub struct Liquidate<'info> {
     pub usdc_token_program: Program<'info, Token>,
 }
 
-pub fn liquidate_handler<'info>(
-    ctx: Context<'_, '_, '_, 'info, Liquidate<'info>>,
-) -> Result<()> {
+pub fn liquidate_handler<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     accrue_interest(&mut ctx.accounts.loan, now)?;
 
-    let price = ctx.accounts.collateral_config.price_usdc_per_token;
+    // A borrower cannot liquidate their own loan (would let them capture the
+    // liquidation bonus from the pool against themselves).
+    require!(
+        ctx.accounts.liquidator.key() != ctx.accounts.loan.borrower,
+        AgroError::SelfLiquidation
+    );
+
+    let cfg = &ctx.accounts.collateral_config;
+    let price = cfg.price_usdc_per_token;
     require!(price > 0, AgroError::InvalidCollateralPrice);
+    // Don't liquidate against a stale oracle price (a stale-high price would
+    // block real liquidations; a stale-low one would force unjust ones).
+    if cfg.oracle_enabled {
+        let age = now.saturating_sub(cfg.updated_at);
+        require!(age <= cfg.max_staleness_secs, AgroError::StalePrice);
+    }
 
     let principal = ctx.accounts.loan.principal_usdc;
     let interest = ctx.accounts.loan.accrued_interest_usdc;
@@ -902,7 +988,8 @@ pub fn liquidate_handler<'info>(
 
     // Health check: current LTV = debt / collateral_value. Liquidatable when
     // debt * 10_000 >= collateral_value * liquidation_threshold_bps.
-    let collateral_value = (ctx.accounts.loan.collateral_amount as u128)
+    let collateral_amount = ctx.accounts.loan.collateral_amount;
+    let collateral_value = (collateral_amount as u128)
         .checked_mul(price as u128)
         .ok_or(AgroError::PriceOverflow)?;
     let lhs = (debt as u128)
@@ -930,9 +1017,24 @@ pub fn liquidate_handler<'info>(
         debt,
     )?;
 
-    // Liquidator seizes ALL collateral (bonus is implicit: they paid `debt`
-    // but receive collateral worth >= debt / threshold). Simple + safe.
-    let collateral_amount = ctx.accounts.loan.collateral_amount;
+    // The liquidator seizes only the collateral worth the debt PLUS the
+    // configured bonus (`liquidation_bonus_bps`), NOT the whole vault. The
+    // remainder is returned to the borrower so they keep their equity buffer.
+    // If the position is so underwater that debt+bonus exceeds the collateral,
+    // the seize is capped at the full amount (no remainder).
+    let bonus_bps = ctx.accounts.lending_market.liquidation_bonus_bps as u128;
+    let seize_value = (debt as u128)
+        .checked_mul(10_000u128 + bonus_bps)
+        .ok_or(AgroError::PriceOverflow)?
+        / 10_000u128;
+    // ceil-div by price → collateral base units, capped at what's locked.
+    let seize_units = seize_value
+        .checked_add(price as u128 - 1)
+        .ok_or(AgroError::PriceOverflow)?
+        / (price as u128);
+    let seize = (seize_units.min(collateral_amount as u128)) as u64;
+    let remainder = collateral_amount - seize;
+
     let lm_key = ctx.accounts.lending_market.key();
     let vault_bump = ctx.accounts.lending_market.vault_authority_bump;
     let signer_seeds: &[&[&[u8]]] = &[&[
@@ -941,6 +1043,7 @@ pub fn liquidate_handler<'info>(
         std::slice::from_ref(&vault_bump),
     ]];
     let decimals = ctx.accounts.collateral_mint.decimals;
+    // 1) Seized share → liquidator.
     hook_transfer(
         &ctx.accounts.collateral_token_program.to_account_info(),
         &ctx.accounts.collateral_vault.to_account_info(),
@@ -948,10 +1051,24 @@ pub fn liquidate_handler<'info>(
         &ctx.accounts.liquidator_collateral_ata.to_account_info(),
         &ctx.accounts.vault_authority.to_account_info(),
         ctx.remaining_accounts,
-        collateral_amount,
+        seize,
         decimals,
         signer_seeds,
     )?;
+    // 2) Remainder → borrower (if any).
+    if remainder > 0 {
+        hook_transfer(
+            &ctx.accounts.collateral_token_program.to_account_info(),
+            &ctx.accounts.collateral_vault.to_account_info(),
+            &ctx.accounts.collateral_mint.to_account_info(),
+            &ctx.accounts.borrower_collateral_ata.to_account_info(),
+            &ctx.accounts.vault_authority.to_account_info(),
+            ctx.remaining_accounts,
+            remainder,
+            decimals,
+            signer_seeds,
+        )?;
+    }
 
     let lm = &mut ctx.accounts.lending_market;
     lm.total_liquidity = lm
@@ -970,7 +1087,8 @@ pub fn liquidate_handler<'info>(
         borrower: loan.borrower,
         liquidator: ctx.accounts.liquidator.key(),
         debt_repaid_usdc: debt,
-        collateral_seized: collateral_amount,
+        collateral_seized: seize,
+        collateral_returned: remainder,
     });
     Ok(())
 }

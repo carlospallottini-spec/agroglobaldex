@@ -12,8 +12,8 @@ pub struct Initialize<'info> {
     pub authority: Signer<'info>,
 
     /// CHECK: any pubkey — the wallet permitted to stamp ComplianceRecords.
-    /// Distinct from `authority` so compliance ops can be delegated to a
-    /// service account without touching treasury funds. Can equal authority.
+    /// MUST be distinct from `authority` (enforced in the handler) so a
+    /// compromise of the KYC service account can't touch treasury funds.
     pub compliance_signer: UncheckedAccount<'info>,
 
     #[account(
@@ -57,6 +57,13 @@ pub struct Initialize<'info> {
 
 pub fn handler(ctx: Context<Initialize>, fee_bps: u16) -> Result<()> {
     require!(fee_bps <= 1_000, AgroError::FeeTooHigh);
+    // Separation of duties: the wallet that stamps KYC must NOT be the same key
+    // that controls the treasury/oracle/pause. A compromise of the KYC service
+    // account must not be able to move funds.
+    require!(
+        ctx.accounts.compliance_signer.key() != ctx.accounts.authority.key(),
+        AgroError::InvalidComplianceSigner
+    );
 
     let marketplace = &mut ctx.accounts.marketplace;
     marketplace.authority = ctx.accounts.authority.key();

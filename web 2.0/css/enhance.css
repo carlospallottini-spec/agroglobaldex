@@ -24,6 +24,19 @@ html{ scroll-behavior:smooth; }
 ::-webkit-scrollbar-thumb{ background:var(--bd3,#2A3D2C); border-radius:99px; }
 ::-webkit-scrollbar-thumb:hover{ background:var(--neon,#00FF6A); }
 
+/* Skip-to-content link — visually hidden until focused, then revealed at the
+   top-left so keyboard users can jump past the nav into <main id="main">. */
+.skip-link{
+  position:absolute; top:0; left:0; z-index:10000;
+  transform:translateY(-120%);
+  padding:10px 16px; margin:8px;
+  background:var(--neon,#00FF6A); color:#000;
+  font-family:var(--fb,'Outfit',sans-serif); font-size:13px; font-weight:700;
+  border-radius:var(--r,8px); text-decoration:none;
+  transition:transform .2s var(--ease-out);
+}
+.skip-link:focus{ transform:translateY(0); outline:2px solid #000; outline-offset:2px; }
+
 /* Keyboard accessibility — visible neon focus ring on real keyboard nav. */
 a:focus-visible, button:focus-visible, input:focus-visible,
 select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible{
@@ -180,6 +193,157 @@ input:focus, select:focus, textarea:focus{
 /* On dark/ghost buttons the ink should be neon, not black. */
 .btn-s .ag-ripple, .nbtn-g .ag-ripple, .nwb .ag-ripple{
   background:radial-gradient(circle, var(--nm,#00FF6A28) 0%, rgba(0,0,0,0) 70%);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ELEGANCE PASS — premium fintech/agritech polish layer.
+   Pure visual refinement on top of the existing tokens (dark bg, neon
+   #00FF6A, gold). No id/class hooks removed; every var() carries a
+   fallback so pages that lack a token (--gold/--nb/--bg5/--r3/--r4)
+   still render correctly. Contrast-safe: no body text below --t2.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Local easing/elevation/measure tokens for this layer only. */
+:root{
+  --ag-shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --ag-shadow-2:0 6px 22px -12px rgba(0,0,0,.65);
+  --ag-shadow-3:0 22px 60px -28px rgba(0,0,0,.8);
+  --ag-hair:0 0 0 1px rgba(255,255,255,.035);
+  --ag-measure:68ch;
+}
+
+/* ── Typographic rhythm — refined hierarchy & responsive scale ───────── */
+/* DM Serif headings: tighter tracking + balanced wrapping for a more
+   editorial, premium feel. Body: relaxed leading + antialiasing. */
+body{
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  letter-spacing:.002em;
+}
+h1, .page-title, .hero h1{ letter-spacing:-.03em; text-wrap:balance; }
+h2, .s-h, .cta-box h2{ letter-spacing:-.025em; text-wrap:balance; }
+h3, .card h3, .modal h3{ letter-spacing:-.015em; }
+/* Comfortable reading measure for long-form copy (won't shrink wide layouts). */
+.page-subtitle, .h-sub, .s-sub, .sub, .card .desc, .modal > p{
+  max-width:min(100%, var(--ag-measure));
+}
+.page-subtitle, .h-sub{ line-height:1.7; }
+
+/* Refined responsive heading scale via clamp — applies where pages used a
+   fixed size (borrow-style h1). page-title/s-h already clamp; left intact. */
+main > h1:not(.page-title){
+  font-size:clamp(30px, 2vw + 24px, 44px);
+  line-height:1.08; margin-bottom:10px;
+}
+
+/* ── Surfaces & depth — layered cards, hairline borders, soft shadows ── */
+/* A faint top-edge highlight + grounded shadow reads as real elevation
+   instead of a flat outlined box. Gradient is barely-there (≈2% light). */
+.card, .pstat, .step, .mp-bs, .mp-card, .hfc, .wallet-option, .calc{
+  background-image:linear-gradient(180deg, rgba(255,255,255,.022), rgba(255,255,255,0) 40%);
+  box-shadow:var(--ag-shadow-2), var(--ag-hair);
+}
+.card{
+  box-shadow:var(--ag-shadow-3), var(--ag-hair);
+  border-radius:var(--r2,14px);
+}
+/* Brighten the existing hairline border just slightly for crisper edges. */
+.card, .pstat, .calc{ border-color:var(--bd2,#1E2D20); }
+
+/* Stat values: gentle neon→soft gradient ink for the big serif numbers. */
+.pstat .v, .mp-bs-n, .hstat-v, .sv, .wp-balance-val{
+  background:linear-gradient(180deg, var(--neon,#00FF6A), #00d957);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+/* Keep gold accents (e.g. mp-bs-n em) opaque gold, not clipped neon. */
+.mp-bs-n em{
+  -webkit-text-fill-color:var(--gold,#C8A84B);
+  background:none;
+}
+
+/* ── Hero — richer, layered backdrop (index landing + page heros) ────── */
+/* Adds a soft vignette + a faint dual-tone radial wash over the existing
+   grid/glow. Restrained: max ~6% neon, ~3% gold. */
+.hero::after, .page-hero::after{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(0,255,106,.05), transparent 55%),
+    radial-gradient(90% 60% at 90% 110%, rgba(200,168,75,.03), transparent 60%);
+}
+.hero-content, .page-hero-content{ position:relative; z-index:2; }
+/* Slightly larger, airier hero padding on the landing for presence. */
+@media(min-width:901px){
+  .hero{ min-height:90vh; }
+  .page-hero{ padding-top:96px; padding-bottom:72px; }
+}
+
+/* Badges/tags — crisper pill with inner highlight + soft outer halo. */
+.h-badge, .page-tag, .s-tag{
+  background-image:linear-gradient(180deg, rgba(0,255,106,.06), rgba(0,255,106,0));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 2px 10px -6px var(--nb,#00FF6A55);
+  backdrop-filter:blur(6px);
+}
+.s-tag.gld{
+  background-image:linear-gradient(180deg, rgba(200,168,75,.07), rgba(200,168,75,0));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 2px 10px -6px rgba(200,168,75,.35);
+}
+
+/* Hero left-rule stats — gradient rule instead of flat border. */
+.hstat{ border-left:none; padding-left:18px; position:relative; }
+.hstat::before{
+  content:''; position:absolute; left:0; top:2px; bottom:2px; width:2px;
+  border-radius:2px;
+  background:linear-gradient(180deg, var(--neon,#00FF6A), transparent);
+}
+
+/* ── Buttons — refined radii, weight, premium primary fill ───────────── */
+/* Primary: subtle vertical gradient + inner top highlight so the neon
+   reads dimensional, not a flat swatch. (Sheen/lift already in this file.) */
+.btn-p, .nbtn-p{
+  background-image:linear-gradient(180deg, #1aff7a, var(--neon,#00FF6A) 55%, #00e861);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 1px 2px rgba(0,0,0,.35);
+  font-weight:700; letter-spacing:.005em;
+}
+.btn-p:hover:not(:disabled), .nbtn-p:hover:not(:disabled){
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),
+             0 10px 28px -8px var(--nb,#00FF6A55), 0 0 0 1px var(--nm,#00FF6A28);
+}
+/* Secondary/ghost: hairline + faint surface so it pairs with primary. */
+.btn-s, .nbtn-g{
+  background-image:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0));
+  box-shadow:var(--ag-hair);
+  font-weight:600;
+}
+
+/* ── Inputs — softer inset surface, refined focus already in this file ─ */
+.field input, .field select, .field textarea,
+input[type=text], input[type=number], input[type=email], input[type=password],
+select, textarea{
+  background-image:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,0));
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.25);
+  border-radius:var(--r,8px);
+}
+
+/* ── Section rhythm — a touch more generous vertical breathing ───────── */
+@media(min-width:901px){
+  section{ padding-top:88px; padding-bottom:88px; }
+}
+
+/* ── Footer — hairline top accent in neon for a finished edge ────────── */
+footer{ position:relative; }
+footer::before{
+  content:''; position:absolute; top:-1px; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--nm,#00FF6A28) 30%, var(--nm,#00FF6A28) 70%, transparent);
+}
+
+/* ── Dividers & live dots — slightly softer, on-brand ────────────────── */
+.tkr{ box-shadow:0 1px 0 rgba(0,0,0,.4); }
+
+/* Respect reduced data / keep heavy effects off small screens. */
+@media(max-width:760px){
+  .hero::after, .page-hero::after{ display:none; }
 }
 
 /* ── Respect users who prefer reduced motion ─────────────────────────── */

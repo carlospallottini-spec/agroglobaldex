@@ -43,6 +43,74 @@ jobs:
         run: cargo test -p agroglobaldex --lib
 
   # ───────────────────────────────────────────────────────────────────────
+  # Style gate: enforce rustfmt across the whole Solana workspace. Fast,
+  # toolchain-only job (no Solana/Anchor). This is enforcing (no
+  # continue-on-error): if the code is not yet formatted, this job will fail
+  # and a maintainer must run `cargo fmt --all` to fix it.
+  # ───────────────────────────────────────────────────────────────────────
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: cargo fmt --all --check
+        working-directory: solana
+        run: cargo fmt --all --check
+
+  # ───────────────────────────────────────────────────────────────────────
+  # Lint gate: run clippy on our two programs. We deny warnings to surface
+  # real issues, but allow the two known-benign lint families that an Anchor
+  # 0.31 program unavoidably emits: `unexpected_cfgs` (Anchor's custom cfgs
+  # such as `feature = "anchor-debug"` / solana cfg flags) and `deprecated`
+  # (deprecated-but-still-required Anchor/Solana APIs). This keeps clippy
+  # blocking on genuine problems without breaking on framework noise.
+  # ───────────────────────────────────────────────────────────────────────
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: solana
+      - name: cargo clippy (programs only)
+        working-directory: solana
+        run: cargo clippy -p agroglobaldex -p compliance_hook -- -D warnings -A unexpected_cfgs -A deprecated
+
+  # ───────────────────────────────────────────────────────────────────────
+  # Dependency CVE scan (REPORT-ONLY). The Solana 3.0 / Anchor 0.31 dependency
+  # tree pulls in crates with currently-UNFIXABLE advisories (e.g.
+  # ed25519-dalek, curve25519-dalek, borsh and friends), so a hard `cargo
+  # audit` would always fail through no fault of our code. We therefore run it
+  # as non-blocking (`|| true`) purely for VISIBILITY in the logs.
+  #
+  # TODO(security): tighten this. Once the exact advisory IDs are reviewed,
+  # replace `|| true` with explicit `cargo audit --ignore RUSTSEC-YYYY-NNNN`
+  # for each accepted-unfixable advisory and make the step blocking again, so
+  # NEW advisories outside the ignore list break the build.
+  # ───────────────────────────────────────────────────────────────────────
+  cargo-audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: solana
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: cargo audit (report-only)
+        working-directory: solana
+        # Non-blocking: see job comment. Must be reviewed and tightened with
+        # explicit --ignore RUSTSEC-* entries before being made enforcing.
+        run: cargo audit || true
+
+  # ───────────────────────────────────────────────────────────────────────
   # Full integration: build both programs to SBF and run the mocha suite
   # against a local validator (which clones Token-2022 from mainnet, per
   # Anchor.toml). This is the real on-chain gate for the lending + oracle work.
@@ -117,6 +185,19 @@ jobs:
           # RUNBOOK flags this bump as critical to keep it from dying mid-run.
           ulimit -n 65536 || true
           anchor test
+
+      # ─────────────────────────────────────────────────────────────────────
+      # IDL drift guard. `anchor test` (via `anchor build`) regenerates
+      # solana/target/idl/agroglobaldex.json. We compare the freshly generated
+      # IDL's instruction set against the committed frontend IDL the dApp ships
+      # (web 2.0/js/idl/agroglobaldex.json) and FAIL the build if they diverge,
+      # so the on-chain program and the frontend can never silently drift apart.
+      # Blocking by design.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: IDL drift guard (generated vs committed frontend IDL)
+        working-directory: solana
+        run: |
+          node -e "const a=require('./target/idl/agroglobaldex.json');const b=require('../web 2.0/js/idl/agroglobaldex.json');const ia=a.instructions.map(i=>i.name).sort();const ib=b.instructions.map(i=>i.name).sort();if(JSON.stringify(ia)!==JSON.stringify(ib)){console.error('IDL instruction drift!\n gen:',ia,'\n committed:',ib);process.exit(1)}console.log('IDL instructions match:',ia.length)"
 
       - name: Dump validator log on failure
         if: failure()

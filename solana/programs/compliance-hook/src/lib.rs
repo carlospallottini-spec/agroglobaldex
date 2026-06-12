@@ -17,17 +17,20 @@
 //!
 //! 2. On every transfer. Token-2022 invokes `execute(amount)` after the source
 //!    balance has been debited; we receive (in this order):
-//!       0. source token account
-//!       1. mint
-//!       2. destination token account
-//!       3. owner of the source (authority)
-//!       4. extra_account_meta_list PDA (Token-2022 appends it from the TLV)
-//!       Then the extra accounts declared in the TLV:
-//!       5. hook_config PDA
-//!       6. marketplace account (referenced from hook_config)
-//!       7. jurisdiction_policy PDA
-//!       8. source ComplianceRecord PDA
-//!       9. destination ComplianceRecord PDA
+//!
+//! ```text
+//! 0. source token account
+//! 1. mint
+//! 2. destination token account
+//! 3. owner of the source (authority)
+//! 4. extra_account_meta_list PDA (Token-2022 appends it from the TLV)
+//! Then the extra accounts declared in the TLV:
+//! 5. hook_config PDA
+//! 6. marketplace account (referenced from hook_config)
+//! 7. jurisdiction_policy PDA
+//! 8. source ComplianceRecord PDA
+//! 9. destination ComplianceRecord PDA
+//! ```
 //!
 //!    We verify both compliance records (`kyc_verified == true`,
 //!    `jurisdiction` not in `policy.blocked`). If anything fails the transfer
@@ -537,10 +540,8 @@ const PUBKEY_LEN: usize = 32;
 // compliance_hook for CPI). Tests verify these match the live discriminators
 // — if you rename `ComplianceRecord` or `JurisdictionPolicy` you MUST update
 // these constants and bump the program version.
-const COMPLIANCE_RECORD_DISCRIMINATOR: [u8; 8] =
-    [147, 228, 164, 27, 251, 44, 67, 185]; // sha256("account:ComplianceRecord")[..8]
-const JURISDICTION_POLICY_DISCRIMINATOR: [u8; 8] =
-    [63, 121, 124, 194, 172, 129, 209, 132]; // sha256("account:JurisdictionPolicy")[..8]
+const COMPLIANCE_RECORD_DISCRIMINATOR: [u8; 8] = [147, 228, 164, 27, 251, 44, 67, 185]; // sha256("account:ComplianceRecord")[..8]
+const JURISDICTION_POLICY_DISCRIMINATOR: [u8; 8] = [63, 121, 124, 194, 172, 129, 209, 132]; // sha256("account:JurisdictionPolicy")[..8]
 
 fn check_discriminator(data: &[u8], expected: &[u8; 8]) -> Result<()> {
     require!(

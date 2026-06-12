@@ -11,9 +11,16 @@
  * en solana/programs/agroglobaldex/src/.
  * ═══════════════════════════════════════════════════════════ */
 
+// SECURITY: @coral-xyz/anchor 0.31.1 is vendored locally (js/vendor/anchor-0.31.1.js,
+// fetched from esm.sh ?bundle&target=es2022, with its only external dep — the Buffer
+// polyfill at /node/buffer.mjs — also vendored as ./vendor/buffer.mjs and rewritten to
+// a relative import). This removes the runtime supply-chain risk of loading mutable,
+// integrity-free code from a third-party CDN on every page load. To refresh, re-fetch
+// the bundle, re-point its "/node/buffer.mjs" import at "./buffer.mjs", and re-verify
+// with `node --check --input-type=module`.
 import {
   AnchorProvider, Program, web3, BN,
-} from 'https://esm.sh/@coral-xyz/anchor@0.31.1';
+} from './vendor/anchor-0.31.1.js';
 
 import {
   NETWORK, RPC_ENDPOINTS, PROGRAM_ID, COMPLIANCE_HOOK_PROGRAM_ID, IDL_URL, USDC_MINT,
@@ -86,6 +93,55 @@ export async function getProgram(network = NETWORK) {
   const provider = new AnchorProvider(_connection, wallet, { commitment: 'confirmed' });
   _program = new Program(idl, provider);
   return _program;
+}
+
+/* ═══════ WRITE-PATH HELPER ═══════ */
+const RPC_TIMEOUT_MS = 90_000;
+
+/**
+ * Wrap a built Anchor method (`program.methods.x(...).accounts(...)...`) and send it
+ * via `.rpc()` with a timeout and tidy error surfacing. Extracts the Anchor error
+ * name / program logs when present and rethrows a single clean `Error`. `label` is a
+ * short human description used in the error message (e.g. 'buyAsset').
+ */
+async function sendRpc(builder, label) {
+  let timer;
+  try {
+    const rpcPromise = builder.rpc();
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`La transacción "${label}" superó el tiempo de espera (${RPC_TIMEOUT_MS / 1000}s). Puede haberse confirmado igualmente — revisá tu wallet.`)),
+        RPC_TIMEOUT_MS,
+      );
+    });
+    return await Promise.race([rpcPromise, timeout]);
+  } catch (err) {
+    throw new Error(`${label}: ${cleanRpcError(err)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Best-effort extraction of a readable reason from an Anchor/web3 send error. */
+function cleanRpcError(err) {
+  if (!err) return 'Error desconocido';
+  // User rejected the signature in the wallet.
+  if (err.code === 4001 || /User rejected|rejected the request/i.test(err.message || '')) {
+    return 'Firma rechazada en la wallet';
+  }
+  // AnchorError carries a structured error code + message.
+  const ae = err.error?.errorCode || err.errorCode;
+  if (ae?.code) {
+    const msg = err.error?.errorMessage || err.errorMessage || '';
+    return msg ? `${ae.code} — ${msg}` : String(ae.code);
+  }
+  // Fall back to program logs (find the first explicit Error/Custom line).
+  const logs = err.logs || err.error?.logs;
+  if (Array.isArray(logs)) {
+    const hit = logs.find((l) => /Error|failed|custom program error/i.test(l));
+    if (hit) return hit.replace(/^Program log:\s*/i, '').trim();
+  }
+  return (err.message || String(err)).split('\n')[0].slice(0, 240);
 }
 
 /* ═══════ PDA HELPERS (alineado con programa) ═══════ */
@@ -436,8 +492,9 @@ export async function registerAsset(form) {
   const assetClass = buildAssetClass(form);
   const attestation = Array.from(form.oracleAttestation);
 
-  const tx = await program.methods
-    .registerAsset(
+  const tx = await sendRpc(
+    program.methods
+      .registerAsset(
       assetClass,
       new BN(form.totalSupply),
       attestation,
@@ -457,7 +514,7 @@ export async function registerAsset(form) {
       systemProgram: SystemProgram.programId,
       rent: SYSVAR_RENT_PUBKEY,
     })
-    .rpc();
+  , 'registerAsset');
 
   return {
     tx,
@@ -512,8 +569,9 @@ export async function buyAsset({ listingPubkey, amount }) {
   const sellerUsdc = getAssociatedTokenAddress(usdcMint, listingAcc.seller, TOKEN_PROGRAM_ID);
   const treasuryUsdc = getAssociatedTokenAddress(usdcMint, treasury, TOKEN_PROGRAM_ID);
 
-  const tx = await program.methods
-    .buyAsset(new BN(amount))
+  const tx = await sendRpc(
+    program.methods
+      .buyAsset(new BN(amount))
     .accounts({
       buyer,
       marketplace,
@@ -539,7 +597,7 @@ export async function buyAsset({ listingPubkey, amount }) {
     // The escrow→buyer transfer fires the Token-2022 compliance hook; src owner
     // is the listing PDA (escrow authority), dst is the buyer.
     .remainingAccounts(hookRemainingAccounts(regAcc.mint, marketplace, listing, buyer))
-    .rpc();
+  , 'buyAsset');
   return { tx };
 }
 
@@ -570,15 +628,16 @@ export async function aggregateExternalAsset(form) {
     metadataUri: form.metadataUri || '',
   };
 
-  const tx = await program.methods
-    .aggregateExternalAsset(payload)
+  const tx = await sendRpc(
+    program.methods
+      .aggregateExternalAsset(payload)
     .accounts({
       curator,
       marketplace,
       externalAsset,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+  , 'aggregateExternalAsset');
   return { tx, externalAsset: externalAsset.toString(), index: index.toString ? index.toString() : Number(index) };
 }
 
@@ -587,14 +646,15 @@ export async function updateExternalAsset(externalAssetPubkey, verified, active)
   const curator = program.provider.wallet.publicKey;
   const ext = new PublicKey(externalAssetPubkey);
   const extAcc = await program.account.externalAssetRegistry.fetch(ext);
-  const tx = await program.methods
-    .updateExternalAsset(verified, active)
+  const tx = await sendRpc(
+    program.methods
+      .updateExternalAsset(verified, active)
     .accounts({
       curator,
       marketplace: extAcc.marketplace,
       externalAsset: ext,
     })
-    .rpc();
+  , 'updateExternalAsset');
   return { tx };
 }
 
@@ -604,8 +664,9 @@ export async function cancelListing(listingPubkey) {
   const seller = program.provider.wallet.publicKey;
   const listing = new PublicKey(listingPubkey);
   const listingAcc = await program.account.marketplaceListing.fetch(listing);
-  const tx = await program.methods
-    .cancelListing()
+  const tx = await sendRpc(
+    program.methods
+      .cancelListing()
     .accounts({
       seller,
       marketplace: listingAcc.marketplace,
@@ -619,7 +680,7 @@ export async function cancelListing(listingPubkey) {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+  , 'cancelListing');
   return { tx };
 }
 
@@ -628,14 +689,15 @@ export async function updateListingPrice(listingPubkey, newPriceUsdc) {
   const seller = program.provider.wallet.publicKey;
   const listing = new PublicKey(listingPubkey);
   const listingAcc = await program.account.marketplaceListing.fetch(listing);
-  const tx = await program.methods
-    .updateListingPrice(new BN(newPriceUsdc))
+  const tx = await sendRpc(
+    program.methods
+      .updateListingPrice(new BN(newPriceUsdc))
     .accounts({
       seller,
       assetRegistry: listingAcc.sourceRegistry,
       listing,
     })
-    .rpc();
+  , 'updateListingPrice');
   return { tx };
 }
 
@@ -649,8 +711,9 @@ export async function treasuryWithdraw(destinationWallet, amount) {
   const treasury = findTreasuryPda(marketplace);
   const usdcMint = mp.usdcMint;
   const dest = new PublicKey(destinationWallet);
-  const tx = await program.methods
-    .treasuryWithdraw(new BN(amount))
+  const tx = await sendRpc(
+    program.methods
+      .treasuryWithdraw(new BN(amount))
     .accounts({
       authority,
       marketplace,
@@ -663,7 +726,7 @@ export async function treasuryWithdraw(destinationWallet, amount) {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+  , 'treasuryWithdraw');
   return { tx };
 }
 
@@ -683,8 +746,9 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
   const jurisdictionPolicy = findJurisdictionPolicyPda(marketplace);
   const tradeReceipt = findTradeReceiptPda(marketplace, mpAcc.tradeCount);
 
-  const tx = await program.methods
-    .buyExternalAsset(new BN(amount))
+  const tx = await sendRpc(
+    program.methods
+      .buyExternalAsset(new BN(amount))
     .accounts({
       buyer,
       marketplace,
@@ -707,7 +771,7 @@ export async function buyExternalAsset({ listingPubkey, amount }) {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+  , 'buyExternalAsset');
   return { tx };
 }
 
@@ -725,15 +789,16 @@ export async function revokeKyc({ walletAddress, marketplaceAuthority, reasonCod
   const wallet = new PublicKey(walletAddress);
   const complianceRecord = findComplianceRecordPda(marketplace, wallet);
 
-  const tx = await program.methods
-    .revokeKyc(reasonCode)
+  const tx = await sendRpc(
+    program.methods
+      .revokeKyc(reasonCode)
     .accounts({
       complianceSigner,
       marketplace,
       wallet,
       complianceRecord,
     })
-    .rpc();
+  , 'revokeKyc');
   return { tx };
 }
 
@@ -749,14 +814,15 @@ export async function settleInvestmentOffering({ assetRegistryPubkey, epoch, yie
   const regAcc = await program.account.assetRegistry.fetch(assetRegistry);
   const marketplace = regAcc.marketplace;
 
-  const tx = await program.methods
-    .settleInvestmentOffering(epoch, new BN(yieldPaidUsdc), Array.from(attestation))
+  const tx = await sendRpc(
+    program.methods
+      .settleInvestmentOffering(epoch, new BN(yieldPaidUsdc), Array.from(attestation))
     .accounts({
       issuer,
       marketplace,
       assetRegistry,
     })
-    .rpc();
+  , 'settleInvestmentOffering');
   return { tx };
 }
 
@@ -772,8 +838,9 @@ export async function updateMetadata({ assetRegistryPubkey, productName, metadat
   const marketplace = regAcc.marketplace;
   const mint = regAcc.mint;
 
-  const tx = await program.methods
-    .updateMetadata(productName, metadataUri, whitePaperUri)
+  const tx = await sendRpc(
+    program.methods
+      .updateMetadata(productName, metadataUri, whitePaperUri)
     .accounts({
       issuer,
       marketplace,
@@ -781,7 +848,7 @@ export async function updateMetadata({ assetRegistryPubkey, productName, metadat
       mint,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
     })
-    .rpc();
+  , 'updateMetadata');
   return { tx };
 }
 
@@ -795,8 +862,9 @@ export async function transferIssuer({ assetRegistryPubkey, newIssuerAddress }) 
   const newIssuer = new PublicKey(newIssuerAddress);
   const newIssuerCompliance = findComplianceRecordPda(marketplace, newIssuer);
 
-  const tx = await program.methods
-    .transferIssuer()
+  const tx = await sendRpc(
+    program.methods
+      .transferIssuer()
     .accounts({
       currentIssuer,
       marketplace,
@@ -804,7 +872,7 @@ export async function transferIssuer({ assetRegistryPubkey, newIssuerAddress }) 
       newIssuer,
       newIssuerCompliance,
     })
-    .rpc();
+  , 'transferIssuer');
   return { tx };
 }
 
@@ -874,15 +942,16 @@ export async function setCollateralOracle({ assetRegistryPubkey, feedIdHex, maxS
   const marketplace = findMarketplacePda(auth);
   const lendingMarket = findLendingMarketPda(marketplace);
   const collateralConfig = findCollateralConfigPda(lendingMarket, new PublicKey(assetRegistryPubkey));
-  const tx = await program.methods
-    .setCollateralOracle(pythFeedIdToBytes(feedIdHex), new BN(maxStalenessSecs), maxConfidenceBps, enabled)
+  const tx = await sendRpc(
+    program.methods
+      .setCollateralOracle(pythFeedIdToBytes(feedIdHex), new BN(maxStalenessSecs), maxConfidenceBps, enabled)
     .accounts({
       authority: program.provider.wallet.publicKey,
       marketplace,
       lendingMarket,
       collateralConfig,
     })
-    .rpc();
+  , 'setCollateralOracle');
   return { tx };
 }
 
@@ -893,14 +962,15 @@ export async function refreshCollateralPrice({ assetRegistryPubkey, priceUpdateA
   const marketplace = findMarketplacePda(auth);
   const lendingMarket = findLendingMarketPda(marketplace);
   const collateralConfig = findCollateralConfigPda(lendingMarket, new PublicKey(assetRegistryPubkey));
-  const tx = await program.methods
-    .refreshCollateralPrice()
+  const tx = await sendRpc(
+    program.methods
+      .refreshCollateralPrice()
     .accounts({
       cranker: program.provider.wallet.publicKey,
       collateralConfig,
       priceUpdate: new PublicKey(priceUpdateAccount),
     })
-    .rpc();
+  , 'refreshCollateralPrice');
   return { tx };
 }
 
@@ -923,8 +993,9 @@ export async function openLoan({ assetRegistryPubkey, collateralAmount, borrowAm
   const loan = findLoanPda(lendingMarket, borrower, assetRegistry);
   const usdcMint = mpAcc.usdcMint;
 
-  const tx = await program.methods
-    .openLoan(new BN(collateralAmount), new BN(borrowAmount))
+  const tx = await sendRpc(
+    program.methods
+      .openLoan(new BN(collateralAmount), new BN(borrowAmount))
     .accounts({
       borrower,
       marketplace,
@@ -946,7 +1017,7 @@ export async function openLoan({ assetRegistryPubkey, collateralAmount, borrowAm
       systemProgram: SystemProgram.programId,
     })
     .remainingAccounts(hookRemainingAccounts(collateralMint, marketplace, borrower, vaultAuthority))
-    .rpc();
+  , 'openLoan');
   return { tx, loan: loan.toString() };
 }
 
@@ -967,8 +1038,9 @@ export async function repayLoan({ assetRegistryPubkey, marketplaceAuthority }) {
   const loan = findLoanPda(lendingMarket, borrower, assetRegistry);
   const usdcMint = mpAcc.usdcMint;
 
-  const tx = await program.methods
-    .repayLoan()
+  const tx = await sendRpc(
+    program.methods
+      .repayLoan()
     .accounts({
       borrower,
       lendingMarket,
@@ -984,7 +1056,7 @@ export async function repayLoan({ assetRegistryPubkey, marketplaceAuthority }) {
       usdcTokenProgram: TOKEN_PROGRAM_ID,
     })
     .remainingAccounts(hookRemainingAccounts(collateralMint, marketplace, vaultAuthority, borrower))
-    .rpc();
+  , 'repayLoan');
   return { tx };
 }
 
@@ -999,8 +1071,9 @@ export async function depositLiquidity({ amount, marketplaceAuthority }) {
   const lmAcc = await program.account.lendingMarket.fetch(lendingMarket);
   const usdcMint = mpAcc.usdcMint;
 
-  const tx = await program.methods
-    .depositLiquidity(new BN(amount))
+  const tx = await sendRpc(
+    program.methods
+      .depositLiquidity(new BN(amount))
     .accounts({
       provider,
       lendingMarket,
@@ -1011,7 +1084,7 @@ export async function depositLiquidity({ amount, marketplaceAuthority }) {
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+  , 'depositLiquidity');
   return { tx };
 }
 
@@ -1026,8 +1099,9 @@ export async function withdrawLiquidity({ amount, marketplaceAuthority }) {
   const lmAcc = await program.account.lendingMarket.fetch(lendingMarket);
   const usdcMint = mpAcc.usdcMint;
 
-  const tx = await program.methods
-    .withdrawLiquidity(new BN(amount))
+  const tx = await sendRpc(
+    program.methods
+      .withdrawLiquidity(new BN(amount))
     .accounts({
       provider,
       lendingMarket,
@@ -1038,7 +1112,7 @@ export async function withdrawLiquidity({ amount, marketplaceAuthority }) {
       providerUsdcAta: getAssociatedTokenAddress(usdcMint, provider, TOKEN_PROGRAM_ID),
       tokenProgram: TOKEN_PROGRAM_ID,
     })
-    .rpc();
+  , 'withdrawLiquidity');
   return { tx };
 }
 

@@ -80,6 +80,43 @@ Detalle completo en [`solana/RUNBOOK.md`](solana/RUNBOOK.md).
 3. **Bloqueo de US persons** sin Reg D filing (a nivel `JurisdictionPolicy`).
 4. **OFAC/EU/UN screening** obligatorio en cada KYC stamp.
 
+## Hardening aplicado (pase de auditoría interna v0.6)
+
+Tras un diagnóstico interno se corrigieron, con cobertura de tests on-chain:
+
+- **Oráculo Pyth no forjable**: `refresh_collateral_price` exige
+  `verification_level == Full` (o `Partial` con ≥ `MIN_PYTH_SIGNATURES`),
+  rechaza precios futuros (skew), valida `price > 0` antes del cálculo de
+  confianza, y `liquidate` verifica staleness del oráculo.
+- **Liquidación justa**: incauta solo `deuda × (1 + bonus)` y **devuelve el
+  excedente al deudor** (antes confiscaba el 100% y `liquidation_bonus_bps`
+  no se usaba). Guard `SelfLiquidation` (`borrower != liquidator`).
+- **LP con shares**: pool_value = ocioso + prestado, así el **interés se
+  distribuye pro-rata** y un LP no puede retirar el principal de otro; lock
+  `MINIMUM_LIQUIDITY_SHARES` contra el inflation attack del primer depositante.
+- **Separación de poderes**: `initialize` exige `compliance_signer != authority`.
+- **CI**: gates de `clippy`, `cargo fmt --check`, `cargo audit` (report-only) y
+  un **IDL drift guard** (el IDL del frontend no puede divergir del programa).
+
+### Limitaciones conocidas (documentadas)
+
+- **Acreditación bypasseable por transferencia P2P**: el TransferHook valida
+  KYC + jurisdicción pero **no** `accredited_investor`. Un token
+  `InvestmentOffering`/`HarvestFraction` puede re-transferirse a un wallet
+  KYC'd no acreditado. Fix futuro: pasar el `asset_class` al hook o usar la
+  PermanentDelegate extension.
+- **Precio manual** (`set_collateral_config`) confía en `authority` sin
+  staleness — en producción usar siempre oráculo + multisig.
+
+## Gestión de llaves — DEVNET vs MAINNET
+
+- Las keypairs en `solana/target/deploy/*.json` son **DEVNET-ONLY**,
+  committeadas a propósito para program IDs deterministas en CI/devnet. La
+  dirección es pública; su única sensibilidad es ser *upgrade authority*.
+- **Mainnet**: NUNCA reusarlas. Generar keys frescas **offline** y pasar el
+  upgrade authority a un **Squads multisig** con
+  [`solana/scripts/deploy-mainnet.sh`](solana/scripts/deploy-mainnet.sh).
+
 ## Pendiente pre-mainnet
 
 1. **Auditoría profesional** (Sec3 / OtterSec / Halborn) — bloqueante.

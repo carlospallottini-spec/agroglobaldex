@@ -55,7 +55,10 @@ pub fn handler(ctx: Context<MintToken>, amount: u64) -> Result<()> {
         .minted_supply
         .checked_add(amount)
         .ok_or(AgroError::PriceOverflow)?;
-    require!(new_minted <= registry.total_supply, AgroError::SupplyExceeded);
+    require!(
+        new_minted <= registry.total_supply,
+        AgroError::SupplyExceeded
+    );
 
     let registry_key = registry.key();
     let marketplace_key = registry.marketplace;

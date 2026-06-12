@@ -761,9 +761,11 @@ describe("agroglobaldex", function () {
     const delta = new BN(lmAccAfter.totalLiquidity.toString()).sub(new BN(lmAccBefore.totalLiquidity.toString()));
     assert.equal(delta.toString(), "100000000000");
 
-    // El aporte del LP quedo registrado (habilita withdraw_liquidity).
+    // Primer deposito: mintea `amount` shares totales y bloquea
+    // MINIMUM_LIQUIDITY_SHARES (1000) anti-inflation; el LP recibe amount-1000.
+    assert.equal(lmAccAfter.totalShares.toString(), "100000000000");
     const lpAcc = await program.account.liquidityProvider.fetch(lpRecord);
-    assert.equal(lpAcc.depositedUsdc.toString(), "100000000000");
+    assert.equal(lpAcc.shares.toString(), "99999999000"); // 100e9 - 1000 locked
   });
 
   it("33 open_loan happy: issuer lockea 50k grain → recibe 20k USDC (40% LTV)", async () => {
@@ -1087,6 +1089,8 @@ describe("agroglobaldex", function () {
           liquidatorCompliance: liquidatorRec,
           collateralMint,
           liquidatorCollateralAta,
+          borrower: borrower3.publicKey,
+          borrowerCollateralAta: borrower3CollateralAta,
           vaultAuthority: vaultAuth,
           collateralVault,
           usdcMint,
@@ -1211,6 +1215,8 @@ describe("agroglobaldex", function () {
         liquidatorCompliance: liquidatorRec,
         collateralMint,
         liquidatorCollateralAta,
+        borrower: borrower4.publicKey,
+        borrowerCollateralAta: borrower4CollateralAta,
         vaultAuthority: vaultAuth,
         collateralVault,
         usdcMint,
@@ -1219,6 +1225,8 @@ describe("agroglobaldex", function () {
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
         usdcTokenProgram: TOKEN_PROGRAM_ID,
       })
+      // Deeply underwater (collateral < debt+bonus) → full seizure, remainder 0,
+      // so only the vault→liquidator transfer fires.
       .remainingAccounts(hookRemaining(collateralMint, vaultAuth, liquidator.publicKey))
       .signers([liquidator]).rpc();
 
@@ -1255,12 +1263,20 @@ describe("agroglobaldex", function () {
     );
 
     const lmBefore = await program.account.lendingMarket.fetch(lm);
+    const lpBefore = await program.account.liquidityProvider.fetch(lpRecord);
     const ataBefore = (await provider.connection.getTokenAccountBalance(authorityUsdcAta)).value.amount;
-    const WITHDRAW = new BN(50_000_000_000);
-    // Pre-condicion: la liquidez ociosa debe cubrir el retiro.
-    assert.isTrue(new BN(lmBefore.totalLiquidity.toString()).gte(WITHDRAW));
 
-    await program.methods.withdrawLiquidity(WITHDRAW)
+    // Redime 50k shares. USDC = shares * pool_value / total_shares, donde
+    // pool_value = liquidez ociosa + prestada (incluye el interes ya acumulado),
+    // asi que recibe >= su parte del principal (el interes fluye a los LP).
+    const SHARES = new BN(50_000_000_000);
+    assert.isTrue(new BN(lpBefore.shares.toString()).gte(SHARES));
+    const poolValue = new BN(lmBefore.totalLiquidity.toString()).add(new BN(lmBefore.totalBorrowed.toString()));
+    const expectedUsdc = SHARES.mul(poolValue).div(new BN(lmBefore.totalShares.toString()));
+    assert.isTrue(new BN(lmBefore.totalLiquidity.toString()).gte(expectedUsdc)); // idle cubre
+    assert.isTrue(expectedUsdc.gte(new BN("50000000000")));                       // >= principal
+
+    await program.methods.withdrawLiquidity(SHARES)
       .accounts({
         provider: authority.publicKey, lendingMarket: lm,
         liquidityProvider: lpRecord,
@@ -1270,15 +1286,13 @@ describe("agroglobaldex", function () {
       }).rpc();
 
     const lmAfter = await program.account.lendingMarket.fetch(lm);
-    const liqDelta = new BN(lmBefore.totalLiquidity.toString()).sub(new BN(lmAfter.totalLiquidity.toString()));
-    assert.equal(liqDelta.toString(), WITHDRAW.toString());
-
     const lpAcc = await program.account.liquidityProvider.fetch(lpRecord);
-    assert.equal(lpAcc.depositedUsdc.toString(), "50000000000");
+    assert.equal(lpAcc.shares.toString(), new BN(lpBefore.shares.toString()).sub(SHARES).toString());
+    assert.equal(lmAfter.totalShares.toString(), new BN(lmBefore.totalShares.toString()).sub(SHARES).toString());
 
     const ataAfter = (await provider.connection.getTokenAccountBalance(authorityUsdcAta)).value.amount;
     const ataDelta = new BN(ataAfter).sub(new BN(ataBefore));
-    assert.equal(ataDelta.toString(), WITHDRAW.toString());
+    assert.equal(ataDelta.toString(), expectedUsdc.toString());
   });
 
   it("39 sad: withdraw_liquidity > aporte del LP revierte ExceedsDeposit", async () => {
@@ -1434,5 +1448,85 @@ describe("agroglobaldex", function () {
         .rpc(),
       "OracleFeedMismatch",
     );
+  });
+
+  it("43 liquidate parcial: solo incauta deuda+bonus y DEVUELVE el excedente al deudor", async () => {
+    // Loan apenas liquidable (no profundamente underwater): el liquidador
+    // incauta solo el colateral que cubre deuda + bonus (5%) y el resto vuelve
+    // al deudor, en vez de confiscar el 100% (fix del bug C2).
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+
+    const borrower5 = Keypair.generate();
+    await airdrop(borrower5.publicKey, 5);
+    await ensureKyc(borrower5.publicKey);
+    const { reg, mint: collateralMint, issuerAta: borrower5CollateralAta } =
+      await registerFreshGrain(borrower5, new BN(1_000_000_000));
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+    await program.methods.setCollateralConfig(new BN(1_000_000), true)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm, assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId }).rpc();
+
+    const collateralVault = getAssociatedTokenAddressSync(collateralMint, vaultAuth, true, TOKEN_2022_PROGRAM_ID);
+    const borrower5UsdcAta = await createAssociatedTokenAccount(provider.connection, payer, usdcMint, borrower5.publicKey);
+    const loan5 = pda([Buffer.from("loan"), lm.toBuffer(), borrower5.publicKey.toBuffer(), reg.toBuffer()], programId);
+
+    // C = 1000 base units, price 1.00 → value 1e9; pedimos 4e8 (40% LTV, sano).
+    const COLLATERAL = new BN(1_000), BORROW = new BN(400_000_000);
+    await program.methods.openLoan(COLLATERAL, BORROW)
+      .accounts({
+        borrower: borrower5.publicKey, marketplace, lendingMarket: lm, collateralConfig: cfg, assetRegistry: reg,
+        borrowerCompliance: pda([Buffer.from("compliance_record"), marketplace.toBuffer(), borrower5.publicKey.toBuffer()], programId),
+        collateralMint, borrowerCollateralAta: borrower5CollateralAta,
+        vaultAuthority: vaultAuth, collateralVault,
+        usdcMint, usdcPool, borrowerUsdcAta: borrower5UsdcAta, loan: loan5,
+        collateralTokenProgram: TOKEN_2022_PROGRAM_ID, usdcTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
+      })
+      .remainingAccounts(hookRemaining(collateralMint, borrower5.publicKey, vaultAuth))
+      .signers([borrower5]).rpc();
+
+    // Caida MODERADA a 0.48 USDC → liquidable pero colateral (4.8e8) > deuda+bonus (4.2e8).
+    await program.methods.setCollateralConfig(new BN(480_000), true)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm, assetRegistry: reg, collateralConfig: cfg, systemProgram: SystemProgram.programId }).rpc();
+
+    const liquidator = Keypair.generate();
+    await airdrop(liquidator.publicKey, 5);
+    const liquidatorRec = await ensureKyc(liquidator.publicKey);
+    const liquidatorUsdcAta = await createAssociatedTokenAccount(provider.connection, payer, usdcMint, liquidator.publicKey);
+    await mintTo(provider.connection, payer, usdcMint, liquidatorUsdcAta, payer, 100_000_000_000);
+    const liquidatorCollateralAta = await createAssociatedTokenAccount(
+      provider.connection, payer, collateralMint, liquidator.publicKey, undefined, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+    const liqBefore = new BN((await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount);
+    const borrBefore = new BN((await provider.connection.getTokenAccountBalance(borrower5CollateralAta)).value.amount);
+
+    // Dos transferencias (vault→liquidador del seize, vault→deudor del resto):
+    // pasamos las CR de ambos destinos como remaining accounts.
+    const ro = (pk) => ({ pubkey: new PublicKey(pk), isSigner: false, isWritable: false });
+    const borrower5Cr = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), borrower5.publicKey.toBuffer()], programId);
+    const remaining = [...hookRemaining(collateralMint, vaultAuth, liquidator.publicKey), ro(borrower5Cr)];
+
+    await program.methods.liquidate()
+      .accounts({
+        liquidator: liquidator.publicKey, lendingMarket: lm, collateralConfig: cfg, loan: loan5,
+        liquidatorCompliance: liquidatorRec, collateralMint, liquidatorCollateralAta,
+        borrower: borrower5.publicKey, borrowerCollateralAta: borrower5CollateralAta,
+        vaultAuthority: vaultAuth, collateralVault, usdcMint, usdcPool, liquidatorUsdcAta,
+        collateralTokenProgram: TOKEN_2022_PROGRAM_ID, usdcTokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .remainingAccounts(remaining)
+      .signers([liquidator]).rpc();
+
+    const liqAfter = new BN((await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount);
+    const borrAfter = new BN((await provider.connection.getTokenAccountBalance(borrower5CollateralAta)).value.amount);
+    const seized = liqAfter.sub(liqBefore);
+    const returned = borrAfter.sub(borrBefore);
+
+    assert.equal(seized.add(returned).toString(), "1000");      // todo el colateral repartido
+    assert.isTrue(returned.gt(new BN(0)), "el deudor recupera su excedente (no se confisca el 100%)");
+    assert.isTrue(seized.lt(new BN(1000)), "el liquidador NO se lleva todo");
+    const loanAfter = await program.account.loanPosition.fetch(loan5);
+    assert.equal(loanAfter.active, false);
   });
 });

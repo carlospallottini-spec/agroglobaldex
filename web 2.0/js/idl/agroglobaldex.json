@@ -2424,6 +2424,13 @@
           }
         },
         {
+          "name": "borrower"
+        },
+        {
+          "name": "borrower_collateral_ata",
+          "writable": true
+        },
+        {
           "name": "vault_authority",
           "pda": {
             "seeds": [
@@ -6361,6 +6368,16 @@
       "code": 6049,
       "name": "OracleNotEnabled",
       "msg": "This collateral is not driven by an oracle"
+    },
+    {
+      "code": 6050,
+      "name": "PythPriceUnverified",
+      "msg": "Pyth price is unverified (Partial update with too few guardian signatures)"
+    },
+    {
+      "code": 6051,
+      "name": "SelfLiquidation",
+      "msg": "A borrower cannot liquidate their own loan"
     }
   ],
   "types": [
@@ -7634,6 +7651,10 @@
             "type": "u64"
           },
           {
+            "name": "total_shares",
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "docs": [
               "Bump for this PDA."
@@ -7689,6 +7710,10 @@
           },
           {
             "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "shares_minted",
             "type": "u64"
           },
           {
@@ -7756,6 +7781,10 @@
           },
           {
             "name": "collateral_seized",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_returned",
             "type": "u64"
           }
         ]
@@ -8446,7 +8475,7 @@
             "type": "pubkey"
           },
           {
-            "name": "deposited_usdc",
+            "name": "shares",
             "type": "u64"
           },
           {
@@ -8471,6 +8500,10 @@
           },
           {
             "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "shares_burned",
             "type": "u64"
           },
           {

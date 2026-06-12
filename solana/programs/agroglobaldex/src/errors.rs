@@ -98,7 +98,9 @@ pub enum AgroError {
     #[msg("This instruction only applies to AssetClass::InvestmentOffering")]
     NotInvestmentOffering,
 
-    #[msg("Invalid compliance signer: must not be the default pubkey nor equal to the current signer")]
+    #[msg(
+        "Invalid compliance signer: must not be the default pubkey nor equal to the current signer"
+    )]
     InvalidComplianceSigner,
 
     #[msg("Invalid issuer: must not be the default pubkey nor equal to the current issuer")]
@@ -151,4 +153,10 @@ pub enum AgroError {
 
     #[msg("This collateral is not driven by an oracle")]
     OracleNotEnabled,
+
+    #[msg("Pyth price is unverified (Partial update with too few guardian signatures)")]
+    PythPriceUnverified,
+
+    #[msg("A borrower cannot liquidate their own loan")]
+    SelfLiquidation,
 }

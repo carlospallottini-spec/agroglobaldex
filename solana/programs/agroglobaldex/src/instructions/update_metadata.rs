@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022_extensions::{token_metadata_update_field, TokenMetadataUpdateField};
-use anchor_spl::token_interface::{spl_token_metadata_interface::state::Field, Mint, TokenInterface};
+use anchor_spl::token_interface::{
+    spl_token_metadata_interface::state::Field, Mint, TokenInterface,
+};
 
 use crate::errors::AgroError;
 use crate::state::*;

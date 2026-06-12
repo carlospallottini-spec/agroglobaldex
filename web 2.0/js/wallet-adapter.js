@@ -317,13 +317,13 @@ function ensurePickerStyles() {
     .agg-wm-option svg{width:32px;height:32px;flex-shrink:0}
     .agg-wm-info{flex:1;min-width:0}
     .agg-wm-name{font-size:14px;font-weight:700;color:var(--txt,#ECF0EC);margin-bottom:2px;display:flex;align-items:center;gap:8px}
-    .agg-wm-sub2{font-size:11px;color:var(--t3,#3D5240)}
-    .agg-wm-arr{color:var(--t3,#3D5240);font-size:14px}
+    .agg-wm-sub2{font-size:11px;color:var(--t3,#647E6A)}
+    .agg-wm-arr{color:var(--t3,#647E6A);font-size:14px}
     .agg-wm-badge{font-size:9px;font-weight:700;background:var(--nd,#00FF6A0D);color:var(--neon,#00FF6A);border:1px solid var(--nm,#00FF6A28);border-radius:20px;padding:1px 7px;text-transform:uppercase;letter-spacing:.04em}
     .agg-wm-badge.off{background:#F0A02012;color:#F0A020;border-color:#F0A02055}
-    .agg-wm-note{font-size:11px;color:var(--t3,#3D5240);text-align:center;margin-top:14px;line-height:1.6}
+    .agg-wm-note{font-size:11px;color:var(--t3,#647E6A);text-align:center;margin-top:14px;line-height:1.6}
     .agg-wm-note a{color:var(--neon,#00FF6A);text-decoration:none}
-    .agg-wm-disc{width:100%;padding:10px;margin-top:14px;background:transparent;border:1px solid var(--bd,#131D14);border-radius:8px;font-size:12px;color:var(--t3,#3D5240);cursor:pointer;font-family:inherit}
+    .agg-wm-disc{width:100%;padding:10px;margin-top:14px;background:transparent;border:1px solid var(--bd,#131D14);border-radius:8px;font-size:12px;color:var(--t3,#647E6A);cursor:pointer;font-family:inherit}
     .agg-wm-disc:hover{border-color:#FF3D4A55;color:#FF3D4A}
   `;
   document.head.appendChild(s);
@@ -335,7 +335,7 @@ function buildPickerDOM() {
   const overlay = document.createElement('div');
   overlay.id = MODAL_ID;
   overlay.className = 'agg-wm-overlay';
-  overlay.innerHTML = `<div class="agg-wm-modal" role="dialog" aria-modal="true">
+  overlay.innerHTML = `<div class="agg-wm-modal" role="dialog" aria-modal="true" aria-label="Conectar wallet" tabindex="-1">
     <button class="agg-wm-close" aria-label="Cerrar">✕</button>
     <div class="agg-wm-title">Conectar wallet</div>
     <div class="agg-wm-sub">Elegí tu wallet Solana. Si todavía no la tenés instalada, hacé click para descargarla.</div>
@@ -384,13 +384,62 @@ function renderPickerList() {
   if (disc) disc.style.display = state.publicKey ? 'block' : 'none';
 }
 
+/* ── Focus management for the picker (a11y): trap Tab within the dialog,
+   close on Escape, and restore focus to the trigger on close. Dependency-free
+   and defensive — never throws if the DOM is missing. ── */
+let _pickerTrigger = null;   // element to refocus after close
+let _pickerKeydown = null;   // bound keydown handler while open
+
+function pickerFocusable(modal) {
+  if (!modal) return [];
+  const sel = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  return Array.from(modal.querySelectorAll(sel))
+    .filter((el) => el.offsetParent !== null || el === document.activeElement);
+}
+
+function onPickerKeydown(e) {
+  const o = document.getElementById(MODAL_ID);
+  if (!o || !o.classList.contains('open')) return;
+  if (e.key === 'Escape' || e.key === 'Esc') {
+    e.preventDefault();
+    closeWalletPicker();
+    return;
+  }
+  if (e.key !== 'Tab') return;
+  const modal = o.querySelector('.agg-wm-modal');
+  const items = pickerFocusable(modal);
+  if (!items.length) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  const active = document.activeElement;
+  if (e.shiftKey) {
+    if (active === first || !modal.contains(active)) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else if (active === last || !modal.contains(active)) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 export function openWalletPicker() {
   buildPickerDOM();
   renderPickerList();
   const o = document.getElementById(MODAL_ID);
   if (o) {
+    // Remember what had focus so we can restore it on close.
+    _pickerTrigger = (document.activeElement instanceof HTMLElement) ? document.activeElement : null;
     o.classList.add('open');
     document.body.style.overflow = 'hidden';
+    // Trap Tab + handle Escape while open.
+    _pickerKeydown = onPickerKeydown;
+    document.addEventListener('keydown', _pickerKeydown, true);
+    // Move focus into the modal (first focusable, else the modal itself).
+    const modal = o.querySelector('.agg-wm-modal');
+    const items = pickerFocusable(modal);
+    const target = items[0] || modal;
+    try { target?.focus?.(); } catch (_) {}
   }
 }
 
@@ -400,6 +449,15 @@ export function closeWalletPicker() {
     o.classList.remove('open');
     document.body.style.overflow = '';
   }
+  if (_pickerKeydown) {
+    document.removeEventListener('keydown', _pickerKeydown, true);
+    _pickerKeydown = null;
+  }
+  // Restore focus to whatever opened the picker.
+  if (_pickerTrigger && typeof _pickerTrigger.focus === 'function') {
+    try { _pickerTrigger.focus(); } catch (_) {}
+  }
+  _pickerTrigger = null;
 }
 
 /* ═══════ INIT + BUTTON BINDING ═══════ */
