@@ -1,0 +1,90 @@
+/* ════════════════════════════════════════════════════════════════════
+   AgroGlobalDex — immersive.css
+   "Living" layer: animated aurora background, cursor-reactive spotlight,
+   glass surfaces and scroll-reveal. Loads AFTER enhance.css. Purely additive
+   and brand-consistent (neon #00FF6A + gold on the dark theme). All motion is
+   gated behind a `.ag-immersive` flag that JS adds to <html>, so if the JS
+   never runs NOTHING is hidden and the page renders exactly as before.
+   Fully respects prefers-reduced-motion.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Animated aurora (injected as <div class="ag-aurora"> by immersive.js) ── */
+/* The dark base color moves to <html> and <body> goes transparent, so the
+   aurora (a fixed z-index:-1 child of body) shows THROUGH the body without us
+   ever touching the stacking of page content. Zero layout/z-index risk. */
+.ag-immersive{ background:var(--bg, #05080A); }
+.ag-immersive body{ background-color:transparent; }
+.ag-aurora{
+  position:fixed; inset:-20vmax; z-index:-1; pointer-events:none;
+  overflow:hidden; opacity:.9;
+  /* a cursor-reactive spotlight on top of the drifting blobs */
+  background:
+    radial-gradient(40vmax 40vmax at calc(var(--ag-mx,50%)) calc(var(--ag-my,30%)),
+      rgba(0,255,106,.10), transparent 60%);
+  transition:background .25s ease-out;
+}
+.ag-aurora::before,
+.ag-aurora::after{
+  content:''; position:absolute; border-radius:50%;
+  filter:blur(80px); opacity:.5; mix-blend-mode:screen;
+  will-change:transform;
+}
+.ag-aurora::before{
+  width:55vmax; height:55vmax; left:-8vmax; top:-6vmax;
+  background:radial-gradient(circle at 30% 30%, #00FF6A55, #00FF6A00 70%);
+  animation:ag-drift-a 26s ease-in-out infinite alternate;
+}
+.ag-aurora::after{
+  width:48vmax; height:48vmax; right:-6vmax; bottom:-10vmax;
+  background:radial-gradient(circle at 60% 40%, #C8A84B40, #3A9EF522 45%, #00000000 72%);
+  animation:ag-drift-b 32s ease-in-out infinite alternate;
+}
+@keyframes ag-drift-a{
+  0%{ transform:translate3d(0,0,0) scale(1); }
+  100%{ transform:translate3d(14vmax,8vmax,0) scale(1.18); }
+}
+@keyframes ag-drift-b{
+  0%{ transform:translate3d(0,0,0) scale(1.05); }
+  100%{ transform:translate3d(-12vmax,-9vmax,0) scale(.9); }
+}
+/* ── Glass surface refinement (builds on enhance.css card styling) ──────── */
+.ag-immersive .card,
+.ag-immersive .pstat,
+.ag-immersive .modal,
+.ag-immersive .wallet-option,
+.ag-immersive .step{
+  backdrop-filter:blur(6px) saturate(1.05);
+  -webkit-backdrop-filter:blur(6px) saturate(1.05);
+  background-image:linear-gradient(180deg, rgba(255,255,255,.018), rgba(255,255,255,0));
+}
+/* Gradient hairline on cards for depth. */
+.ag-immersive .card{
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset,
+             0 18px 50px -24px rgba(0,0,0,.8);
+}
+
+/* ── Scroll reveal (JS marks [data-reveal]; flag-gated so no-JS is safe) ── */
+.ag-immersive [data-reveal]{
+  opacity:0; transform:translateY(18px);
+  transition:opacity .7s var(--ease-out, ease), transform .7s var(--ease-out, ease);
+  will-change:opacity, transform;
+}
+.ag-immersive [data-reveal].ag-shown{ opacity:1; transform:none; }
+.ag-immersive [data-reveal][data-reveal="2"]{ transition-delay:.08s; }
+.ag-immersive [data-reveal][data-reveal="3"]{ transition-delay:.16s; }
+
+/* ── Hero gets a living, cursor-aware sheen if a .page-hero/.hero exists ── */
+.ag-immersive .page-hero, .ag-immersive .hero{ position:relative; overflow:hidden; }
+
+/* ── Respect reduced motion: freeze the aurora, reveal everything ───────── */
+@media (prefers-reduced-motion:reduce){
+  .ag-aurora::before, .ag-aurora::after{ animation:none; }
+  .ag-aurora{ transition:none; }
+  .ag-immersive [data-reveal]{ opacity:1; transform:none; transition:none; }
+}
+/* Lighten the GPU load on small screens (mobile / Capacitor webview). */
+@media (max-width:760px){
+  .ag-aurora::before, .ag-aurora::after{ filter:blur(56px); }
+  .ag-immersive .card, .ag-immersive .pstat, .ag-immersive .modal,
+  .ag-immersive .wallet-option, .ag-immersive .step{ backdrop-filter:none; -webkit-backdrop-filter:none; }
+}
