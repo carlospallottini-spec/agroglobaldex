@@ -1,10 +1,11 @@
 /* AgroGlobalDex — Service Worker (PWA shell + kill-switch para Electron)
- * v6 — Agrega borrow.html, receipts.html, admin.html al precache shell.
+ * v7 — Capa inmersiva (immersive.css / immersive.js). Bump de cache para
+ *      invalidar el shell viejo y servir el rediseño a visitantes recurrentes.
  *      Detecta protocolo file:// (Electron / Capacitor desktop) y se
  *      auto-destruye limpiando caches. En navegador web real (https://) se
  *      comporta como PWA shell normal.
  */
-const CACHE = 'agroglobaldex-v6';
+const CACHE = 'agroglobaldex-v7';
 const IS_FILE = location.protocol === 'file:';
 const SHELL = [
   '/',
