@@ -72,6 +72,16 @@ Detalle completo en [`solana/RUNBOOK.md`](solana/RUNBOOK.md).
     hit / fraud sin necesidad de autoridad multisig (audit #15).
 11. **transfer_issuer con KYC requerido**: rotar el rol issuer requiere que
     el nuevo issuer tenga ComplianceRecord verificado (audit #19).
+12. **Acreditación enforced en el TransferHook** (audit #20, ex-limitación):
+    al registrar un mint de clase restringida (`HarvestFraction` /
+    `InvestmentOffering`) `register_asset` marca `requires_accredited` en el
+    `HookConfig` del compliance-hook. En **cada** transferencia Token-2022 el
+    hook lee `accredited_investor` del `ComplianceRecord` del **destino** y
+    aborta con `AccreditationRequired` si el mint es restringido y el receptor
+    no está acreditado. Cierra el bypass de acreditación por re-transferencia
+    P2P: un token security ya no puede moverse a un wallet KYC'd-pero-no-
+    acreditado fuera del path `buy_asset`. KYC + jurisdicción siguen siendo el
+    piso universal para todos los mints. Cobertura: tests 44 (happy) / 45 (sad).
 
 ### Off-chain
 
@@ -100,11 +110,15 @@ Tras un diagnóstico interno se corrigieron, con cobertura de tests on-chain:
 
 ### Limitaciones conocidas (documentadas)
 
-- **Acreditación bypasseable por transferencia P2P**: el TransferHook valida
-  KYC + jurisdicción pero **no** `accredited_investor`. Un token
-  `InvestmentOffering`/`HarvestFraction` puede re-transferirse a un wallet
-  KYC'd no acreditado. Fix futuro: pasar el `asset_class` al hook o usar la
-  PermanentDelegate extension.
+- **Acreditación bypasseable por transferencia P2P** — ✅ **CORREGIDO**
+  (ver "Defensas implementadas" #12). El TransferHook ahora enforced
+  `accredited_investor` en el destino para clases restringidas
+  (`HarvestFraction` / `InvestmentOffering`) vía el flag `requires_accredited`
+  del `HookConfig` (seteado por `register_asset`). Una re-transferencia P2P de
+  un token security a un wallet KYC'd-no-acreditado revierte con
+  `AccreditationRequired`. La extensión PermanentDelegate sigue pendiente solo
+  para clawback de wallets sancionadas post-mint (pre-mainnet #3), no para la
+  acreditación.
 - **Precio manual** (`set_collateral_config`) confía en `authority` sin
   staleness — en producción usar siempre oráculo + multisig.
 

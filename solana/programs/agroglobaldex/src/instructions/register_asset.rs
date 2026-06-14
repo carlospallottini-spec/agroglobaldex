@@ -335,6 +335,17 @@ pub fn handler(
     // ---- 5. Initialize compliance hook for this mint ----------------------
     // CRITICAL: without this CPI, Token-2022 cannot resolve the extra accounts
     // needed by `compliance_hook::execute`, and every transfer would revert.
+    //
+    // We additionally tell the hook whether this mint is a RESTRICTED asset
+    // class (`HarvestFraction` / `InvestmentOffering`). These are securities:
+    // any wallet receiving them must be an accredited / professional investor.
+    // The hook persists this flag on its `HookConfig` and enforces accreditation
+    // on the DESTINATION wallet for every transfer — closing the peer-to-peer
+    // re-transfer bypass that the marketplace `buy_asset` gate alone can't see.
+    let requires_accredited = matches!(
+        asset_class,
+        AssetClass::HarvestFraction { .. } | AssetClass::InvestmentOffering { .. }
+    );
     compliance_hook::cpi::initialize_extra_account_meta_list(
         CpiContext::new(
             ctx.accounts.compliance_hook_program.to_account_info(),
@@ -348,6 +359,7 @@ pub fn handler(
         ),
         marketplace_key,
         crate::ID,
+        requires_accredited,
     )?;
 
     // ---- Persist the AssetRegistry ---------------------------------------

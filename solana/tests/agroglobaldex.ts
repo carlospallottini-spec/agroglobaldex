@@ -37,7 +37,9 @@ import {
   TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint, getAssociatedTokenAddressSync,
   createAssociatedTokenAccount, mintTo,
+  createTransferCheckedWithTransferHookInstruction,
 } from "@solana/spl-token";
+import { Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import { assert } from "chai";
 import * as fs from "fs";
 import * as path from "path";
@@ -930,6 +932,64 @@ describe("agroglobaldex", function () {
     return { reg, mint: m, issuerAta };
   }
 
+  // Register a RESTRICTED asset class (HarvestFraction) + mint to the issuer.
+  // The compliance hook flags this mint `requires_accredited` at register time,
+  // so transfers to a non-accredited destination must be rejected.
+  async function registerFreshHarvest(
+    assetIssuer: Keypair,
+    mintAmount: anchor.BN,
+  ): Promise<{ reg: PublicKey; mint: PublicKey; issuerAta: PublicKey }> {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    await program.methods.registerAsset(
+      { harvestFraction: { crop: { soy: {} }, hectares: 50, harvestYear: 2027 } },
+      new BN(1_000_000_000_000), Array.from(createHash("sha256").update("fresh-harvest-" + reg.toBase58()).digest()),
+      "ipfs://demo/harvest-wp.pdf", "ipfs://demo/harvest-meta.json", "Cosecha Soja AR 2027",
+    )
+      .accounts({ issuer: assetIssuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+      .signers([assetIssuer]).rpc();
+
+    const issuerAta = getAssociatedTokenAddressSync(m, assetIssuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    await program.methods.mintToken(mintAmount)
+      .accounts({
+        issuer: assetIssuer.publicKey, assetRegistry: reg, mint: m, issuerTokenAccount: issuerAta,
+        tokenProgram: TOKEN_2022_PROGRAM_ID, associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([assetIssuer]).rpc();
+    return { reg, mint: m, issuerAta };
+  }
+
+  // Stamp a KYC ComplianceRecord with explicit accreditation status. Unlike
+  // `ensureKyc` (which always stamps accredited=true) this lets a test create a
+  // KYC'd-but-NOT-accredited wallet to exercise the restricted-class gate.
+  async function kycWith(wallet: PublicKey, accredited: boolean, jur = "AR") {
+    const rec = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), wallet.toBuffer()], programId);
+    await program.methods.updateKyc(true, Array.from(Buffer.from(jur)), accredited)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet, complianceRecord: rec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+    return rec;
+  }
+
+  // Raw Token-2022 transfer that fires the compliance TransferHook. The spl-
+  // token helper resolves the hook's extra accounts from the on-chain
+  // ExtraAccountMetaList, so it passes exactly what `compliance_hook::execute`
+  // expects (incl. source/destination ComplianceRecords).
+  async function hookedTransfer(
+    fromOwner: Keypair, fromAta: PublicKey, toAta: PublicKey, mint: PublicKey, amount: bigint,
+  ) {
+    const ix = await createTransferCheckedWithTransferHookInstruction(
+      provider.connection, fromAta, mint, toAta, fromOwner.publicKey, amount, 6,
+      [], "confirmed", TOKEN_2022_PROGRAM_ID,
+    );
+    const tx = new Transaction().add(ix);
+    return sendAndConfirmTransaction(provider.connection, tx, [fromOwner], { commitment: "confirmed" });
+  }
+
   it("35 repay_loan happy: issuer repaga principal + interes → recupera 50k grain", async () => {
     // El loan del test 33: borrower = issuer, collateral = Grain idx 0 (50k
     // tokens), principal = 20k USDC. Aca el issuer repaga el total adeudado
@@ -1528,5 +1588,49 @@ describe("agroglobaldex", function () {
     assert.isTrue(seized.lt(new BN(1000)), "el liquidador NO se lleva todo");
     const loanAfter = await program.account.loanPosition.fetch(loan5);
     assert.equal(loanAfter.active, false);
+  });
+
+  it("44 happy: restricted HarvestFraction transfers P2P to an ACCREDITED recipient", async () => {
+    // Issuer emite una HarvestFraction (clase restringida -> requires_accredited
+    // queda seteado en el HookConfig). Una transferencia P2P cruda (no via
+    // buy_asset) hacia un wallet KYC'd Y ACREDITADO debe pasar el hook.
+    const hIssuer = Keypair.generate();
+    await airdrop(hIssuer.publicKey, 5);
+    await kycWith(hIssuer.publicKey, true);
+    const { mint, issuerAta } = await registerFreshHarvest(hIssuer, new BN(10_000_000_000));
+
+    const recipient = Keypair.generate();
+    await airdrop(recipient.publicKey, 1);
+    await kycWith(recipient.publicKey, true); // KYC'd + acreditado
+    const recipientAta = await createAssociatedTokenAccount(
+      provider.connection, payer, mint, recipient.publicKey, undefined, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+    await hookedTransfer(hIssuer, issuerAta, recipientAta, mint, 1_000_000_000n);
+
+    assert.equal((await provider.connection.getTokenAccountBalance(recipientAta)).value.amount, "1000000000");
+  });
+
+  it("45 sad: restricted HarvestFraction P2P transfer to a NON-accredited recipient is rejected", async () => {
+    // Mismo setup, pero el destino esta KYC'd y NO acreditado. El hook debe
+    // abortar la transferencia con AccreditationRequired -> cierra el bypass de
+    // acreditacion por re-transferencia peer-to-peer.
+    const hIssuer = Keypair.generate();
+    await airdrop(hIssuer.publicKey, 5);
+    await kycWith(hIssuer.publicKey, true);
+    const { mint, issuerAta } = await registerFreshHarvest(hIssuer, new BN(10_000_000_000));
+
+    const recipient = Keypair.generate();
+    await airdrop(recipient.publicKey, 1);
+    await kycWith(recipient.publicKey, false); // KYC'd pero NO acreditado
+    const recipientAta = await createAssociatedTokenAccount(
+      provider.connection, payer, mint, recipient.publicKey, undefined, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+    await expectRevert(
+      hookedTransfer(hIssuer, issuerAta, recipientAta, mint, 1_000_000_000n),
+      "AccreditationRequired",
+    );
+
+    // El destino no recibio nada.
+    assert.equal((await provider.connection.getTokenAccountBalance(recipientAta)).value.amount, "0");
   });
 });
