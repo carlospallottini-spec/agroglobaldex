@@ -1282,9 +1282,12 @@ describe("agroglobaldex", function () {
     );
   });
 
-  it("37 liquidate happy: tras caida de precio el liquidador incauta el colateral", async () => {
+  it("37 liquidate underwater (M-3): seize total, repaid reducido, bad debt realizado", async () => {
     // Abrimos un loan fresco, bajamos el precio del colateral via
-    // set_collateral_config hasta que el loan quede liquidable, y liquidamos.
+    // set_collateral_config hasta dejar la posicion UNDERWATER (collateral_value
+    // < debt) y liquidamos. Caso B de M-3: el liquidador incauta TODO el
+    // colateral, paga un `repaid` reducido (mantiene su bonus) y el faltante
+    // (bad_debt = debt - repaid) se realiza como perdida del protocolo/LP.
     const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
 
     // Borrower fresco KYC'd que tambien emite su propio grain.
@@ -1381,10 +1384,16 @@ describe("agroglobaldex", function () {
       TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
     );
 
-    const poolBefore = (await provider.connection.getTokenAccountBalance(usdcPool)).value.amount;
-    const liqCollBefore = (await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount;
+    // M-3 underwater (Case B) baseline: precio 0.40 → collateral_value = 4e8 <
+    // debt (~4e8 + interes). El liquidador NO repaga la deuda completa: paga el
+    // `repaid` reducido (descontado el bonus sobre el colateral que recibe) y el
+    // faltante (bad_debt) se realiza como perdida del protocolo/LP.
+    const liqUsdcBefore = new BN((await provider.connection.getTokenAccountBalance(liquidatorUsdcAta)).value.amount);
+    const borrCollBefore37 = new BN((await provider.connection.getTokenAccountBalance(borrower4CollateralAta)).value.amount);
+    const liqCollBefore = new BN((await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount);
+    const lmBefore37 = await program.account.lendingMarket.fetch(lm);
 
-    await program.methods.liquidate()
+    const sig37 = await program.methods.liquidate()
       .accounts({
         liquidator: liquidator.publicKey,
         marketplace,
@@ -1404,29 +1413,83 @@ describe("agroglobaldex", function () {
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
         usdcTokenProgram: TOKEN_PROGRAM_ID,
       })
-      // Deeply underwater (collateral < debt+bonus) → full seizure, remainder 0,
-      // so only the vault→liquidator transfer fires.
+      // Underwater (collateral < debt+bonus) → full seizure, remainder 0, so
+      // only the vault→liquidator transfer fires (no borrower refund). The CU
+      // bump is defensive even though a single hooked transfer fits in 200k.
+      .preInstructions([anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })])
       .remainingAccounts(hookRemaining(collateralMint, vaultAuth, liquidator.publicKey))
       .signers([liquidator]).rpc();
 
-    // Loan cerrado.
+    // Loan cerrado/inactivo.
     const loanAfter = await program.account.loanPosition.fetch(loan4);
     assert.equal(loanAfter.active, false);
     assert.equal(loanAfter.principalUsdc.toString(), "0");
 
-    // El liquidador recibio TODO el colateral incautado.
-    const liqCollAfter = (await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount;
-    const seized = new BN(liqCollAfter).sub(new BN(liqCollBefore));
+    // El liquidador recibio TODO el colateral (seize == collateral_amount).
+    const liqCollAfter = new BN((await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount);
+    const seized = liqCollAfter.sub(liqCollBefore);
     assert.equal(seized.toString(), loanBefore.collateralAmount.toString());
 
-    // El pool USDC subio en la deuda repagada (principal + interes).
+    // El deudor NO recibe excedente (remainder 0).
+    const borrCollAfter37 = new BN((await provider.connection.getTokenAccountBalance(borrower4CollateralAta)).value.amount);
+    assert.equal(borrCollAfter37.sub(borrCollBefore37).toString(), "0");
+    // Conservacion: seize + remainder == collateral_amount.
+    assert.equal(
+      seized.add(borrCollAfter37.sub(borrCollBefore37)).toString(),
+      loanBefore.collateralAmount.toString(),
+    );
+
+    // `repaid` no depende de la deuda: repaid = floor(C * price * 10000 /
+    // (10000 + bonus_bps)). Es exacto independientemente del interes acumulado.
+    const price37 = new BN(400_000);
+    const bonusBps = new BN(lmBefore37.liquidationBonusBps);
+    const collAmt = new BN(loanBefore.collateralAmount.toString());
+    const expectedRepaid = collAmt.mul(price37).mul(new BN(10_000)).div(new BN(10_000).add(bonusBps));
+
+    // Parse del evento BadDebtRealized: lo usamos como fuente de verdad para la
+    // `debt` (incluye el interes acumulado al instante exacto de liquidacion,
+    // que el test no puede recomputar sin conocer el timestamp on-chain).
+    const tx37 = await provider.connection.getTransaction(sig37, {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0,
+    });
+    const parser = new anchor.EventParser(programId, program.coder);
+    const events37: any[] = [];
+    for (const ev of parser.parseLogs(tx37!.meta!.logMessages || [])) events37.push(ev);
+    const badDebtEv = events37.find((e) => e.name === "badDebtRealized" || e.name === "BadDebtRealized");
+    assert.isOk(badDebtEv, "se emitio BadDebtRealized");
+    const evDebt = new BN(badDebtEv.data.debt.toString());
+    const evRepaid = new BN(badDebtEv.data.repaid.toString());
+    const evBadDebt = new BN(badDebtEv.data.badDebt.toString());
+    // Consistencia interna del evento.
+    assert.equal(evRepaid.toString(), expectedRepaid.toString(), "repaid = floor(C*price*1e4/(1e4+bonus))");
+    assert.equal(evBadDebt.toString(), evDebt.sub(evRepaid).toString(), "bad_debt == debt - repaid");
+    assert.isTrue(evBadDebt.gt(new BN(0)), "bad_debt > 0 (posicion underwater)");
+    assert.isTrue(evRepaid.lte(evDebt) && evRepaid.gt(new BN(0)), "0 < repaid <= debt");
+
+    // El USDC del liquidador bajo en `repaid`, NO en la deuda completa.
+    const liqUsdcAfter = new BN((await provider.connection.getTokenAccountBalance(liquidatorUsdcAta)).value.amount);
+    const liqPaid = liqUsdcBefore.sub(liqUsdcAfter);
+    assert.equal(liqPaid.toString(), expectedRepaid.toString(), "liquidator paga repaid, no debt");
+    assert.isTrue(liqPaid.lt(evDebt), "el liquidador paga MENOS que la deuda");
+
+    // El pool de USDC subio SOLO en `repaid`.
     const poolAfter = (await provider.connection.getTokenAccountBalance(usdcPool)).value.amount;
     const poolDelta = new BN(poolAfter).sub(new BN(poolBefore));
-    const expectedDebt = new BN(loanBefore.principalUsdc.toString())
-      .add(new BN(loanBefore.accruedInterestUsdc.toString()));
-    // La deuda incluye interes acumulado hasta el instante de liquidacion, que
-    // es >= el interes al momento del fetch previo. Verificamos cota inferior.
-    assert.isTrue(poolDelta.gte(expectedDebt));
+    assert.equal(poolDelta.toString(), expectedRepaid.toString(), "pool sube solo en repaid");
+
+    // Contabilidad del mercado: total_borrowed cae en la deuda original COMPLETA
+    // (== evDebt). total_liquidity sube SOLO en `repaid`.
+    const lmAfter37 = await program.account.lendingMarket.fetch(lm);
+    const borrowedDelta = new BN(lmBefore37.totalBorrowed.toString()).sub(new BN(lmAfter37.totalBorrowed.toString()));
+    assert.equal(borrowedDelta.toString(), evDebt.toString(), "total_borrowed baja la deuda completa");
+    const liquidityDelta = new BN(lmAfter37.totalLiquidity.toString()).sub(new BN(lmBefore37.totalLiquidity.toString()));
+    assert.equal(liquidityDelta.toString(), expectedRepaid.toString(), "total_liquidity sube solo repaid");
+
+    // pool_value cae exactamente en bad_debt (perdida realizada absorbida por LPs).
+    const pvBefore = new BN(lmBefore37.totalLiquidity.toString()).add(new BN(lmBefore37.totalBorrowed.toString()));
+    const pvAfter = new BN(lmAfter37.totalLiquidity.toString()).add(new BN(lmAfter37.totalBorrowed.toString()));
+    assert.equal(pvBefore.sub(pvAfter).toString(), evBadDebt.toString(), "pool_value cae en bad_debt");
   });
 
   it("38 withdraw_liquidity: el LP retira 50k USDC del pool", async () => {

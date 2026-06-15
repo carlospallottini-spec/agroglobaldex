@@ -1048,9 +1048,67 @@ pub fn liquidate_handler<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>
         .ok_or(AgroError::PriceOverflow)?;
     require!(lhs >= rhs, AgroError::LoanHealthy);
 
-    // Liquidator repays the full debt into the pool.
+    // ---- Seize sizing -----------------------------------------------------
+    // Collateral worth the debt PLUS the configured bonus, in base units.
+    //   seize_value = debt * (10_000 + bonus_bps) / 10_000   (USDC)
+    //   seize_units = ceil(seize_value / price)              (collateral units)
+    let bonus_bps = ctx.accounts.lending_market.liquidation_bonus_bps as u128;
+    let bonus_factor = 10_000u128
+        .checked_add(bonus_bps)
+        .ok_or(AgroError::PriceOverflow)?;
+    let seize_value = (debt as u128)
+        .checked_mul(bonus_factor)
+        .ok_or(AgroError::PriceOverflow)?
+        / 10_000u128;
+    // ceil-div by price → collateral base units.
+    let seize_units = seize_value
+        .checked_add((price as u128) - 1)
+        .ok_or(AgroError::PriceOverflow)?
+        / (price as u128);
+
+    // `repaid` is what the liquidator actually pays into the pool; `seize` /
+    // `remainder` partition the collateral; `bad_debt` is the realized loss.
+    let collateral_amount_u128 = collateral_amount as u128;
+    let (seize, remainder, repaid, bad_debt) = if seize_units <= collateral_amount_u128 {
+        // ---- Case A: solvent ---------------------------------------------
+        // Collateral covers debt+bonus. Liquidator repays the FULL debt,
+        // seizes exactly `seize_units`, the remainder returns to the borrower.
+        // (Behavior unchanged from the pre-M-3 handler.)
+        let seize = seize_units as u64;
+        let remainder = collateral_amount
+            .checked_sub(seize)
+            .ok_or(AgroError::PriceOverflow)?;
+        (seize, remainder, debt, 0u64)
+    } else {
+        // ---- Case B: underwater (M-3) ------------------------------------
+        // Collateral cannot cover debt+bonus. Seize ALL collateral (no
+        // remainder) and reduce the liquidator's payment so they still earn
+        // the bonus on what they receive:
+        //   repaid = floor(collateral_amount * price * 10_000 / (10_000 + bonus_bps))
+        // Then seize ≈ repaid*(1+bonus)/price = all collateral. The shortfall
+        //   bad_debt = debt - repaid
+        // is realized as a protocol/LP loss (see total_* updates below).
+        let gross = collateral_amount_u128
+            .checked_mul(price as u128)
+            .ok_or(AgroError::PriceOverflow)?
+            .checked_mul(10_000u128)
+            .ok_or(AgroError::PriceOverflow)?;
+        let repaid_u128 = gross / bonus_factor; // floor
+                                                // Invariants: 0 < repaid <= debt. `repaid < debt` holds in this branch
+                                                // because seize_units > collateral_amount means collateral_value <
+                                                // seize_value, i.e. collateral_amount*price < debt*bonus_factor/10_000,
+                                                // hence gross/bonus_factor < debt. Guarded anyway with checked math.
+        require!(repaid_u128 > 0, AgroError::InvalidAmount);
+        let repaid = repaid_u128 as u64;
+        require!(repaid <= debt, AgroError::PriceOverflow);
+        let bad_debt = debt.checked_sub(repaid).ok_or(AgroError::PriceOverflow)?;
+        (collateral_amount, 0u64, repaid, bad_debt)
+    };
+
+    // Liquidator pays `repaid` into the pool (== full debt in Case A, reduced
+    // in Case B). Pull from their USDC ATA.
     require!(
-        ctx.accounts.liquidator_usdc_ata.amount >= debt,
+        ctx.accounts.liquidator_usdc_ata.amount >= repaid,
         AgroError::InsufficientFunds
     );
     usdc_transfer(
@@ -1062,26 +1120,8 @@ pub fn liquidate_handler<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>
                 authority: ctx.accounts.liquidator.to_account_info(),
             },
         ),
-        debt,
+        repaid,
     )?;
-
-    // The liquidator seizes only the collateral worth the debt PLUS the
-    // configured bonus (`liquidation_bonus_bps`), NOT the whole vault. The
-    // remainder is returned to the borrower so they keep their equity buffer.
-    // If the position is so underwater that debt+bonus exceeds the collateral,
-    // the seize is capped at the full amount (no remainder).
-    let bonus_bps = ctx.accounts.lending_market.liquidation_bonus_bps as u128;
-    let seize_value = (debt as u128)
-        .checked_mul(10_000u128 + bonus_bps)
-        .ok_or(AgroError::PriceOverflow)?
-        / 10_000u128;
-    // ceil-div by price → collateral base units, capped at what's locked.
-    let seize_units = seize_value
-        .checked_add(price as u128 - 1)
-        .ok_or(AgroError::PriceOverflow)?
-        / (price as u128);
-    let seize = (seize_units.min(collateral_amount as u128)) as u64;
-    let remainder = collateral_amount - seize;
 
     let lm_key = ctx.accounts.lending_market.key();
     let vault_bump = ctx.accounts.lending_market.vault_authority_bump;
@@ -1118,12 +1158,33 @@ pub fn liquidate_handler<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>
         )?;
     }
 
+    // ---- Pool accounting --------------------------------------------------
+    // Only the recovered USDC (`repaid`) returns to idle liquidity. In Case A
+    // repaid == debt, so total_liquidity grows by the full debt (principal +
+    // interest) exactly as the pre-M-3 handler and `repay_loan` do — interest
+    // is realized profit. In Case B repaid < debt, so the pool recovers less
+    // than left the books and the shortfall (bad_debt) is the realized loss.
+    //
+    // The FULL original principal leaves `total_borrowed` in BOTH cases (it is
+    // the only thing this loan ever contributed to the borrowed total; accrued
+    // interest is tracked per-loan and never added to `total_borrowed`). For
+    // the underwater path we additionally drain the uncovered interest via
+    // saturating math so the loan is fully off the books. `saturating_sub`
+    // guards against the dust case where rounding leaves total_borrowed below
+    // the value being removed.
     let lm = &mut ctx.accounts.lending_market;
     lm.total_liquidity = lm
         .total_liquidity
-        .checked_add(debt)
+        .checked_add(repaid)
         .ok_or(AgroError::PriceOverflow)?;
-    lm.total_borrowed = lm.total_borrowed.saturating_sub(principal);
+    if bad_debt == 0 {
+        // Case A (solvent): principal leaves the books; interest realized.
+        lm.total_borrowed = lm.total_borrowed.saturating_sub(principal);
+    } else {
+        // Case B (underwater): the full original debt leaves the books, so the
+        // realized loss (= bad_debt) is absorbed pro-rata by LP shares.
+        lm.total_borrowed = lm.total_borrowed.saturating_sub(debt);
+    }
 
     let loan = &mut ctx.accounts.loan;
     loan.active = false;
@@ -1134,9 +1195,18 @@ pub fn liquidate_handler<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>
         loan: loan.key(),
         borrower: loan.borrower,
         liquidator: ctx.accounts.liquidator.key(),
-        debt_repaid_usdc: debt,
+        debt_repaid_usdc: repaid,
         collateral_seized: seize,
         collateral_returned: remainder,
     });
+    if bad_debt > 0 {
+        emit!(BadDebtRealized {
+            loan: loan.key(),
+            borrower: loan.borrower,
+            debt,
+            repaid,
+            bad_debt,
+        });
+    }
     Ok(())
 }

@@ -6399,6 +6399,19 @@
         209,
         89
       ]
+    },
+    {
+      "name": "BadDebtRealized",
+      "discriminator": [
+        113,
+        185,
+        146,
+        90,
+        190,
+        175,
+        153,
+        113
+      ]
     }
   ],
   "errors": [
@@ -8080,6 +8093,34 @@
           },
           {
             "name": "collateral_returned",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BadDebtRealized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "debt",
+            "type": "u64"
+          },
+          {
+            "name": "repaid",
+            "type": "u64"
+          },
+          {
+            "name": "bad_debt",
             "type": "u64"
           }
         ]

@@ -848,3 +848,21 @@ pub struct LoanLiquidated {
     /// Collateral returned to the borrower (kept their equity above debt+bonus).
     pub collateral_returned: u64,
 }
+
+/// Emitted when a position is so far underwater that the seized collateral
+/// cannot cover the full debt+bonus. The liquidator pays a REDUCED amount
+/// (`repaid`, still bonus-discounted on the collateral they receive) and the
+/// uncovered `bad_debt = debt - repaid` is realized as a protocol/LP loss
+/// (the full original `debt` leaves `total_borrowed` while only `repaid`
+/// returns to `total_liquidity`, so pool value drops by `bad_debt`).
+#[event]
+pub struct BadDebtRealized {
+    pub loan: Pubkey,
+    pub borrower: Pubkey,
+    /// Full outstanding debt (principal + accrued interest) at liquidation.
+    pub debt: u64,
+    /// USDC the liquidator actually paid into the pool.
+    pub repaid: u64,
+    /// Uncovered shortfall absorbed pro-rata by LP shares (`debt - repaid`).
+    pub bad_debt: u64,
+}
