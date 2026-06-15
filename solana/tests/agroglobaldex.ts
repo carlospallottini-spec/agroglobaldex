@@ -31,7 +31,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 import {
-  Keypair, PublicKey, SystemProgram, LAMPORTS_PER_SOL,
+  Keypair, PublicKey, SystemProgram, LAMPORTS_PER_SOL, ComputeBudgetProgram,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1567,6 +1567,10 @@ describe("agroglobaldex", function () {
     const borrower5Cr = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), borrower5.publicKey.toBuffer()], programId);
     const remaining = [...hookRemaining(collateralMint, vaultAuth, liquidator.publicKey), ro(borrower5Cr)];
 
+    // liquidate hace DOS transferencias hooked (vault->liquidador y vault->deudor),
+    // y cada hook execute parsea jurisdiccion + ambos ComplianceRecord. Las dos
+    // CPIs no caben en el limite por defecto de 200k CU, asi que subimos el techo.
+    // (Es un ajuste del cliente; no afecta la logica on-chain del hook.)
     await program.methods.liquidate()
       .accounts({
         liquidator: liquidator.publicKey, lendingMarket: lm, collateralConfig: cfg, loan: loan5,
@@ -1575,6 +1579,7 @@ describe("agroglobaldex", function () {
         vaultAuthority: vaultAuth, collateralVault, usdcMint, usdcPool, liquidatorUsdcAta,
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID, usdcTokenProgram: TOKEN_PROGRAM_ID,
       })
+      .preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })])
       .remainingAccounts(remaining)
       .signers([liquidator]).rpc();
 
