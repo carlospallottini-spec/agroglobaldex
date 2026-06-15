@@ -987,6 +987,29 @@ export async function refreshCollateralPrice({ assetRegistryPubkey, priceUpdateA
   return { tx };
 }
 
+/**
+ * Toggle whether the lending market REQUIRES oracle-priced collateral.
+ * Authority-only (admin). When `required` is true, open_loan/liquidate forbid
+ * the manual authority-relayed price path (audit H-1). Defaults to off at
+ * market init.
+ */
+export async function setLendingOracleRequirement({ required, marketplaceAuthority }) {
+  const program = await getProgram();
+  const auth = marketplaceAuthority || (await firstMarketplaceAuthority(program));
+  const marketplace = findMarketplacePda(auth);
+  const lendingMarket = findLendingMarketPda(marketplace);
+  const tx = await sendRpc(
+    program.methods
+      .setLendingOracleRequirement(!!required)
+    .accounts({
+      authority: program.provider.wallet.publicKey,
+      marketplace,
+      lendingMarket,
+    })
+  , 'setLendingOracleRequirement');
+  return { tx };
+}
+
 /** Open a loan: lock collateral, receive USDC. */
 export async function openLoan({ assetRegistryPubkey, collateralAmount, borrowAmount, marketplaceAuthority }) {
   const program = await getProgram();

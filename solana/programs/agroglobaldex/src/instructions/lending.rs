@@ -182,6 +182,9 @@ pub fn init_lending_market_handler(
     lm.loan_count = 0;
     lm.bump = ctx.bumps.lending_market;
     lm.vault_authority_bump = ctx.bumps.vault_authority;
+    // Default OFF: manual-priced collateral stays usable (devnet/tests). A
+    // mainnet deployment flips this on with `set_lending_oracle_requirement`.
+    lm.require_oracle_for_loans = false;
 
     emit!(LendingMarketInitialized {
         lending_market: lm.key(),
@@ -648,6 +651,11 @@ pub fn open_loan_handler<'info>(
     let price = cfg.price_usdc_per_token;
     require!(price > 0, AgroError::InvalidCollateralPrice);
 
+    // H-1: a market that requires oracles forbids the manual-relay price path.
+    if ctx.accounts.lending_market.require_oracle_for_loans {
+        require!(cfg.oracle_enabled, AgroError::OracleRequired);
+    }
+
     // Oracle-driven collateral must have a fresh price: refuse to lend against
     // a stale Pyth quote. Manual-relay collateral (oracle_enabled == false) is
     // unaffected.
@@ -1009,6 +1017,10 @@ pub fn liquidate_handler<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>
     let cfg = &ctx.accounts.collateral_config;
     let price = cfg.price_usdc_per_token;
     require!(price > 0, AgroError::InvalidCollateralPrice);
+    // H-1: a market that requires oracles forbids the manual-relay price path.
+    if ctx.accounts.lending_market.require_oracle_for_loans {
+        require!(cfg.oracle_enabled, AgroError::OracleRequired);
+    }
     // Don't liquidate against a stale oracle price (a stale-high price would
     // block real liquidations; a stale-low one would force unjust ones).
     if cfg.oracle_enabled {

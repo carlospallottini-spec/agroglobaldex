@@ -475,6 +475,13 @@ pub struct LendingMarket {
     pub bump: u8,
     /// Bump for the vault authority PDA (owns usdc_pool + collateral ATAs).
     pub vault_authority_bump: u8,
+    /// When true, `open_loan` and `liquidate` REQUIRE the collateral to be
+    /// oracle-driven (`CollateralConfig::oracle_enabled == true`), forbidding
+    /// the manual authority-relayed price path. Defaults to `false` at init so
+    /// manual-priced devnet flows keep working; a mainnet deployment flips this
+    /// on via `set_lending_oracle_requirement` to close the oracle-manipulation
+    /// vector (audit H-1).
+    pub require_oracle_for_loans: bool,
 }
 
 /// Per-asset collateral configuration. Sets the price (USDC per token) used
@@ -686,6 +693,15 @@ pub struct TreasuryWithdrawn {
 #[event]
 pub struct PauseChanged {
     pub marketplace: Pubkey,
+    pub was: bool,
+    pub now: bool,
+}
+
+/// Emitted when the authority flips `require_oracle_for_loans` on a
+/// `LendingMarket` (audit H-1 mainnet hardening switch).
+#[event]
+pub struct LendingOracleRequirementChanged {
+    pub lending_market: Pubkey,
     pub was: bool,
     pub now: bool,
 }

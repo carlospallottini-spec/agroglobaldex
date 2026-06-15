@@ -833,6 +833,81 @@ describe("agroglobaldex", function () {
     assert.equal(lmAcc.totalBorrowed.toString(), "20000000000");
   });
 
+  it("33b H-1: set_lending_oracle_requirement(true) bloquea open_loan contra colateral con precio MANUAL (OracleRequired)", async () => {
+    // Activamos la exigencia de oraculo a nivel de mercado. La config de
+    // colateral Grain (idx 0) del test 31 es de precio MANUAL (oracle_enabled
+    // == false), asi que open_loan tiene que rebotar con OracleRequired ANTES
+    // de mover colateral. Usamos un borrower fresco para que el PDA del loan no
+    // colisione con el del test 33.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const collateralMint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+
+    // Sanity: la config sigue siendo manual (no oracle-driven).
+    const cfgAcc = await program.account.collateralConfig.fetch(cfg);
+    assert.equal(cfgAcc.oracleEnabled, false);
+
+    // Flip ON (authority-only).
+    await program.methods.setLendingOracleRequirement(true)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm })
+      .rpc();
+    const lmOn = await program.account.lendingMarket.fetch(lm);
+    assert.equal(lmOn.requireOracleForLoans, true);
+
+    const borrowerOR = Keypair.generate();
+    await airdrop(borrowerOR.publicKey, 1);
+    const borrowerORRec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), borrowerOR.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.updateKyc(true, Array.from(Buffer.from("AR")), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet: borrowerOR.publicKey,
+        complianceRecord: borrowerORRec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+
+    const borrowerORCollateralAta = getAssociatedTokenAddressSync(collateralMint, borrowerOR.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const collateralVault = getAssociatedTokenAddressSync(collateralMint, vaultAuth, true, TOKEN_2022_PROGRAM_ID);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const borrowerORUsdcAta = getAssociatedTokenAddressSync(usdcMint, borrowerOR.publicKey, true, TOKEN_PROGRAM_ID);
+    const loanOR = pda(
+      [Buffer.from("loan"), lm.toBuffer(), borrowerOR.publicKey.toBuffer(), reg.toBuffer()],
+      programId,
+    );
+
+    // El check OracleRequired corre antes de cualquier transferencia, asi que
+    // este revert NO depende de balances de colateral.
+    await expectRevert(
+      program.methods.openLoan(new BN(1_000_000), new BN(1_000_000))
+        .accounts({
+          borrower: borrowerOR.publicKey, marketplace,
+          lendingMarket: lm, collateralConfig: cfg, assetRegistry: reg,
+          borrowerCompliance: borrowerORRec,
+          collateralMint, borrowerCollateralAta: borrowerORCollateralAta,
+          vaultAuthority: vaultAuth, collateralVault,
+          usdcMint, usdcPool, borrowerUsdcAta: borrowerORUsdcAta, loan: loanOR,
+          collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+          usdcTokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([borrowerOR]).rpc(),
+      "OracleRequired",
+    );
+
+    // Lo apagamos de nuevo para no afectar los tests posteriores (siguen
+    // usando colateral de precio manual).
+    await program.methods.setLendingOracleRequirement(false)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm })
+      .rpc();
+    const lmOff = await program.account.lendingMarket.fetch(lm);
+    assert.equal(lmOff.requireOracleForLoans, false);
+  });
+
   it("34 sad: open_loan que excede max_ltv revierte ExceedsMaxLtv", async () => {
     // No podemos volver a abrir un loan con el mismo borrower+registry (el PDA
     // del loan ya existe del test 33). Creamos un segundo borrower KYC'd que
