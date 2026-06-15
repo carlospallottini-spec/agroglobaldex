@@ -37,7 +37,7 @@ import {
   TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint, getAssociatedTokenAddressSync,
   createAssociatedTokenAccount, mintTo,
-  createTransferCheckedWithTransferHookInstruction,
+  createTransferCheckedInstruction,
 } from "@solana/spl-token";
 import { Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import { assert } from "chai";
@@ -870,17 +870,25 @@ describe("agroglobaldex", function () {
         complianceRecord: borrowerORRec, systemProgram: SystemProgram.programId,
       }).signers([complianceSigner]).rpc();
 
-    const borrowerORCollateralAta = getAssociatedTokenAddressSync(collateralMint, borrowerOR.publicKey, true, TOKEN_2022_PROGRAM_ID);
     const collateralVault = getAssociatedTokenAddressSync(collateralMint, vaultAuth, true, TOKEN_2022_PROGRAM_ID);
     const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
-    const borrowerORUsdcAta = getAssociatedTokenAddressSync(usdcMint, borrowerOR.publicKey, true, TOKEN_PROGRAM_ID);
     const loanOR = pda(
       [Buffer.from("loan"), lm.toBuffer(), borrowerOR.publicKey.toBuffer(), reg.toBuffer()],
       programId,
     );
 
-    // El check OracleRequired corre antes de cualquier transferencia, asi que
-    // este revert NO depende de balances de colateral.
+    // El borrower necesita sus ATAs YA creadas: open_loan los declara sin
+    // `init` (associated_token::authority = borrower), asi que Anchor exige que
+    // EXISTAN durante la validacion de cuentas — ANTES del handler. Si no los
+    // creamos, el ix revierte AccountNotInitialized y nunca llega al gate
+    // OracleRequired (que es justo lo que este test debe ejercitar). Quedan
+    // vacios: el gate corre antes de cualquier transferencia, asi que el revert
+    // NO depende de balances de colateral.
+    const borrowerORCollateralAta = await createAssociatedTokenAccount(
+      provider.connection, payer, collateralMint, borrowerOR.publicKey, undefined,
+      TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+    const borrowerORUsdcAta = await createAssociatedTokenAccount(
+      provider.connection, payer, usdcMint, borrowerOR.publicKey);
     await expectRevert(
       program.methods.openLoan(new BN(1_000_000), new BN(1_000_000))
         .accounts({
@@ -1057,16 +1065,42 @@ describe("agroglobaldex", function () {
     return rec;
   }
 
-  // Raw Token-2022 transfer that fires the compliance TransferHook. The spl-
-  // token helper resolves the hook's extra accounts from the on-chain
-  // ExtraAccountMetaList, so it passes exactly what `compliance_hook::execute`
-  // expects (incl. source/destination ComplianceRecords).
+  // Raw Token-2022 transfer that fires the compliance TransferHook.
+  //
+  // We build the TransferChecked instruction and append the hook's extra
+  // accounts DETERMINISTICALLY instead of using
+  // `createTransferCheckedWithTransferHookInstruction`. That spl-token helper
+  // resolves the seed-derived metas off-chain by reading account state at the
+  // given commitment (`resolveExtraAccountMeta`); under local-validator load
+  // that read races and can mis-resolve, surfacing as a Token-2022
+  // `IncorrectProgramId` on the TransferChecked itself (flaky test 44/45).
+  //
+  // The accounts Token-2022 forwards to `compliance_hook::execute` are, in
+  // order: [source, mint, destination, owner, ...resolved extra metas,
+  // hookProgram, extraAccountMetaList]. The resolved extra metas mirror the
+  // `Execute` account context (hook_config, marketplace, agroglobaldex_program,
+  // jurisdiction_policy, source_compliance, destination_compliance) — exactly
+  // what `hookRemaining(mint, srcOwner, dstOwner)` derives, minus the leading
+  // hookProgram/extraAccountMetaList pair which Token-2022 appends LAST.
   async function hookedTransfer(
-    fromOwner: Keypair, fromAta: PublicKey, toAta: PublicKey, mint: PublicKey, amount: bigint,
+    fromOwner: Keypair, fromAta: PublicKey, toAta: PublicKey, toOwner: PublicKey, mint: PublicKey, amount: bigint,
   ) {
-    const ix = await createTransferCheckedWithTransferHookInstruction(
-      provider.connection, fromAta, mint, toAta, fromOwner.publicKey, amount, 6,
-      [], "confirmed", TOKEN_2022_PROGRAM_ID,
+    const ix = createTransferCheckedInstruction(
+      fromAta, mint, toAta, fromOwner.publicKey, amount, 6, [], TOKEN_2022_PROGRAM_ID,
+    );
+    const ro = (pubkey: PublicKey) => ({ pubkey, isSigner: false, isWritable: false });
+    const extraMetaList = pda([Buffer.from("extra-account-metas"), mint.toBuffer()], HOOK_PROGRAM_ID);
+    ix.keys.push(
+      // Resolved extra metas (Execute accounts 5..10), same derivation as hookRemaining.
+      ro(pda([Buffer.from("hook_config"), mint.toBuffer()], HOOK_PROGRAM_ID)),
+      ro(marketplace),
+      ro(programId),
+      ro(pda([Buffer.from("jurisdiction_policy"), marketplace.toBuffer()], programId)),
+      ro(pda([Buffer.from("compliance_record"), marketplace.toBuffer(), fromOwner.publicKey.toBuffer()], programId)),
+      ro(pda([Buffer.from("compliance_record"), marketplace.toBuffer(), toOwner.toBuffer()], programId)),
+      // Token-2022 appends the hook program + validation account LAST.
+      ro(HOOK_PROGRAM_ID),
+      ro(extraMetaList),
     );
     const tx = new Transaction().add(ix);
     return sendAndConfirmTransaction(provider.connection, tx, [fromOwner], { commitment: "confirmed" });
@@ -1731,7 +1765,7 @@ describe("agroglobaldex", function () {
     const recipientAta = await createAssociatedTokenAccount(
       provider.connection, payer, mint, recipient.publicKey, undefined, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
-    await hookedTransfer(hIssuer, issuerAta, recipientAta, mint, 1_000_000_000n);
+    await hookedTransfer(hIssuer, issuerAta, recipientAta, recipient.publicKey, mint, 1_000_000_000n);
 
     assert.equal((await provider.connection.getTokenAccountBalance(recipientAta)).value.amount, "1000000000");
   });
@@ -1752,7 +1786,7 @@ describe("agroglobaldex", function () {
       provider.connection, payer, mint, recipient.publicKey, undefined, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
     await expectRevert(
-      hookedTransfer(hIssuer, issuerAta, recipientAta, mint, 1_000_000_000n),
+      hookedTransfer(hIssuer, issuerAta, recipientAta, recipient.publicKey, mint, 1_000_000_000n),
       "AccreditationRequired",
     );
 
