@@ -28,7 +28,19 @@ import {
 
 import { getWalletProvider, getPublicKey } from './wallet-adapter.js';
 
-const { PublicKey, Connection, SystemProgram } = web3;
+const { PublicKey, Connection, SystemProgram, ComputeBudgetProgram } = web3;
+
+// Token-2022 transfer hooks add real CU cost: instructions that fire the
+// compliance hook (buyAsset, openLoan, repayLoan — each moves a hooked
+// Token-2022 balance) can exceed Solana's default 200k CU ceiling and fail
+// on-chain with "Computational budget exceeded". We prepend an explicit
+// setComputeUnitLimit so production transactions don't hit that wall. 400k
+// leaves ample headroom for one hooked transfer plus the surrounding
+// USDC/receipt work (the on-chain liquidate path, which does TWO hooked
+// transfers, was measured just over 200k).
+function computeBudgetIxs(units = 400_000) {
+  return [ComputeBudgetProgram.setComputeUnitLimit({ units })];
+}
 
 const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
 const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
@@ -597,6 +609,7 @@ export async function buyAsset({ listingPubkey, amount }) {
     // The escrow→buyer transfer fires the Token-2022 compliance hook; src owner
     // is the listing PDA (escrow authority), dst is the buyer.
     .remainingAccounts(hookRemainingAccounts(regAcc.mint, marketplace, listing, buyer))
+    .preInstructions(computeBudgetIxs())
   , 'buyAsset');
   return { tx };
 }
@@ -1017,6 +1030,7 @@ export async function openLoan({ assetRegistryPubkey, collateralAmount, borrowAm
       systemProgram: SystemProgram.programId,
     })
     .remainingAccounts(hookRemainingAccounts(collateralMint, marketplace, borrower, vaultAuthority))
+    .preInstructions(computeBudgetIxs())
   , 'openLoan');
   return { tx, loan: loan.toString() };
 }
@@ -1056,6 +1070,7 @@ export async function repayLoan({ assetRegistryPubkey, marketplaceAuthority }) {
       usdcTokenProgram: TOKEN_PROGRAM_ID,
     })
     .remainingAccounts(hookRemainingAccounts(collateralMint, marketplace, vaultAuthority, borrower))
+    .preInstructions(computeBudgetIxs())
   , 'repayLoan');
   return { tx };
 }
