@@ -1057,6 +1057,7 @@ export async function repayLoan({ assetRegistryPubkey, marketplaceAuthority }) {
       .repayLoan()
     .accounts({
       borrower,
+      marketplace,
       lendingMarket,
       loan,
       collateralMint,
@@ -1091,6 +1092,7 @@ export async function depositLiquidity({ amount, marketplaceAuthority }) {
       .depositLiquidity(new BN(amount))
     .accounts({
       provider,
+      marketplace,
       lendingMarket,
       usdcMint,
       usdcPool: lmAcc.usdcPool,
@@ -1119,6 +1121,7 @@ export async function withdrawLiquidity({ amount, marketplaceAuthority }) {
       .withdrawLiquidity(new BN(amount))
     .accounts({
       provider,
+      marketplace,
       lendingMarket,
       liquidityProvider: findLiquidityProviderPda(lendingMarket, provider),
       usdcMint,

@@ -11,6 +11,14 @@ pub struct MintToken<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
 
+    /// The marketplace circuit breaker must be off to mint new supply.
+    #[account(
+        seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
+        bump = marketplace.bump,
+        constraint = !marketplace.paused @ AgroError::Paused,
+    )]
+    pub marketplace: Box<Account<'info, Marketplace>>,
+
     /// Deterministically reconstructed using the explicit `index` stored
     /// inside the registry itself. No reliance on client-supplied seeds.
     #[account(
@@ -23,8 +31,23 @@ pub struct MintToken<'info> {
         bump = asset_registry.bump,
         has_one = issuer @ AgroError::UnauthorizedIssuer,
         has_one = mint,
+        constraint = asset_registry.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
     )]
     pub asset_registry: Box<Account<'info, AssetRegistry>>,
+
+    /// The issuer must still hold a valid KYC at mint time; a revoked KYC
+    /// blocks further minting.
+    #[account(
+        seeds = [
+            COMPLIANCE_RECORD_SEED,
+            marketplace.key().as_ref(),
+            issuer.key().as_ref(),
+        ],
+        bump = issuer_compliance.bump,
+        constraint = issuer_compliance.kyc_verified @ AgroError::KycNotVerified,
+    )]
+    pub issuer_compliance: Box<Account<'info, ComplianceRecord>>,
 
     #[account(
         mut,

@@ -202,9 +202,18 @@ pub struct DepositLiquidity<'info> {
     pub provider: Signer<'info>,
 
     #[account(
+        seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
+        bump = marketplace.bump,
+        constraint = !marketplace.paused @ AgroError::Paused,
+    )]
+    pub marketplace: Box<Account<'info, Marketplace>>,
+
+    #[account(
         mut,
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
+        constraint = lending_market.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
     )]
     pub lending_market: Box<Account<'info, LendingMarket>>,
 
@@ -326,9 +335,18 @@ pub struct WithdrawLiquidity<'info> {
     pub provider: Signer<'info>,
 
     #[account(
+        seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
+        bump = marketplace.bump,
+        constraint = !marketplace.paused @ AgroError::Paused,
+    )]
+    pub marketplace: Box<Account<'info, Marketplace>>,
+
+    #[account(
         mut,
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
+        constraint = lending_market.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
     )]
     pub lending_market: Box<Account<'info, LendingMarket>>,
 
@@ -744,9 +762,18 @@ pub struct RepayLoan<'info> {
     pub borrower: Signer<'info>,
 
     #[account(
+        seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
+        bump = marketplace.bump,
+        constraint = !marketplace.paused @ AgroError::Paused,
+    )]
+    pub marketplace: Box<Account<'info, Marketplace>>,
+
+    #[account(
         mut,
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
+        constraint = lending_market.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
     )]
     pub lending_market: Box<Account<'info, LendingMarket>>,
 
@@ -879,9 +906,18 @@ pub struct Liquidate<'info> {
     pub liquidator: Signer<'info>,
 
     #[account(
+        seeds = [MARKETPLACE_SEED, marketplace.authority.as_ref()],
+        bump = marketplace.bump,
+        constraint = !marketplace.paused @ AgroError::Paused,
+    )]
+    pub marketplace: Box<Account<'info, Marketplace>>,
+
+    #[account(
         mut,
         seeds = [LENDING_MARKET_SEED, lending_market.marketplace.as_ref()],
         bump = lending_market.bump,
+        constraint = lending_market.marketplace == marketplace.key()
+            @ AgroError::ListingMismatch,
     )]
     pub lending_market: Box<Account<'info, LendingMarket>>,
 

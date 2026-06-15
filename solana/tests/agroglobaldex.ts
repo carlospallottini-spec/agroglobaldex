@@ -422,10 +422,13 @@ describe("agroglobaldex", function () {
     const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
     const mint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
     const issuerAta = getAssociatedTokenAddressSync(mint, issuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const issuerCompliance = await ensureKyc(issuer.publicKey);
     await program.methods.mintToken(new BN(50_000_000_000))
       .accounts({
         issuer: issuer.publicKey,
+        marketplace,
         assetRegistry: reg,
+        issuerCompliance,
         mint,
         issuerTokenAccount: issuerAta,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
@@ -753,7 +756,7 @@ describe("agroglobaldex", function () {
     );
     await program.methods.depositLiquidity(new BN(100_000_000_000))
       .accounts({
-        provider: authority.publicKey, lendingMarket: lm,
+        provider: authority.publicKey, marketplace, lendingMarket: lm,
         usdcMint, usdcPool, providerUsdcAta: authorityUsdcAta,
         liquidityProvider: lpRecord,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -918,10 +921,13 @@ describe("agroglobaldex", function () {
       .signers([assetIssuer]).rpc();
 
     const issuerAta = getAssociatedTokenAddressSync(m, assetIssuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const issuerCompliance = await ensureKyc(assetIssuer.publicKey);
     await program.methods.mintToken(mintAmount)
       .accounts({
         issuer: assetIssuer.publicKey,
+        marketplace,
         assetRegistry: reg,
+        issuerCompliance,
         mint: m,
         issuerTokenAccount: issuerAta,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
@@ -952,9 +958,10 @@ describe("agroglobaldex", function () {
       .signers([assetIssuer]).rpc();
 
     const issuerAta = getAssociatedTokenAddressSync(m, assetIssuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const issuerCompliance = await ensureKyc(assetIssuer.publicKey);
     await program.methods.mintToken(mintAmount)
       .accounts({
-        issuer: assetIssuer.publicKey, assetRegistry: reg, mint: m, issuerTokenAccount: issuerAta,
+        issuer: assetIssuer.publicKey, marketplace, assetRegistry: reg, issuerCompliance, mint: m, issuerTokenAccount: issuerAta,
         tokenProgram: TOKEN_2022_PROGRAM_ID, associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
@@ -1024,6 +1031,7 @@ describe("agroglobaldex", function () {
     await program.methods.repayLoan()
       .accounts({
         borrower: issuer.publicKey,
+        marketplace,
         lendingMarket: lm,
         loan,
         collateralMint,
@@ -1143,6 +1151,7 @@ describe("agroglobaldex", function () {
       program.methods.liquidate()
         .accounts({
           liquidator: liquidator.publicKey,
+          marketplace,
           lendingMarket: lm,
           collateralConfig: cfg,
           loan: loan3,
@@ -1269,6 +1278,7 @@ describe("agroglobaldex", function () {
     await program.methods.liquidate()
       .accounts({
         liquidator: liquidator.publicKey,
+        marketplace,
         lendingMarket: lm,
         collateralConfig: cfg,
         loan: loan4,
@@ -1338,7 +1348,7 @@ describe("agroglobaldex", function () {
 
     await program.methods.withdrawLiquidity(SHARES)
       .accounts({
-        provider: authority.publicKey, lendingMarket: lm,
+        provider: authority.publicKey, marketplace, lendingMarket: lm,
         liquidityProvider: lpRecord,
         usdcMint, usdcPool, vaultAuthority: vaultAuth,
         providerUsdcAta: authorityUsdcAta,
@@ -1369,7 +1379,7 @@ describe("agroglobaldex", function () {
     await expectRevert(
       program.methods.withdrawLiquidity(new BN(60_000_000_000))
         .accounts({
-          provider: authority.publicKey, lendingMarket: lm,
+          provider: authority.publicKey, marketplace, lendingMarket: lm,
           liquidityProvider: lpRecord,
           usdcMint, usdcPool, vaultAuthority: vaultAuth,
           providerUsdcAta: authorityUsdcAta,
@@ -1377,6 +1387,42 @@ describe("agroglobaldex", function () {
         }).rpc(),
       "ExceedsDeposit",
     );
+  });
+
+  it("39b sad: deposit_liquidity con marketplace pausado revierte Paused (circuit breaker cubre lending)", async () => {
+    // C-1 regression: el kill-switch `paused` ahora cubre el modulo de lending.
+    // Pausamos, intentamos depositar liquidez (debe revertir Paused), reanudamos.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const authorityUsdcAta = getAssociatedTokenAddressSync(usdcMint, authority.publicKey, true, TOKEN_PROGRAM_ID);
+    const lpRecord = pda(
+      [Buffer.from("liquidity_provider"), lm.toBuffer(), authority.publicKey.toBuffer()],
+      programId,
+    );
+
+    await program.methods.setPaused(true)
+      .accounts({ authority: authority.publicKey, marketplace })
+      .rpc();
+
+    await expectRevert(
+      program.methods.depositLiquidity(new BN(1_000_000))
+        .accounts({
+          provider: authority.publicKey, marketplace, lendingMarket: lm,
+          usdcMint, usdcPool, providerUsdcAta: authorityUsdcAta,
+          liquidityProvider: lpRecord,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        }).rpc(),
+      "Paused",
+    );
+
+    // Reanudar para no romper los tests siguientes.
+    await program.methods.setPaused(false)
+      .accounts({ authority: authority.publicKey, marketplace })
+      .rpc();
+    const mp = await program.account.marketplace.fetch(marketplace);
+    assert.equal(mp.paused, false);
   });
 
   it("40 list_asset + buy_asset: trade nativo a traves del compliance hook", async () => {
@@ -1573,7 +1619,7 @@ describe("agroglobaldex", function () {
     // (Es un ajuste del cliente; no afecta la logica on-chain del hook.)
     await program.methods.liquidate()
       .accounts({
-        liquidator: liquidator.publicKey, lendingMarket: lm, collateralConfig: cfg, loan: loan5,
+        liquidator: liquidator.publicKey, marketplace, lendingMarket: lm, collateralConfig: cfg, loan: loan5,
         liquidatorCompliance: liquidatorRec, collateralMint, liquidatorCollateralAta,
         borrower: borrower5.publicKey, borrowerCollateralAta: borrower5CollateralAta,
         vaultAuthority: vaultAuth, collateralVault, usdcMint, usdcPool, liquidatorUsdcAta,
