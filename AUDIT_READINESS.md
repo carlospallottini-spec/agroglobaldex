@@ -5,7 +5,38 @@ y como lista de issues conocidos a entregar al auditor.*
 
 ---
 
-## 1. Veredicto de mainnet-readiness
+## 0. Estado de remediación (actualizado 2026-06-16)
+
+Tras el assessment se remediaron, **con verificación on-chain en CI (anchor-test)**,
+los siguientes hallazgos. Esta sección es el resumen ejecutivo; el detalle original
+de cada uno se conserva intacto abajo como contexto para el auditor.
+
+| Hallazgo | Sev | Estado | Commit / nota |
+|----------|-----|--------|---------------|
+| **H-2** Bypass de acreditación P2P | 🟠 Alto | ✅ Corregido (CI verde) | Hook exige `accredited_investor` en clases restringidas (`AccreditationRequired`) |
+| **C-1** `paused` no cubría lending | 🔴 Crítico | ✅ Corregido (CI verde) | `marketplace` + `!paused` en deposit/withdraw/repay/liquidate |
+| **M-1** mint sin pause/KYC | 🟡 Medio | ✅ Corregido (CI verde) | `mint_token` exige `!paused` + KYC del issuer |
+| **H-1** Precio manual sin oráculo | 🟠 Alto | ✅ Corregido (CI verde) | `require_oracle_for_loans` + `OracleRequired` |
+| **M-3** Liquidación de bad debt | 🟡 Medio | ✅ Corregido (CI verde) | Liquidación parcial + `BadDebtRealized` (LPs absorben pro-rata) |
+| **C-2** Authority single-wallet | 🔴 Crítico | ✅ Mitigado (procedimiento) | *Go-live gate* multisig+timelock documentado en `SECURITY.md` |
+| **H-3** Parseo manual de Pyth | 🟠 Alto | ⏳ Documentado (mitigado) | Ya tiene owner-check + discriminador + feed binding + umbral firmas + staleness + confidence; migración a SDK queda para que el auditor decida |
+| M-2, M-4, L-1…L-5 | 🟡/⚪ | ⏳ Pendientes | Ver detalle abajo |
+
+> **Punto para el auditor (M-3 / M-4):** en el path underwater, `liquidate` hace
+> `total_borrowed -= debt` (principal + interés), pero en este código `total_borrowed`
+> solo contabiliza *principal* (M-4: el interés nunca se suma ahí). Con un préstamo es
+> inofensivo; en un pool multi-préstamo resta de más un delta de interés (nivel polvo).
+> La alternativa estrictamente conservadora es `-= principal` con pérdida
+> `principal - repaid`. **Decisión de redondeo a validar por la auditoría.**
+
+> Nota: el veredicto de la §1 era correcto en su fecha. A 2026-06-16, los bloqueantes
+> de **código** críticos/altos están remediados y verificados en CI; el go-live real
+> con dinero sigue requiriendo, en paralelo, **auditoría externa + licencia CASP/MiCA**
+> (capital + legal), inalterado.
+
+---
+
+## 1. Veredicto de mainnet-readiness (en la fecha del assessment)
 
 **No. Hoy no es seguro mover dinero real en mainnet, y el propio repo lo dice**
 (`SECURITY.md` — "PoC/Demo… NO usar con valor real en mainnet"; lista la auditoría
