@@ -1391,6 +1391,7 @@ describe("agroglobaldex", function () {
     const liqUsdcBefore = new BN((await provider.connection.getTokenAccountBalance(liquidatorUsdcAta)).value.amount);
     const borrCollBefore37 = new BN((await provider.connection.getTokenAccountBalance(borrower4CollateralAta)).value.amount);
     const liqCollBefore = new BN((await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount);
+    const poolBefore = (await provider.connection.getTokenAccountBalance(usdcPool)).value.amount;
     const lmBefore37 = await program.account.lendingMarket.fetch(lm);
 
     const sig37 = await program.methods.liquidate()
@@ -1449,13 +1450,23 @@ describe("agroglobaldex", function () {
     // Parse del evento BadDebtRealized: lo usamos como fuente de verdad para la
     // `debt` (incluye el interes acumulado al instante exacto de liquidacion,
     // que el test no puede recomputar sin conocer el timestamp on-chain).
-    const tx37 = await provider.connection.getTransaction(sig37, {
-      commitment: "confirmed",
-      maxSupportedTransactionVersion: 0,
-    });
+    // `.rpc()` confirms the signature, but the ledger may briefly expose the
+    // transaction record before its `meta` (with the program logs) is queryable
+    // at the requested commitment. Poll until `meta.logMessages` is available so
+    // the EventParser has the `program data:` lines to decode.
+    let tx37: any = null;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      tx37 = await provider.connection.getTransaction(sig37, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      });
+      if (tx37?.meta?.logMessages) break;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    assert.isOk(tx37?.meta?.logMessages, "tx meta/logs disponibles para parsear eventos");
     const parser = new anchor.EventParser(programId, program.coder);
     const events37: any[] = [];
-    for (const ev of parser.parseLogs(tx37!.meta!.logMessages || [])) events37.push(ev);
+    for (const ev of parser.parseLogs(tx37!.meta!.logMessages!)) events37.push(ev);
     const badDebtEv = events37.find((e) => e.name === "badDebtRealized" || e.name === "BadDebtRealized");
     assert.isOk(badDebtEv, "se emitio BadDebtRealized");
     const evDebt = new BN(badDebtEv.data.debt.toString());
@@ -1509,14 +1520,17 @@ describe("agroglobaldex", function () {
     const ataBefore = (await provider.connection.getTokenAccountBalance(authorityUsdcAta)).value.amount;
 
     // Redime 50k shares. USDC = shares * pool_value / total_shares, donde
-    // pool_value = liquidez ociosa + prestada (incluye el interes ya acumulado),
-    // asi que recibe >= su parte del principal (el interes fluye a los LP).
+    // pool_value = liquidez ociosa + prestada. OJO: el test 37 (M-3) realizo
+    // bad_debt en este mismo pool, asi que pool_value < total_shares y el LP
+    // recibe MENOS que su aporte nominal (absorbe su parte pro-rata de la
+    // perdida). La invariante es la formula share-pro-rata exacta, no un piso
+    // sobre el principal.
     const SHARES = new BN(50_000_000_000);
     assert.isTrue(new BN(lpBefore.shares.toString()).gte(SHARES));
     const poolValue = new BN(lmBefore.totalLiquidity.toString()).add(new BN(lmBefore.totalBorrowed.toString()));
     const expectedUsdc = SHARES.mul(poolValue).div(new BN(lmBefore.totalShares.toString()));
     assert.isTrue(new BN(lmBefore.totalLiquidity.toString()).gte(expectedUsdc)); // idle cubre
-    assert.isTrue(expectedUsdc.gte(new BN("50000000000")));                       // >= principal
+    assert.isTrue(expectedUsdc.gt(new BN(0)));                                    // recibe algo
 
     await program.methods.withdrawLiquidity(SHARES)
       .accounts({
