@@ -1082,28 +1082,81 @@ describe("agroglobaldex", function () {
   // jurisdiction_policy, source_compliance, destination_compliance) — exactly
   // what `hookRemaining(mint, srcOwner, dstOwner)` derives, minus the leading
   // hookProgram/extraAccountMetaList pair which Token-2022 appends LAST.
+  // Poll until every account a tx depends on is visible at the given commitment.
+  // The local validator confirms the creating tx, but the bank that PREFLIGHT
+  // SIMULATION runs against can lag a slot or two under load. If a freshly
+  // created mint / ExtraAccountMetaList / ATA is not yet visible when Token-2022
+  // resolves the transfer hook, the resolver reads stale (zeroed) state and the
+  // TransferChecked aborts with `IncorrectProgramId` — the exact flake that hit
+  // test 44 (run #42) while the identical-path test 45 happened to pass.
+  async function waitForAccounts(keys: PublicKey[], commitment: any = "confirmed") {
+    const deadline = Date.now() + 15_000;
+    for (;;) {
+      const infos = await provider.connection.getMultipleAccountsInfo(keys, commitment);
+      if (infos.every((i) => i !== null)) return;
+      if (Date.now() > deadline) {
+        const missing = keys.filter((_, idx) => infos[idx] === null).map((k) => k.toBase58());
+        throw new Error(`waitForAccounts timed out; not visible: ${missing.join(", ")}`);
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+
   async function hookedTransfer(
     fromOwner: Keypair, fromAta: PublicKey, toAta: PublicKey, toOwner: PublicKey, mint: PublicKey, amount: bigint,
   ) {
-    const ix = createTransferCheckedInstruction(
-      fromAta, mint, toAta, fromOwner.publicKey, amount, 6, [], TOKEN_2022_PROGRAM_ID,
-    );
     const ro = (pubkey: PublicKey) => ({ pubkey, isSigner: false, isWritable: false });
     const extraMetaList = pda([Buffer.from("extra-account-metas"), mint.toBuffer()], HOOK_PROGRAM_ID);
-    ix.keys.push(
-      // Resolved extra metas (Execute accounts 5..10), same derivation as hookRemaining.
-      ro(pda([Buffer.from("hook_config"), mint.toBuffer()], HOOK_PROGRAM_ID)),
-      ro(marketplace),
-      ro(programId),
-      ro(pda([Buffer.from("jurisdiction_policy"), marketplace.toBuffer()], programId)),
-      ro(pda([Buffer.from("compliance_record"), marketplace.toBuffer(), fromOwner.publicKey.toBuffer()], programId)),
-      ro(pda([Buffer.from("compliance_record"), marketplace.toBuffer(), toOwner.toBuffer()], programId)),
-      // Token-2022 appends the hook program + validation account LAST.
-      ro(HOOK_PROGRAM_ID),
-      ro(extraMetaList),
+    const hookConfig = pda([Buffer.from("hook_config"), mint.toBuffer()], HOOK_PROGRAM_ID);
+    const jurisdictionPolicy = pda([Buffer.from("jurisdiction_policy"), marketplace.toBuffer()], programId);
+    const srcCompliance = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), fromOwner.publicKey.toBuffer()], programId);
+    const dstCompliance = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), toOwner.toBuffer()], programId);
+
+    // 1) Make the race deterministic: block until every account Token-2022's
+    //    hook resolver will touch is materialized at our read commitment.
+    await waitForAccounts(
+      [mint, fromAta, toAta, extraMetaList, hookConfig, marketplace, jurisdictionPolicy, srcCompliance, dstCompliance],
+      "confirmed",
     );
-    const tx = new Transaction().add(ix);
-    return sendAndConfirmTransaction(provider.connection, tx, [fromOwner], { commitment: "confirmed" });
+
+    const build = () => {
+      const ix = createTransferCheckedInstruction(
+        fromAta, mint, toAta, fromOwner.publicKey, amount, 6, [], TOKEN_2022_PROGRAM_ID,
+      );
+      ix.keys.push(
+        // Resolved extra metas (Execute accounts 5..10), same derivation as hookRemaining.
+        ro(hookConfig),
+        ro(marketplace),
+        ro(programId),
+        ro(jurisdictionPolicy),
+        ro(srcCompliance),
+        ro(dstCompliance),
+        // Token-2022 appends the hook program + validation account LAST.
+        ro(HOOK_PROGRAM_ID),
+        ro(extraMetaList),
+      );
+      return new Transaction().add(ix);
+    };
+
+    // 2) Belt-and-suspenders: if preflight still races the bank to an
+    //    IncorrectProgramId (transient hook-resolution state lag), retry with a
+    //    fresh blockhash. The on-chain logic is deterministic — a genuine
+    //    rejection (e.g. AccreditationRequired) is NOT retried, it rethrows.
+    const isTransientHookRace = (e: any) => {
+      const s = String(e?.message ?? e);
+      return s.includes("IncorrectProgramId") || s.includes("incorrect program id");
+    };
+    let lastErr: any;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        return await sendAndConfirmTransaction(provider.connection, build(), [fromOwner], { commitment: "confirmed" });
+      } catch (e) {
+        lastErr = e;
+        if (!isTransientHookRace(e)) throw e;
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+    throw lastErr;
   }
 
   it("35 repay_loan happy: issuer repaga principal + interes → recupera 50k grain", async () => {
