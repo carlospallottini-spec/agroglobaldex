@@ -264,6 +264,10 @@
         {
           "name": "agroglobaldex_program",
           "type": "pubkey"
+        },
+        {
+          "name": "requires_accredited",
+          "type": "bool"
         }
       ]
     }
@@ -358,6 +362,11 @@
       "code": 6014,
       "name": "DiscriminatorMismatch",
       "msg": "Account discriminator does not match the expected type"
+    },
+    {
+      "code": 6015,
+      "name": "AccreditationRequired",
+      "msg": "Destination wallet must be an accredited investor for this restricted asset class"
     }
   ],
   "types": [
@@ -387,6 +396,15 @@
               "AgroGlobalDex main program id — used to resolve external PDAs."
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "requires_accredited",
+            "docs": [
+              "True when the mint is a restricted asset class (HarvestFraction /",
+              "InvestmentOffering). When set, the transfer hook additionally requires",
+              "the destination wallet to be an accredited / professional investor."
+            ],
+            "type": "bool"
           },
           {
             "name": "bump",

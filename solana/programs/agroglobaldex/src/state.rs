@@ -475,6 +475,13 @@ pub struct LendingMarket {
     pub bump: u8,
     /// Bump for the vault authority PDA (owns usdc_pool + collateral ATAs).
     pub vault_authority_bump: u8,
+    /// When true, `open_loan` and `liquidate` REQUIRE the collateral to be
+    /// oracle-driven (`CollateralConfig::oracle_enabled == true`), forbidding
+    /// the manual authority-relayed price path. Defaults to `false` at init so
+    /// manual-priced devnet flows keep working; a mainnet deployment flips this
+    /// on via `set_lending_oracle_requirement` to close the oracle-manipulation
+    /// vector (audit H-1).
+    pub require_oracle_for_loans: bool,
 }
 
 /// Per-asset collateral configuration. Sets the price (USDC per token) used
@@ -690,6 +697,15 @@ pub struct PauseChanged {
     pub now: bool,
 }
 
+/// Emitted when the authority flips `require_oracle_for_loans` on a
+/// `LendingMarket` (audit H-1 mainnet hardening switch).
+#[event]
+pub struct LendingOracleRequirementChanged {
+    pub lending_market: Pubkey,
+    pub was: bool,
+    pub now: bool,
+}
+
 /// Emitted when the compliance signer revokes a wallet's KYC, typically due
 /// to a sanctions hit, fraud detection or regulatory request. Off-chain
 /// surveillance MUST act on this event (freeze listings, surface to MLRO).
@@ -831,4 +847,22 @@ pub struct LoanLiquidated {
     pub collateral_seized: u64,
     /// Collateral returned to the borrower (kept their equity above debt+bonus).
     pub collateral_returned: u64,
+}
+
+/// Emitted when a position is so far underwater that the seized collateral
+/// cannot cover the full debt+bonus. The liquidator pays a REDUCED amount
+/// (`repaid`, still bonus-discounted on the collateral they receive) and the
+/// uncovered `bad_debt = debt - repaid` is realized as a protocol/LP loss
+/// (the full original `debt` leaves `total_borrowed` while only `repaid`
+/// returns to `total_liquidity`, so pool value drops by `bad_debt`).
+#[event]
+pub struct BadDebtRealized {
+    pub loan: Pubkey,
+    pub borrower: Pubkey,
+    /// Full outstanding debt (principal + accrued interest) at liquidation.
+    pub debt: u64,
+    /// USDC the liquidator actually paid into the pool.
+    pub repaid: u64,
+    /// Uncovered shortfall absorbed pro-rata by LP shares (`debt - repaid`).
+    pub bad_debt: u64,
 }

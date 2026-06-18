@@ -31,13 +31,15 @@
 import * as anchor from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 import {
-  Keypair, PublicKey, SystemProgram, LAMPORTS_PER_SOL,
+  Keypair, PublicKey, SystemProgram, LAMPORTS_PER_SOL, ComputeBudgetProgram,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint, getAssociatedTokenAddressSync,
   createAssociatedTokenAccount, mintTo,
+  createTransferCheckedInstruction,
 } from "@solana/spl-token";
+import { Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import { assert } from "chai";
 import * as fs from "fs";
 import * as path from "path";
@@ -420,10 +422,13 @@ describe("agroglobaldex", function () {
     const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
     const mint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
     const issuerAta = getAssociatedTokenAddressSync(mint, issuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const issuerCompliance = await ensureKyc(issuer.publicKey);
     await program.methods.mintToken(new BN(50_000_000_000))
       .accounts({
         issuer: issuer.publicKey,
+        marketplace,
         assetRegistry: reg,
+        issuerCompliance,
         mint,
         issuerTokenAccount: issuerAta,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
@@ -751,7 +756,7 @@ describe("agroglobaldex", function () {
     );
     await program.methods.depositLiquidity(new BN(100_000_000_000))
       .accounts({
-        provider: authority.publicKey, lendingMarket: lm,
+        provider: authority.publicKey, marketplace, lendingMarket: lm,
         usdcMint, usdcPool, providerUsdcAta: authorityUsdcAta,
         liquidityProvider: lpRecord,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -826,6 +831,89 @@ describe("agroglobaldex", function () {
     // El loanCount tiene que haber incrementado a 1. totalBorrowed = 20k USDC.
     assert.equal(lmAcc.loanCount.toString(), "1");
     assert.equal(lmAcc.totalBorrowed.toString(), "20000000000");
+  });
+
+  it("33b H-1: set_lending_oracle_requirement(true) bloquea open_loan contra colateral con precio MANUAL (OracleRequired)", async () => {
+    // Activamos la exigencia de oraculo a nivel de mercado. La config de
+    // colateral Grain (idx 0) del test 31 es de precio MANUAL (oracle_enabled
+    // == false), asi que open_loan tiene que rebotar con OracleRequired ANTES
+    // de mover colateral. Usamos un borrower fresco para que el PDA del loan no
+    // colisione con el del test 33.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const idxBuf = new BN(0).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idxBuf], programId);
+    const collateralMint = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    const cfg = pda([Buffer.from("collateral_config"), lm.toBuffer(), reg.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+
+    // Sanity: la config sigue siendo manual (no oracle-driven).
+    const cfgAcc = await program.account.collateralConfig.fetch(cfg);
+    assert.equal(cfgAcc.oracleEnabled, false);
+
+    // Flip ON (authority-only).
+    await program.methods.setLendingOracleRequirement(true)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm })
+      .rpc();
+    const lmOn = await program.account.lendingMarket.fetch(lm);
+    assert.equal(lmOn.requireOracleForLoans, true);
+
+    const borrowerOR = Keypair.generate();
+    await airdrop(borrowerOR.publicKey, 1);
+    const borrowerORRec = pda(
+      [Buffer.from("compliance_record"), marketplace.toBuffer(), borrowerOR.publicKey.toBuffer()],
+      programId,
+    );
+    await program.methods.updateKyc(true, Array.from(Buffer.from("AR")), true)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet: borrowerOR.publicKey,
+        complianceRecord: borrowerORRec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+
+    const collateralVault = getAssociatedTokenAddressSync(collateralMint, vaultAuth, true, TOKEN_2022_PROGRAM_ID);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const loanOR = pda(
+      [Buffer.from("loan"), lm.toBuffer(), borrowerOR.publicKey.toBuffer(), reg.toBuffer()],
+      programId,
+    );
+
+    // El borrower necesita sus ATAs YA creadas: open_loan los declara sin
+    // `init` (associated_token::authority = borrower), asi que Anchor exige que
+    // EXISTAN durante la validacion de cuentas — ANTES del handler. Si no los
+    // creamos, el ix revierte AccountNotInitialized y nunca llega al gate
+    // OracleRequired (que es justo lo que este test debe ejercitar). Quedan
+    // vacios: el gate corre antes de cualquier transferencia, asi que el revert
+    // NO depende de balances de colateral.
+    const borrowerORCollateralAta = await createAssociatedTokenAccount(
+      provider.connection, payer, collateralMint, borrowerOR.publicKey, undefined,
+      TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+    const borrowerORUsdcAta = await createAssociatedTokenAccount(
+      provider.connection, payer, usdcMint, borrowerOR.publicKey);
+    await expectRevert(
+      program.methods.openLoan(new BN(1_000_000), new BN(1_000_000))
+        .accounts({
+          borrower: borrowerOR.publicKey, marketplace,
+          lendingMarket: lm, collateralConfig: cfg, assetRegistry: reg,
+          borrowerCompliance: borrowerORRec,
+          collateralMint, borrowerCollateralAta: borrowerORCollateralAta,
+          vaultAuthority: vaultAuth, collateralVault,
+          usdcMint, usdcPool, borrowerUsdcAta: borrowerORUsdcAta, loan: loanOR,
+          collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
+          usdcTokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([borrowerOR]).rpc(),
+      "OracleRequired",
+    );
+
+    // Lo apagamos de nuevo para no afectar los tests posteriores (siguen
+    // usando colateral de precio manual).
+    await program.methods.setLendingOracleRequirement(false)
+      .accounts({ authority: authority.publicKey, marketplace, lendingMarket: lm })
+      .rpc();
+    const lmOff = await program.account.lendingMarket.fetch(lm);
+    assert.equal(lmOff.requireOracleForLoans, false);
   });
 
   it("34 sad: open_loan que excede max_ltv revierte ExceedsMaxLtv", async () => {
@@ -916,10 +1004,13 @@ describe("agroglobaldex", function () {
       .signers([assetIssuer]).rpc();
 
     const issuerAta = getAssociatedTokenAddressSync(m, assetIssuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const issuerCompliance = await ensureKyc(assetIssuer.publicKey);
     await program.methods.mintToken(mintAmount)
       .accounts({
         issuer: assetIssuer.publicKey,
+        marketplace,
         assetRegistry: reg,
+        issuerCompliance,
         mint: m,
         issuerTokenAccount: issuerAta,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
@@ -928,6 +1019,144 @@ describe("agroglobaldex", function () {
       })
       .signers([assetIssuer]).rpc();
     return { reg, mint: m, issuerAta };
+  }
+
+  // Register a RESTRICTED asset class (HarvestFraction) + mint to the issuer.
+  // The compliance hook flags this mint `requires_accredited` at register time,
+  // so transfers to a non-accredited destination must be rejected.
+  async function registerFreshHarvest(
+    assetIssuer: Keypair,
+    mintAmount: anchor.BN,
+  ): Promise<{ reg: PublicKey; mint: PublicKey; issuerAta: PublicKey }> {
+    const mp = await program.account.marketplace.fetch(marketplace);
+    const idx = new BN(mp.assetCount).toArrayLike(Buffer, "le", 8);
+    const reg = pda([Buffer.from("asset_registry"), marketplace.toBuffer(), idx], programId);
+    const m = pda([Buffer.from("asset_mint"), reg.toBuffer()], programId);
+    await program.methods.registerAsset(
+      { harvestFraction: { crop: { soy: {} }, hectares: 50, harvestYear: 2027 } },
+      new BN(1_000_000_000_000), Array.from(createHash("sha256").update("fresh-harvest-" + reg.toBase58()).digest()),
+      "ipfs://demo/harvest-wp.pdf", "ipfs://demo/harvest-meta.json", "Cosecha Soja AR 2027",
+    )
+      .accounts({ issuer: assetIssuer.publicKey, marketplace, assetRegistry: reg, mint: m, complianceHookProgram: HOOK_PROGRAM_ID, hookConfig: pda([Buffer.from("hook_config"), m.toBuffer()], HOOK_PROGRAM_ID), extraAccountMetaList: pda([Buffer.from("extra-account-metas"), m.toBuffer()], HOOK_PROGRAM_ID), tokenProgram: TOKEN_2022_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: anchor.web3.SYSVAR_RENT_PUBKEY })
+      .signers([assetIssuer]).rpc();
+
+    const issuerAta = getAssociatedTokenAddressSync(m, assetIssuer.publicKey, true, TOKEN_2022_PROGRAM_ID);
+    const issuerCompliance = await ensureKyc(assetIssuer.publicKey);
+    await program.methods.mintToken(mintAmount)
+      .accounts({
+        issuer: assetIssuer.publicKey, marketplace, assetRegistry: reg, issuerCompliance, mint: m, issuerTokenAccount: issuerAta,
+        tokenProgram: TOKEN_2022_PROGRAM_ID, associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([assetIssuer]).rpc();
+    return { reg, mint: m, issuerAta };
+  }
+
+  // Stamp a KYC ComplianceRecord with explicit accreditation status. Unlike
+  // `ensureKyc` (which always stamps accredited=true) this lets a test create a
+  // KYC'd-but-NOT-accredited wallet to exercise the restricted-class gate.
+  async function kycWith(wallet: PublicKey, accredited: boolean, jur = "AR") {
+    const rec = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), wallet.toBuffer()], programId);
+    await program.methods.updateKyc(true, Array.from(Buffer.from(jur)), accredited)
+      .accounts({
+        complianceSigner: complianceSigner.publicKey,
+        marketplace, wallet, complianceRecord: rec, systemProgram: SystemProgram.programId,
+      }).signers([complianceSigner]).rpc();
+    return rec;
+  }
+
+  // Raw Token-2022 transfer that fires the compliance TransferHook.
+  //
+  // We build the TransferChecked instruction and append the hook's extra
+  // accounts DETERMINISTICALLY instead of using
+  // `createTransferCheckedWithTransferHookInstruction`. That spl-token helper
+  // resolves the seed-derived metas off-chain by reading account state at the
+  // given commitment (`resolveExtraAccountMeta`); under local-validator load
+  // that read races and can mis-resolve, surfacing as a Token-2022
+  // `IncorrectProgramId` on the TransferChecked itself (flaky test 44/45).
+  //
+  // The accounts Token-2022 forwards to `compliance_hook::execute` are, in
+  // order: [source, mint, destination, owner, ...resolved extra metas,
+  // hookProgram, extraAccountMetaList]. The resolved extra metas mirror the
+  // `Execute` account context (hook_config, marketplace, agroglobaldex_program,
+  // jurisdiction_policy, source_compliance, destination_compliance) — exactly
+  // what `hookRemaining(mint, srcOwner, dstOwner)` derives, minus the leading
+  // hookProgram/extraAccountMetaList pair which Token-2022 appends LAST.
+  // Poll until every account a tx depends on is visible at the given commitment.
+  // The local validator confirms the creating tx, but the bank that PREFLIGHT
+  // SIMULATION runs against can lag a slot or two under load. If a freshly
+  // created mint / ExtraAccountMetaList / ATA is not yet visible when Token-2022
+  // resolves the transfer hook, the resolver reads stale (zeroed) state and the
+  // TransferChecked aborts with `IncorrectProgramId` — the exact flake that hit
+  // test 44 (run #42) while the identical-path test 45 happened to pass.
+  async function waitForAccounts(keys: PublicKey[], commitment: any = "confirmed") {
+    const deadline = Date.now() + 15_000;
+    for (;;) {
+      const infos = await provider.connection.getMultipleAccountsInfo(keys, commitment);
+      if (infos.every((i) => i !== null)) return;
+      if (Date.now() > deadline) {
+        const missing = keys.filter((_, idx) => infos[idx] === null).map((k) => k.toBase58());
+        throw new Error(`waitForAccounts timed out; not visible: ${missing.join(", ")}`);
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+
+  async function hookedTransfer(
+    fromOwner: Keypair, fromAta: PublicKey, toAta: PublicKey, toOwner: PublicKey, mint: PublicKey, amount: bigint,
+  ) {
+    const ro = (pubkey: PublicKey) => ({ pubkey, isSigner: false, isWritable: false });
+    const extraMetaList = pda([Buffer.from("extra-account-metas"), mint.toBuffer()], HOOK_PROGRAM_ID);
+    const hookConfig = pda([Buffer.from("hook_config"), mint.toBuffer()], HOOK_PROGRAM_ID);
+    const jurisdictionPolicy = pda([Buffer.from("jurisdiction_policy"), marketplace.toBuffer()], programId);
+    const srcCompliance = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), fromOwner.publicKey.toBuffer()], programId);
+    const dstCompliance = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), toOwner.toBuffer()], programId);
+
+    // 1) Make the race deterministic: block until every account Token-2022's
+    //    hook resolver will touch is materialized at our read commitment.
+    await waitForAccounts(
+      [mint, fromAta, toAta, extraMetaList, hookConfig, marketplace, jurisdictionPolicy, srcCompliance, dstCompliance],
+      "confirmed",
+    );
+
+    const build = () => {
+      const ix = createTransferCheckedInstruction(
+        fromAta, mint, toAta, fromOwner.publicKey, amount, 6, [], TOKEN_2022_PROGRAM_ID,
+      );
+      ix.keys.push(
+        // Resolved extra metas (Execute accounts 5..10), same derivation as hookRemaining.
+        ro(hookConfig),
+        ro(marketplace),
+        ro(programId),
+        ro(jurisdictionPolicy),
+        ro(srcCompliance),
+        ro(dstCompliance),
+        // Token-2022 appends the hook program + validation account LAST.
+        ro(HOOK_PROGRAM_ID),
+        ro(extraMetaList),
+      );
+      return new Transaction().add(ix);
+    };
+
+    // 2) Belt-and-suspenders: if preflight still races the bank to an
+    //    IncorrectProgramId (transient hook-resolution state lag), retry with a
+    //    fresh blockhash. The on-chain logic is deterministic — a genuine
+    //    rejection (e.g. AccreditationRequired) is NOT retried, it rethrows.
+    const isTransientHookRace = (e: any) => {
+      const s = String(e?.message ?? e);
+      return s.includes("IncorrectProgramId") || s.includes("incorrect program id");
+    };
+    let lastErr: any;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        return await sendAndConfirmTransaction(provider.connection, build(), [fromOwner], { commitment: "confirmed" });
+      } catch (e) {
+        lastErr = e;
+        if (!isTransientHookRace(e)) throw e;
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+    throw lastErr;
   }
 
   it("35 repay_loan happy: issuer repaga principal + interes → recupera 50k grain", async () => {
@@ -964,6 +1193,7 @@ describe("agroglobaldex", function () {
     await program.methods.repayLoan()
       .accounts({
         borrower: issuer.publicKey,
+        marketplace,
         lendingMarket: lm,
         loan,
         collateralMint,
@@ -1083,6 +1313,7 @@ describe("agroglobaldex", function () {
       program.methods.liquidate()
         .accounts({
           liquidator: liquidator.publicKey,
+          marketplace,
           lendingMarket: lm,
           collateralConfig: cfg,
           loan: loan3,
@@ -1104,9 +1335,12 @@ describe("agroglobaldex", function () {
     );
   });
 
-  it("37 liquidate happy: tras caida de precio el liquidador incauta el colateral", async () => {
+  it("37 liquidate underwater (M-3): seize total, repaid reducido, bad debt realizado", async () => {
     // Abrimos un loan fresco, bajamos el precio del colateral via
-    // set_collateral_config hasta que el loan quede liquidable, y liquidamos.
+    // set_collateral_config hasta dejar la posicion UNDERWATER (collateral_value
+    // < debt) y liquidamos. Caso B de M-3: el liquidador incauta TODO el
+    // colateral, paga un `repaid` reducido (mantiene su bonus) y el faltante
+    // (bad_debt = debt - repaid) se realiza como perdida del protocolo/LP.
     const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
 
     // Borrower fresco KYC'd que tambien emite su propio grain.
@@ -1203,12 +1437,20 @@ describe("agroglobaldex", function () {
       TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
     );
 
+    // M-3 underwater (Case B) baseline: precio 0.40 → collateral_value = 4e8 <
+    // debt (~4e8 + interes). El liquidador NO repaga la deuda completa: paga el
+    // `repaid` reducido (descontado el bonus sobre el colateral que recibe) y el
+    // faltante (bad_debt) se realiza como perdida del protocolo/LP.
+    const liqUsdcBefore = new BN((await provider.connection.getTokenAccountBalance(liquidatorUsdcAta)).value.amount);
+    const borrCollBefore37 = new BN((await provider.connection.getTokenAccountBalance(borrower4CollateralAta)).value.amount);
+    const liqCollBefore = new BN((await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount);
     const poolBefore = (await provider.connection.getTokenAccountBalance(usdcPool)).value.amount;
-    const liqCollBefore = (await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount;
+    const lmBefore37 = await program.account.lendingMarket.fetch(lm);
 
-    await program.methods.liquidate()
+    const sig37 = await program.methods.liquidate()
       .accounts({
         liquidator: liquidator.publicKey,
+        marketplace,
         lendingMarket: lm,
         collateralConfig: cfg,
         loan: loan4,
@@ -1225,29 +1467,93 @@ describe("agroglobaldex", function () {
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
         usdcTokenProgram: TOKEN_PROGRAM_ID,
       })
-      // Deeply underwater (collateral < debt+bonus) → full seizure, remainder 0,
-      // so only the vault→liquidator transfer fires.
+      // Underwater (collateral < debt+bonus) → full seizure, remainder 0, so
+      // only the vault→liquidator transfer fires (no borrower refund). The CU
+      // bump is defensive even though a single hooked transfer fits in 200k.
+      .preInstructions([anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })])
       .remainingAccounts(hookRemaining(collateralMint, vaultAuth, liquidator.publicKey))
       .signers([liquidator]).rpc();
 
-    // Loan cerrado.
+    // Loan cerrado/inactivo.
     const loanAfter = await program.account.loanPosition.fetch(loan4);
     assert.equal(loanAfter.active, false);
     assert.equal(loanAfter.principalUsdc.toString(), "0");
 
-    // El liquidador recibio TODO el colateral incautado.
-    const liqCollAfter = (await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount;
-    const seized = new BN(liqCollAfter).sub(new BN(liqCollBefore));
+    // El liquidador recibio TODO el colateral (seize == collateral_amount).
+    const liqCollAfter = new BN((await provider.connection.getTokenAccountBalance(liquidatorCollateralAta)).value.amount);
+    const seized = liqCollAfter.sub(liqCollBefore);
     assert.equal(seized.toString(), loanBefore.collateralAmount.toString());
 
-    // El pool USDC subio en la deuda repagada (principal + interes).
+    // El deudor NO recibe excedente (remainder 0).
+    const borrCollAfter37 = new BN((await provider.connection.getTokenAccountBalance(borrower4CollateralAta)).value.amount);
+    assert.equal(borrCollAfter37.sub(borrCollBefore37).toString(), "0");
+    // Conservacion: seize + remainder == collateral_amount.
+    assert.equal(
+      seized.add(borrCollAfter37.sub(borrCollBefore37)).toString(),
+      loanBefore.collateralAmount.toString(),
+    );
+
+    // `repaid` no depende de la deuda: repaid = floor(C * price * 10000 /
+    // (10000 + bonus_bps)). Es exacto independientemente del interes acumulado.
+    const price37 = new BN(400_000);
+    const bonusBps = new BN(lmBefore37.liquidationBonusBps);
+    const collAmt = new BN(loanBefore.collateralAmount.toString());
+    const expectedRepaid = collAmt.mul(price37).mul(new BN(10_000)).div(new BN(10_000).add(bonusBps));
+
+    // Parse del evento BadDebtRealized: lo usamos como fuente de verdad para la
+    // `debt` (incluye el interes acumulado al instante exacto de liquidacion,
+    // que el test no puede recomputar sin conocer el timestamp on-chain).
+    // `.rpc()` confirms the signature, but the ledger may briefly expose the
+    // transaction record before its `meta` (with the program logs) is queryable
+    // at the requested commitment. Poll until `meta.logMessages` is available so
+    // the EventParser has the `program data:` lines to decode.
+    let tx37: any = null;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      tx37 = await provider.connection.getTransaction(sig37, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      });
+      if (tx37?.meta?.logMessages) break;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    assert.isOk(tx37?.meta?.logMessages, "tx meta/logs disponibles para parsear eventos");
+    const parser = new anchor.EventParser(programId, program.coder);
+    const events37: any[] = [];
+    for (const ev of parser.parseLogs(tx37!.meta!.logMessages!)) events37.push(ev);
+    const badDebtEv = events37.find((e) => e.name === "badDebtRealized" || e.name === "BadDebtRealized");
+    assert.isOk(badDebtEv, "se emitio BadDebtRealized");
+    const evDebt = new BN(badDebtEv.data.debt.toString());
+    const evRepaid = new BN(badDebtEv.data.repaid.toString());
+    const evBadDebt = new BN(badDebtEv.data.badDebt.toString());
+    // Consistencia interna del evento.
+    assert.equal(evRepaid.toString(), expectedRepaid.toString(), "repaid = floor(C*price*1e4/(1e4+bonus))");
+    assert.equal(evBadDebt.toString(), evDebt.sub(evRepaid).toString(), "bad_debt == debt - repaid");
+    assert.isTrue(evBadDebt.gt(new BN(0)), "bad_debt > 0 (posicion underwater)");
+    assert.isTrue(evRepaid.lte(evDebt) && evRepaid.gt(new BN(0)), "0 < repaid <= debt");
+
+    // El USDC del liquidador bajo en `repaid`, NO en la deuda completa.
+    const liqUsdcAfter = new BN((await provider.connection.getTokenAccountBalance(liquidatorUsdcAta)).value.amount);
+    const liqPaid = liqUsdcBefore.sub(liqUsdcAfter);
+    assert.equal(liqPaid.toString(), expectedRepaid.toString(), "liquidator paga repaid, no debt");
+    assert.isTrue(liqPaid.lt(evDebt), "el liquidador paga MENOS que la deuda");
+
+    // El pool de USDC subio SOLO en `repaid`.
     const poolAfter = (await provider.connection.getTokenAccountBalance(usdcPool)).value.amount;
     const poolDelta = new BN(poolAfter).sub(new BN(poolBefore));
-    const expectedDebt = new BN(loanBefore.principalUsdc.toString())
-      .add(new BN(loanBefore.accruedInterestUsdc.toString()));
-    // La deuda incluye interes acumulado hasta el instante de liquidacion, que
-    // es >= el interes al momento del fetch previo. Verificamos cota inferior.
-    assert.isTrue(poolDelta.gte(expectedDebt));
+    assert.equal(poolDelta.toString(), expectedRepaid.toString(), "pool sube solo en repaid");
+
+    // Contabilidad del mercado: total_borrowed cae en la deuda original COMPLETA
+    // (== evDebt). total_liquidity sube SOLO en `repaid`.
+    const lmAfter37 = await program.account.lendingMarket.fetch(lm);
+    const borrowedDelta = new BN(lmBefore37.totalBorrowed.toString()).sub(new BN(lmAfter37.totalBorrowed.toString()));
+    assert.equal(borrowedDelta.toString(), evDebt.toString(), "total_borrowed baja la deuda completa");
+    const liquidityDelta = new BN(lmAfter37.totalLiquidity.toString()).sub(new BN(lmBefore37.totalLiquidity.toString()));
+    assert.equal(liquidityDelta.toString(), expectedRepaid.toString(), "total_liquidity sube solo repaid");
+
+    // pool_value cae exactamente en bad_debt (perdida realizada absorbida por LPs).
+    const pvBefore = new BN(lmBefore37.totalLiquidity.toString()).add(new BN(lmBefore37.totalBorrowed.toString()));
+    const pvAfter = new BN(lmAfter37.totalLiquidity.toString()).add(new BN(lmAfter37.totalBorrowed.toString()));
+    assert.equal(pvBefore.sub(pvAfter).toString(), evBadDebt.toString(), "pool_value cae en bad_debt");
   });
 
   it("38 withdraw_liquidity: el LP retira 50k USDC del pool", async () => {
@@ -1267,18 +1573,21 @@ describe("agroglobaldex", function () {
     const ataBefore = (await provider.connection.getTokenAccountBalance(authorityUsdcAta)).value.amount;
 
     // Redime 50k shares. USDC = shares * pool_value / total_shares, donde
-    // pool_value = liquidez ociosa + prestada (incluye el interes ya acumulado),
-    // asi que recibe >= su parte del principal (el interes fluye a los LP).
+    // pool_value = liquidez ociosa + prestada. OJO: el test 37 (M-3) realizo
+    // bad_debt en este mismo pool, asi que pool_value < total_shares y el LP
+    // recibe MENOS que su aporte nominal (absorbe su parte pro-rata de la
+    // perdida). La invariante es la formula share-pro-rata exacta, no un piso
+    // sobre el principal.
     const SHARES = new BN(50_000_000_000);
     assert.isTrue(new BN(lpBefore.shares.toString()).gte(SHARES));
     const poolValue = new BN(lmBefore.totalLiquidity.toString()).add(new BN(lmBefore.totalBorrowed.toString()));
     const expectedUsdc = SHARES.mul(poolValue).div(new BN(lmBefore.totalShares.toString()));
     assert.isTrue(new BN(lmBefore.totalLiquidity.toString()).gte(expectedUsdc)); // idle cubre
-    assert.isTrue(expectedUsdc.gte(new BN("50000000000")));                       // >= principal
+    assert.isTrue(expectedUsdc.gt(new BN(0)));                                    // recibe algo
 
     await program.methods.withdrawLiquidity(SHARES)
       .accounts({
-        provider: authority.publicKey, lendingMarket: lm,
+        provider: authority.publicKey, marketplace, lendingMarket: lm,
         liquidityProvider: lpRecord,
         usdcMint, usdcPool, vaultAuthority: vaultAuth,
         providerUsdcAta: authorityUsdcAta,
@@ -1309,7 +1618,7 @@ describe("agroglobaldex", function () {
     await expectRevert(
       program.methods.withdrawLiquidity(new BN(60_000_000_000))
         .accounts({
-          provider: authority.publicKey, lendingMarket: lm,
+          provider: authority.publicKey, marketplace, lendingMarket: lm,
           liquidityProvider: lpRecord,
           usdcMint, usdcPool, vaultAuthority: vaultAuth,
           providerUsdcAta: authorityUsdcAta,
@@ -1317,6 +1626,42 @@ describe("agroglobaldex", function () {
         }).rpc(),
       "ExceedsDeposit",
     );
+  });
+
+  it("39b sad: deposit_liquidity con marketplace pausado revierte Paused (circuit breaker cubre lending)", async () => {
+    // C-1 regression: el kill-switch `paused` ahora cubre el modulo de lending.
+    // Pausamos, intentamos depositar liquidez (debe revertir Paused), reanudamos.
+    const lm = pda([Buffer.from("lending_market"), marketplace.toBuffer()], programId);
+    const vaultAuth = pda([Buffer.from("lending_vault"), lm.toBuffer()], programId);
+    const usdcPool = getAssociatedTokenAddressSync(usdcMint, vaultAuth, true, TOKEN_PROGRAM_ID);
+    const authorityUsdcAta = getAssociatedTokenAddressSync(usdcMint, authority.publicKey, true, TOKEN_PROGRAM_ID);
+    const lpRecord = pda(
+      [Buffer.from("liquidity_provider"), lm.toBuffer(), authority.publicKey.toBuffer()],
+      programId,
+    );
+
+    await program.methods.setPaused(true)
+      .accounts({ authority: authority.publicKey, marketplace })
+      .rpc();
+
+    await expectRevert(
+      program.methods.depositLiquidity(new BN(1_000_000))
+        .accounts({
+          provider: authority.publicKey, marketplace, lendingMarket: lm,
+          usdcMint, usdcPool, providerUsdcAta: authorityUsdcAta,
+          liquidityProvider: lpRecord,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        }).rpc(),
+      "Paused",
+    );
+
+    // Reanudar para no romper los tests siguientes.
+    await program.methods.setPaused(false)
+      .accounts({ authority: authority.publicKey, marketplace })
+      .rpc();
+    const mp = await program.account.marketplace.fetch(marketplace);
+    assert.equal(mp.paused, false);
   });
 
   it("40 list_asset + buy_asset: trade nativo a traves del compliance hook", async () => {
@@ -1507,14 +1852,19 @@ describe("agroglobaldex", function () {
     const borrower5Cr = pda([Buffer.from("compliance_record"), marketplace.toBuffer(), borrower5.publicKey.toBuffer()], programId);
     const remaining = [...hookRemaining(collateralMint, vaultAuth, liquidator.publicKey), ro(borrower5Cr)];
 
+    // liquidate hace DOS transferencias hooked (vault->liquidador y vault->deudor),
+    // y cada hook execute parsea jurisdiccion + ambos ComplianceRecord. Las dos
+    // CPIs no caben en el limite por defecto de 200k CU, asi que subimos el techo.
+    // (Es un ajuste del cliente; no afecta la logica on-chain del hook.)
     await program.methods.liquidate()
       .accounts({
-        liquidator: liquidator.publicKey, lendingMarket: lm, collateralConfig: cfg, loan: loan5,
+        liquidator: liquidator.publicKey, marketplace, lendingMarket: lm, collateralConfig: cfg, loan: loan5,
         liquidatorCompliance: liquidatorRec, collateralMint, liquidatorCollateralAta,
         borrower: borrower5.publicKey, borrowerCollateralAta: borrower5CollateralAta,
         vaultAuthority: vaultAuth, collateralVault, usdcMint, usdcPool, liquidatorUsdcAta,
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID, usdcTokenProgram: TOKEN_PROGRAM_ID,
       })
+      .preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })])
       .remainingAccounts(remaining)
       .signers([liquidator]).rpc();
 
@@ -1528,5 +1878,49 @@ describe("agroglobaldex", function () {
     assert.isTrue(seized.lt(new BN(1000)), "el liquidador NO se lleva todo");
     const loanAfter = await program.account.loanPosition.fetch(loan5);
     assert.equal(loanAfter.active, false);
+  });
+
+  it("44 happy: restricted HarvestFraction transfers P2P to an ACCREDITED recipient", async () => {
+    // Issuer emite una HarvestFraction (clase restringida -> requires_accredited
+    // queda seteado en el HookConfig). Una transferencia P2P cruda (no via
+    // buy_asset) hacia un wallet KYC'd Y ACREDITADO debe pasar el hook.
+    const hIssuer = Keypair.generate();
+    await airdrop(hIssuer.publicKey, 5);
+    await kycWith(hIssuer.publicKey, true);
+    const { mint, issuerAta } = await registerFreshHarvest(hIssuer, new BN(10_000_000_000));
+
+    const recipient = Keypair.generate();
+    await airdrop(recipient.publicKey, 1);
+    await kycWith(recipient.publicKey, true); // KYC'd + acreditado
+    const recipientAta = await createAssociatedTokenAccount(
+      provider.connection, payer, mint, recipient.publicKey, undefined, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+    await hookedTransfer(hIssuer, issuerAta, recipientAta, recipient.publicKey, mint, 1_000_000_000n);
+
+    assert.equal((await provider.connection.getTokenAccountBalance(recipientAta)).value.amount, "1000000000");
+  });
+
+  it("45 sad: restricted HarvestFraction P2P transfer to a NON-accredited recipient is rejected", async () => {
+    // Mismo setup, pero el destino esta KYC'd y NO acreditado. El hook debe
+    // abortar la transferencia con AccreditationRequired -> cierra el bypass de
+    // acreditacion por re-transferencia peer-to-peer.
+    const hIssuer = Keypair.generate();
+    await airdrop(hIssuer.publicKey, 5);
+    await kycWith(hIssuer.publicKey, true);
+    const { mint, issuerAta } = await registerFreshHarvest(hIssuer, new BN(10_000_000_000));
+
+    const recipient = Keypair.generate();
+    await airdrop(recipient.publicKey, 1);
+    await kycWith(recipient.publicKey, false); // KYC'd pero NO acreditado
+    const recipientAta = await createAssociatedTokenAccount(
+      provider.connection, payer, mint, recipient.publicKey, undefined, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+    await expectRevert(
+      hookedTransfer(hIssuer, issuerAta, recipientAta, recipient.publicKey, mint, 1_000_000_000n),
+      "AccreditationRequired",
+    );
+
+    // El destino no recibio nada.
+    assert.equal((await provider.connection.getTokenAccountBalance(recipientAta)).value.amount, "0");
   });
 });

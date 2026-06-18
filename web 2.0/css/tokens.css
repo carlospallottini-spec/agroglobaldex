@@ -1,0 +1,104 @@
+/* ════════════════════════════════════════════════════════════════════
+   AgroGlobalDex — tokens.css  (THE single canonical design-token source)
+   ────────────────────────────────────────────────────────────────────
+   Loaded FIRST on every page, before each page's inline <style>, before
+   enhance.css and immersive.css. This file is the ONE place the design
+   system lives. The ~4 divergent per-page :root blocks have been folded
+   into this single coherent set, so every page now shares an identical,
+   consistent token vocabulary.
+
+   Brand kept intact: dark theme, neon green #00FF6A + gold/amber accent,
+   DM Serif Display (display) + Outfit (body).
+
+   Every legacy variable name pages already reference (--bg, --neon, --r,
+   --fd …) is preserved with its exact original value so NOTHING breaks.
+   On top of that we add an elevated, modern token layer: a fluid type
+   scale, a spacing scale, semantic color tints (color-mix with solid
+   fallbacks), elevation, easing and motion tokens.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ── Surfaces (dark theme ramp) ─────────────────────────────────── */
+  --bg:#05080A; --bg2:#0A0F0C; --bg3:#101610; --bg4:#171F18; --bg5:#1E2820;
+
+  /* ── Brand neon green + alpha tints ─────────────────────────────── */
+  --neon:#00FF6A;
+  --nd:#00FF6A0D;   /* ~5%  fill   */
+  --nm:#00FF6A28;   /* ~16% border */
+  --nb:#00FF6A55;   /* ~33% glow   */
+
+  /* ── Gold / amber accent ────────────────────────────────────────── */
+  --gold:#C8A84B; --gd:#C8A84B0D; --gm:#C8A84B28;
+
+  /* ── Text ramp (AA-checked on --bg) ─────────────────────────────── */
+  --txt:#ECF0EC; --t2:#7A9080; --t3:#647E6A; --t4:#202E22;
+
+  /* ── Status / data colors ───────────────────────────────────────── */
+  --red:#FF3D4A; --amb:#F0A020; --blu:#3A9EF5; --pur:#8A78F0;
+
+  /* ── Hairline borders (low → high contrast) ─────────────────────── */
+  --bd:#131D14; --bd2:#1E2D20; --bd3:#2A3D2C;
+
+  /* ── Radii ──────────────────────────────────────────────────────── */
+  --r:8px; --r2:14px; --r3:20px; --r4:28px;
+  --r-pill:999px;
+
+  /* ── Type families ──────────────────────────────────────────────── */
+  --fd:'DM Serif Display',serif;
+  --fb:'Outfit',sans-serif;
+
+  /* ════════════════════════════════════════════════════════════════
+     ELEVATED LAYER — additive modern tokens (new names, never clash)
+     ════════════════════════════════════════════════════════════════ */
+
+  /* Fluid type scale (clamp: min @360px → max @1280px). Modular ≈1.20. */
+  --fs-50:clamp(.72rem, .70rem + .10vw, .78rem);   /* micro / labels   */
+  --fs-75:clamp(.80rem, .77rem + .14vw, .88rem);   /* small            */
+  --fs-100:clamp(.92rem, .88rem + .18vw, 1.00rem); /* body             */
+  --fs-200:clamp(1.02rem, .96rem + .26vw, 1.18rem);/* lead body        */
+  --fs-300:clamp(1.20rem, 1.08rem + .50vw, 1.50rem);/* h4 / large      */
+  --fs-400:clamp(1.45rem, 1.20rem + 1.0vw, 2.10rem);/* h3              */
+  --fs-500:clamp(1.85rem, 1.40rem + 1.9vw, 3.10rem);/* h2 / section    */
+  --fs-600:clamp(2.30rem, 1.55rem + 3.3vw, 4.40rem);/* h1 / hero       */
+
+  /* Line-heights & tracking */
+  --lh-tight:1.06; --lh-snug:1.2; --lh-body:1.7;
+  --tr-tight:-.03em; --tr-snug:-.02em; --tr-wide:.06em;
+
+  /* Spacing scale (4px base, fluid where it earns it) */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px;
+  --sp-6:32px; --sp-7:48px; --sp-8:64px; --sp-9:96px;
+  --sp-section:clamp(48px, 4vw + 28px, 96px);
+  --sp-gutter:clamp(16px, 3vw, 40px);
+  --measure:66ch;          /* comfortable reading width */
+  --container:1200px;
+
+  /* Elevation (layered, grounded shadows) */
+  --el-1:0 1px 2px rgba(0,0,0,.4);
+  --el-2:0 6px 22px -12px rgba(0,0,0,.65);
+  --el-3:0 22px 60px -28px rgba(0,0,0,.8);
+  --el-glow:0 12px 36px -14px var(--nb);
+  --hair:0 0 0 1px rgba(255,255,255,.04);          /* inset-like hairline */
+
+  /* Motion */
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-in-out:cubic-bezier(.65,0,.35,1);
+  --dur-1:.18s; --dur-2:.28s; --dur-3:.5s;
+
+  /* ── Semantic tints via color-mix (graceful: solid fallbacks above
+        already cover every consumer; these only ENHANCE) ──────────── */
+  --neon-04:color-mix(in srgb, var(--neon) 4%, transparent);
+  --neon-08:color-mix(in srgb, var(--neon) 8%, transparent);
+  --neon-16:color-mix(in srgb, var(--neon) 16%, transparent);
+  --neon-30:color-mix(in srgb, var(--neon) 30%, transparent);
+  --neon-text:color-mix(in srgb, var(--neon) 88%, #ffffff);   /* brighter ink */
+  --gold-08:color-mix(in srgb, var(--gold) 8%, transparent);
+  --gold-16:color-mix(in srgb, var(--gold) 16%, transparent);
+  --surface-tint:color-mix(in srgb, #ffffff 2.2%, transparent);
+  --border-soft:color-mix(in srgb, var(--neon) 12%, var(--bd2));
+}
+
+/* Honor brand: always dark. Provide a sane base for any chrome the UA
+   draws (form controls, scrollbars) so it matches the theme. */
+:root{ color-scheme:dark; }

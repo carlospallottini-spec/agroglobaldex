@@ -51,6 +51,16 @@ pub mod agroglobaldex {
         instructions::set_paused::handler(ctx, paused)
     }
 
+    /// Toggle whether the lending market requires oracle-priced collateral.
+    /// Authority-only. When enabled, `open_loan`/`liquidate` forbid the manual
+    /// authority-relayed price path (audit H-1). Defaults to off at init.
+    pub fn set_lending_oracle_requirement(
+        ctx: Context<SetLendingOracleRequirement>,
+        required: bool,
+    ) -> Result<()> {
+        instructions::set_lending_oracle_requirement::handler(ctx, required)
+    }
+
     /// Create the on-chain mutable JurisdictionPolicy with conservative defaults.
     pub fn init_jurisdiction_policy(ctx: Context<InitJurisdictionPolicy>) -> Result<()> {
         instructions::init_jurisdiction_policy::handler(ctx)

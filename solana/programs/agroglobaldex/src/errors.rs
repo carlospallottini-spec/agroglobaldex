@@ -159,4 +159,7 @@ pub enum AgroError {
 
     #[msg("A borrower cannot liquidate their own loan")]
     SelfLiquidation,
+
+    #[msg("This lending market requires oracle-priced collateral; manual price is forbidden")]
+    OracleRequired,
 }

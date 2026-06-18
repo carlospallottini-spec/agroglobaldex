@@ -72,6 +72,16 @@ Detalle completo en [`solana/RUNBOOK.md`](solana/RUNBOOK.md).
     hit / fraud sin necesidad de autoridad multisig (audit #15).
 11. **transfer_issuer con KYC requerido**: rotar el rol issuer requiere que
     el nuevo issuer tenga ComplianceRecord verificado (audit #19).
+12. **Acreditación enforced en el TransferHook** (audit #20, ex-limitación):
+    al registrar un mint de clase restringida (`HarvestFraction` /
+    `InvestmentOffering`) `register_asset` marca `requires_accredited` en el
+    `HookConfig` del compliance-hook. En **cada** transferencia Token-2022 el
+    hook lee `accredited_investor` del `ComplianceRecord` del **destino** y
+    aborta con `AccreditationRequired` si el mint es restringido y el receptor
+    no está acreditado. Cierra el bypass de acreditación por re-transferencia
+    P2P: un token security ya no puede moverse a un wallet KYC'd-pero-no-
+    acreditado fuera del path `buy_asset`. KYC + jurisdicción siguen siendo el
+    piso universal para todos los mints. Cobertura: tests 44 (happy) / 45 (sad).
 
 ### Off-chain
 
@@ -95,18 +105,37 @@ Tras un diagnóstico interno se corrigieron, con cobertura de tests on-chain:
   distribuye pro-rata** y un LP no puede retirar el principal de otro; lock
   `MINIMUM_LIQUIDITY_SHARES` contra el inflation attack del primer depositante.
 - **Separación de poderes**: `initialize` exige `compliance_signer != authority`.
+- **Kill-switch completo (audit C-1)**: el flag `paused` ahora cubre **todo el
+  módulo de lending** — `deposit_liquidity`, `withdraw_liquidity`, `repay_loan`
+  y `liquidate` revierten `Paused` cuando el mercado está pausado (antes solo lo
+  hacía `open_loan`). `set_paused(true)` es un freno real ante un exploit en vivo.
+- **Minteo con compliance (audit M-1)**: `mint_token` exige marketplace
+  no-pausado y **KYC vigente del issuer** (`issuer_compliance.kyc_verified`); un
+  issuer con KYC revocado o un mercado pausado no puede mintear.
+- **Oráculo exigible (audit H-1)**: el `LendingMarket` tiene
+  `require_oracle_for_loans` (setter authority-only
+  `set_lending_oracle_requirement`); cuando está activo, `open_loan`/`liquidate`
+  exigen colateral con oráculo (`OracleRequired`), cerrando el vector de precio
+  manual manipulable en mainnet.
 - **CI**: gates de `clippy`, `cargo fmt --check`, `cargo audit` (report-only) y
   un **IDL drift guard** (el IDL del frontend no puede divergir del programa).
 
 ### Limitaciones conocidas (documentadas)
 
-- **Acreditación bypasseable por transferencia P2P**: el TransferHook valida
-  KYC + jurisdicción pero **no** `accredited_investor`. Un token
-  `InvestmentOffering`/`HarvestFraction` puede re-transferirse a un wallet
-  KYC'd no acreditado. Fix futuro: pasar el `asset_class` al hook o usar la
-  PermanentDelegate extension.
+- **Acreditación bypasseable por transferencia P2P** — ✅ **CORREGIDO**
+  (ver "Defensas implementadas" #12). El TransferHook ahora enforced
+  `accredited_investor` en el destino para clases restringidas
+  (`HarvestFraction` / `InvestmentOffering`) vía el flag `requires_accredited`
+  del `HookConfig` (seteado por `register_asset`). Una re-transferencia P2P de
+  un token security a un wallet KYC'd-no-acreditado revierte con
+  `AccreditationRequired`. La extensión PermanentDelegate sigue pendiente solo
+  para clawback de wallets sancionadas post-mint (pre-mainnet #3), no para la
+  acreditación.
 - **Precio manual** (`set_collateral_config`) confía en `authority` sin
-  staleness — en producción usar siempre oráculo + multisig.
+  staleness — ✅ **MITIGADO** (audit H-1): activando `require_oracle_for_loans`
+  el mercado rechaza colateral sin oráculo en `open_loan`/`liquidate`. **Es un
+  requisito del go-live de mainnet** (ver gate abajo): el path manual queda solo
+  para devnet/PoC.
 
 ## Gestión de llaves — DEVNET vs MAINNET
 
@@ -117,10 +146,44 @@ Tras un diagnóstico interno se corrigieron, con cobertura de tests on-chain:
   upgrade authority a un **Squads multisig** con
   [`solana/scripts/deploy-mainnet.sh`](solana/scripts/deploy-mainnet.sh).
 
+### Go-live gate de autoridad y timelock (audit C-2) — BLOQUEANTE de mainnet
+
+El programa es agnóstico a quién sea `authority`: acepta una hot wallet igual
+que un multisig. Por eso, la separación de poderes se garantiza por
+**procedimiento verificado**, no solo por código. Antes de habilitar dinero
+real, **todos** estos puntos deben estar verdes y verificados on-chain:
+
+1. **`upgrade authority` (ambos programas) = Squads multisig** (lo hace
+   `deploy-mainnet.sh`). Verificar:
+   `solana program show <PROGRAM_ID>` → *Upgrade Authority* == vault Squads.
+2. **`marketplace.authority` = Squads multisig** (NO una hot wallet). Controla
+   tesorería (`treasury_withdraw`), parámetros de riesgo (`set_collateral_config`,
+   `set_lending_oracle_requirement`), `set_paused` y políticas de jurisdicción.
+   Una sola clave comprometida aquí drena el tesoro y fija precios → debe ser
+   multisig **2-de-3 como mínimo**.
+3. **`compliance_signer` = clave SEPARADA** de `authority` (ya forzado on-chain
+   por `initialize`), idealmente otro firmante/HSM.
+4. **Timelock de 24 h** sobre las acciones del multisig que cambian parámetros
+   de riesgo o mueven tesorería (config del Squads, fuera de la cadena de este
+   programa), para dar ventana de reacción ante una propuesta maliciosa.
+5. **`require_oracle_for_loans = true`** en el `LendingMarket` (audit H-1): sin
+   esto el path de precio manual sigue activo.
+6. **Runbook de incidente** escrito: quién pausa (`set_paused`), con qué llaves
+   del multisig, y en cuánto tiempo. El kill-switch (audit C-1) ya cubre todo el
+   lending; lo que falta es el procedimiento humano.
+
+> Verificación post-deploy (mínima): `solana program show` para ambos IDs, y un
+> fetch del `Marketplace` + `LendingMarket` confirmando `authority` /
+> `compliance_signer` / `require_oracle_for_loans`. Mientras `marketplace.authority`
+> sea una hot wallet, el sistema **no** está listo para dinero real aunque la
+> upgrade authority ya sea multisig.
+
 ## Pendiente pre-mainnet
 
 1. **Auditoría profesional** (Sec3 / OtterSec / Halborn) — bloqueante.
-2. **Squads multisig 2-of-3** para `authority` con timelock 24h (audit #10).
+2. **Squads multisig 2-of-3** para `authority` con timelock 24h (audit C-2) —
+   ver el *go-live gate de autoridad y timelock* arriba; es procedimiento
+   verificado on-chain, bloqueante.
 3. **PermanentDelegate Token-2022 extension** para clawback de tokens en
    wallets sancionadas post-mint (out of PoC scope).
 4. **`anchor build --verifiable`** + `solana-verify` workflow (audit #26).

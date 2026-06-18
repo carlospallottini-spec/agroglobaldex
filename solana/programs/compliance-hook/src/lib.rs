@@ -41,11 +41,14 @@
 //! - Mints created without a `ComplianceRecord` on the destination side will
 //!   simply fail to transfer to that wallet, which is exactly the intended
 //!   behaviour for a regulated venue.
-//! - We do NOT enforce class-specific rules (e.g. accredited investor for
-//!   `HarvestFraction`/`InvestmentOffering`) inside the hook — they are
-//!   enforced by the marketplace's `buy_asset` instruction. The hook is the
-//!   universal floor: KYC + jurisdiction. Class-specific gates are surface-
-//!   level: enforced in IXs where the asset class is known.
+//! - Accreditation IS now enforced inside the hook for restricted asset
+//!   classes (`HarvestFraction`/`InvestmentOffering`). At mint-registration
+//!   time the main program records `requires_accredited` on the per-mint
+//!   `HookConfig`; when set, every transfer additionally requires the
+//!   DESTINATION wallet's `ComplianceRecord.accredited_investor == true`. This
+//!   closes the P2P re-transfer bypass where a restricted token could move to a
+//!   KYC'd-but-non-accredited wallet (the marketplace `buy_asset` gate alone
+//!   only covers primary/secondary sales through the venue, not raw transfers).
 //! - NOTE: this is a Proof-of-Concept. Not audited.
 
 use anchor_lang::prelude::*;
@@ -103,12 +106,14 @@ pub mod compliance_hook {
         ctx: Context<InitializeExtraAccountMetaList>,
         marketplace: Pubkey,
         agroglobaldex_program: Pubkey,
+        requires_accredited: bool,
     ) -> Result<()> {
         // ---- Persist HookConfig ------------------------------------------------
         let cfg = &mut ctx.accounts.hook_config;
         cfg.mint = ctx.accounts.mint.key();
         cfg.marketplace = marketplace;
         cfg.agroglobaldex_program = agroglobaldex_program;
+        cfg.requires_accredited = requires_accredited;
         cfg.bump = ctx.bumps.hook_config;
 
         // ---- Build the extra-account-meta list --------------------------------
@@ -247,10 +252,11 @@ pub mod compliance_hook {
             .map_err(|_| HookError::AccountMetaListInitFailed)?;
 
         msg!(
-            "ComplianceHook::initialize_extra_account_meta_list mint={} marketplace={} agroglobaldex={}",
+            "ComplianceHook::initialize_extra_account_meta_list mint={} marketplace={} agroglobaldex={} requires_accredited={}",
             mint_key,
             marketplace,
             agroglobaldex_program,
+            requires_accredited,
         );
         Ok(())
     }
@@ -333,7 +339,7 @@ pub mod compliance_hook {
 
         // ---- Source compliance -----------------------------------------------
         let source_data = ctx.accounts.source_compliance.try_borrow_data()?;
-        let (src_kyc, src_jur) = parse_compliance_record(&source_data)?;
+        let (src_kyc, src_jur, _src_accredited) = parse_compliance_record(&source_data)?;
         drop(source_data);
         require!(src_kyc, HookError::SourceKycNotVerified);
         require!(
@@ -343,13 +349,24 @@ pub mod compliance_hook {
 
         // ---- Destination compliance ------------------------------------------
         let dest_data = ctx.accounts.destination_compliance.try_borrow_data()?;
-        let (dest_kyc, dest_jur) = parse_compliance_record(&dest_data)?;
+        let (dest_kyc, dest_jur, dest_accredited) = parse_compliance_record(&dest_data)?;
         drop(dest_data);
         require!(dest_kyc, HookError::DestKycNotVerified);
         require!(
             !blocked_list.iter().any(|j| j == &dest_jur),
             HookError::DestJurisdictionBlocked
         );
+
+        // ---- Accreditation gate for restricted asset classes -----------------
+        // When the mint was registered as a restricted class (HarvestFraction /
+        // InvestmentOffering) the main program flagged `requires_accredited` on
+        // the HookConfig. In that case the DESTINATION wallet must additionally
+        // be an accredited / professional investor. This closes the P2P
+        // re-transfer bypass: a restricted token can no longer be moved to a
+        // KYC'd-but-non-accredited wallet outside the marketplace's buy path.
+        if ctx.accounts.hook_config.requires_accredited {
+            require!(dest_accredited, HookError::AccreditationRequired);
+        }
 
         msg!(
             "ComplianceHook::execute OK src_jur={:?} dest_jur={:?}",
@@ -469,6 +486,10 @@ pub struct HookConfig {
     pub marketplace: Pubkey,
     /// AgroGlobalDex main program id — used to resolve external PDAs.
     pub agroglobaldex_program: Pubkey,
+    /// True when the mint is a restricted asset class (HarvestFraction /
+    /// InvestmentOffering). When set, the transfer hook additionally requires
+    /// the destination wallet to be an accredited / professional investor.
+    pub requires_accredited: bool,
     pub bump: u8,
 }
 
@@ -508,6 +529,8 @@ pub enum HookError {
     DestComplianceMismatch,
     #[msg("Account discriminator does not match the expected type")]
     DiscriminatorMismatch,
+    #[msg("Destination wallet must be an accredited investor for this restricted asset class")]
+    AccreditationRequired,
 }
 
 // ---------------------------------------------------------------------------
@@ -519,10 +542,11 @@ pub enum HookError {
 // by their byte offsets relative to the Anchor discriminator (first 8 bytes).
 //
 // `ComplianceRecord` layout (after the 8-byte Anchor discriminator):
-//   wallet            : Pubkey [32]
-//   marketplace       : Pubkey [32]
-//   kyc_verified      : bool   [1]
-//   jurisdiction      : [u8;2] [2]
+//   wallet              : Pubkey [32]
+//   marketplace         : Pubkey [32]
+//   kyc_verified        : bool   [1]
+//   jurisdiction        : [u8;2] [2]
+//   accredited_investor : bool   [1]
 //   ... (rest ignored)
 //
 // `JurisdictionPolicy` layout (after the 8-byte Anchor discriminator):
@@ -555,17 +579,22 @@ fn check_discriminator(data: &[u8], expected: &[u8; 8]) -> Result<()> {
     Ok(())
 }
 
-fn parse_compliance_record(data: &[u8]) -> Result<(bool, [u8; 2])> {
+fn parse_compliance_record(data: &[u8]) -> Result<(bool, [u8; 2], bool)> {
     check_discriminator(data, &COMPLIANCE_RECORD_DISCRIMINATOR)?;
     // 8 (discr) + 32 (wallet) + 32 (marketplace) = 72
     let kyc_off = DISCRIMINATOR_LEN + PUBKEY_LEN + PUBKEY_LEN;
     let jur_off = kyc_off + 1;
-    require!(data.len() >= jur_off + 2, HookError::DeserializationFailed);
+    let accredited_off = jur_off + 2;
+    require!(
+        data.len() > accredited_off,
+        HookError::DeserializationFailed
+    );
     let kyc = data[kyc_off] != 0;
     let jur: [u8; 2] = data[jur_off..jur_off + 2]
         .try_into()
         .map_err(|_| HookError::DeserializationFailed)?;
-    Ok((kyc, jur))
+    let accredited = data[accredited_off] != 0;
+    Ok((kyc, jur, accredited))
 }
 
 fn parse_blocked_jurisdictions(data: &[u8]) -> Result<Vec<[u8; 2]>> {

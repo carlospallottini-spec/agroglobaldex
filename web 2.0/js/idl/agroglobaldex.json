@@ -1312,6 +1312,34 @@
           "signer": true
         },
         {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
           "name": "lending_market",
           "writable": true,
           "pda": {
@@ -1516,6 +1544,34 @@
           "name": "provider",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
         },
         {
           "name": "lending_market",
@@ -2221,6 +2277,34 @@
           "signer": true
         },
         {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
           "name": "lending_market",
           "writable": true,
           "pda": {
@@ -2787,6 +2871,34 @@
           ]
         },
         {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
           "name": "asset_registry",
           "docs": [
             "Deterministically reconstructed using the explicit `index` stored",
@@ -2823,6 +2935,47 @@
                 "kind": "account",
                 "path": "asset_registry.index",
                 "account": "AssetRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "issuer_compliance",
+          "docs": [
+            "The issuer must still hold a valid KYC at mint time; a revoked KYC",
+            "blocks further minting."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  112,
+                  108,
+                  105,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              },
+              {
+                "kind": "account",
+                "path": "issuer"
               }
             ]
           }
@@ -3885,6 +4038,34 @@
           "name": "borrower",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
         },
         {
           "name": "lending_market",
@@ -5605,6 +5786,95 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "set_lending_oracle_requirement",
+      "docs": [
+        "Toggle whether the lending market requires oracle-priced collateral.",
+        "Authority-only. When enabled, open_loan/liquidate forbid the manual",
+        "authority-relayed price path (audit H-1). Defaults to off at init."
+      ],
+      "discriminator": [
+        104,
+        169,
+        65,
+        24,
+        172,
+        237,
+        39,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "marketplace",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  112,
+                  108,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace.authority",
+                "account": "Marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lending_market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "marketplace"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "required",
+          "type": "bool"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -6115,6 +6385,32 @@
         117,
         131,
         141
+      ]
+    },
+    {
+      "name": "LendingOracleRequirementChanged",
+      "discriminator": [
+        2,
+        153,
+        196,
+        228,
+        48,
+        127,
+        209,
+        89
+      ]
+    },
+    {
+      "name": "BadDebtRealized",
+      "discriminator": [
+        113,
+        185,
+        146,
+        90,
+        190,
+        175,
+        153,
+        113
       ]
     }
   ],
@@ -7667,6 +7963,18 @@
               "Bump for the vault authority PDA (owns usdc_pool + collateral ATAs)."
             ],
             "type": "u8"
+          },
+          {
+            "name": "require_oracle_for_loans",
+            "docs": [
+              "When true, open_loan and liquidate REQUIRE the collateral to be",
+              "oracle-driven (CollateralConfig::oracle_enabled == true), forbidding",
+              "the manual authority-relayed price path. Defaults to false at init so",
+              "manual-priced devnet flows keep working; a mainnet deployment flips this",
+              "on via set_lending_oracle_requirement to close the oracle-manipulation",
+              "vector (audit H-1)."
+            ],
+            "type": "bool"
           }
         ]
       }
@@ -7785,6 +8093,34 @@
           },
           {
             "name": "collateral_returned",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BadDebtRealized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "debt",
+            "type": "u64"
+          },
+          {
+            "name": "repaid",
+            "type": "u64"
+          },
+          {
+            "name": "bad_debt",
             "type": "u64"
           }
         ]
@@ -8582,6 +8918,26 @@
           {
             "name": "publish_time",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LendingOracleRequirementChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lending_market",
+            "type": "pubkey"
+          },
+          {
+            "name": "was",
+            "type": "bool"
+          },
+          {
+            "name": "now",
+            "type": "bool"
           }
         ]
       }
