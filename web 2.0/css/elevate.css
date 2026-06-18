@@ -1,0 +1,137 @@
+/* ════════════════════════════════════════════════════════════════════
+   AgroGlobalDex — elevate.css
+   ────────────────────────────────────────────────────────────────────
+   Last layer, loaded AFTER enhance.css + immersive.css. Pure progressive
+   enhancement built on tokens.css: modern CSS that degrades gracefully
+   where unsupported (View Transitions, :has(), container queries,
+   color-mix, scroll-driven animation). NOTHING here is required for the
+   page to lay out — every rule is additive polish.
+
+   No JS hooks, ids or selectors are removed. dApp markup is untouched.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── MPA View Transitions ──────────────────────────────────────────────
+   Smooth cross-document fade between pages of this multi-page app. Only
+   Chromium-based browsers honor it today; everywhere else it is simply a
+   normal navigation. Frozen under reduced-motion below. */
+@view-transition{ navigation:auto; }
+::view-transition-old(root),
+::view-transition-new(root){
+  animation-duration:.32s;
+  animation-timing-function:var(--ease-out, ease);
+}
+
+/* ── Fluid type rhythm — applies the new scale to existing headings
+      WITHOUT changing their selectors. Pages that already clamp keep
+      their own value (we only set where they used fixed sizes via the
+      :not() guards in enhance.css; here we just refine leading/tracking
+      consistently). ─────────────────────────────────────────────────── */
+.page-title, .hero h1{ line-height:var(--lh-tight); letter-spacing:var(--tr-tight); }
+.s-h, .cta-box h2{ line-height:var(--lh-snug); letter-spacing:var(--tr-snug); }
+.page-subtitle, .h-sub, .s-sub{ line-height:var(--lh-body); }
+
+/* Long-form copy gets a comfortable measure (won't shrink wide grids). */
+.page-subtitle, .h-sub, .s-sub, .card .desc, .modal > p{
+  max-width:min(100%, var(--measure));
+}
+
+/* ── Elevation + hairline refinement via tokens (color-mix borders) ──── */
+@supports (color: color-mix(in srgb, red, blue)){
+  .card, .pstat, .calc{ border-color:var(--border-soft); }
+  .s-tag, .page-tag, .h-badge{ border-color:var(--neon-30); }
+  ::selection{ background:var(--neon-16); color:var(--txt); }
+}
+
+/* ── Stat tiles — crisper grid alignment + tabular figures ───────────── */
+.pstat .v, .mp-bs-n, .hstat-v, .sv, .wp-balance-val{
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
+}
+/* A faint neon top-edge accent on stat tiles reads as a polished data card
+   without changing layout. color-mix → graceful where unsupported. */
+@supports (color: color-mix(in srgb, red, blue)){
+  .pstat{ position:relative; }
+  .pstat::after{
+    content:''; position:absolute; left:14px; right:14px; top:0; height:1px;
+    background:linear-gradient(90deg, transparent, var(--neon-30), transparent);
+    opacity:.7; pointer-events:none;
+  }
+}
+
+/* ── Tags / badges — gentle gradient fill + halo (built on enhance.css) ─ */
+@supports (color: color-mix(in srgb, red, blue)){
+  .s-tag, .page-tag, .h-badge{
+    background-image:linear-gradient(180deg, var(--neon-08), transparent);
+    box-shadow:inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent),
+               0 2px 14px -8px var(--nb);
+  }
+  .s-tag.gld{
+    background-image:linear-gradient(180deg, var(--gold-08), transparent);
+    box-shadow:inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent),
+               0 2px 14px -8px color-mix(in srgb, var(--gold) 40%, transparent);
+  }
+}
+
+/* ── Buttons — unified press/hover already in enhance.css; add a focus
+      ring that matches the brand and a consistent active scale. ─────── */
+.btn-p:focus-visible, .nbtn-p:focus-visible,
+.btn-s:focus-visible, .nbtn-g:focus-visible, .nwb:focus-visible{
+  outline:2px solid var(--neon);
+  outline-offset:3px;
+}
+
+/* ── Nav: subtle active-pill background using :has() (enhancement only) ─ */
+@supports selector(:has(*)){
+  nav.main-nav:has(.nav-links a.active) .nav-links a.active{
+    background:var(--neon-08, var(--nd));
+  }
+}
+
+/* ── Cards: container-query polish where a card sits in a sized wrapper.
+      Purely opt-in; absence changes nothing. ───────────────────────── */
+@supports (container-type: inline-size){
+  .card-grid, .pstats, .mp-grid{ container-type:inline-size; }
+}
+
+/* ── Tables — hairline rows, hover highlight, sticky header where used ─ */
+table{ border-collapse:collapse; width:100%; }
+table th{
+  text-align:left; font-size:var(--fs-50); font-weight:700;
+  letter-spacing:var(--tr-wide); text-transform:uppercase; color:var(--t3);
+  padding:10px 14px; border-bottom:1px solid var(--bd2);
+}
+table td{
+  padding:12px 14px; border-bottom:1px solid var(--bd);
+  font-size:var(--fs-75); color:var(--t2);
+}
+table tr:hover td{ background:var(--neon-04, var(--nd)); color:var(--txt); }
+
+/* ── Badges / pills — consistent inner highlight (built on enhance) ──── */
+.badge, .tag, .pill{
+  display:inline-flex; align-items:center; gap:6px;
+  border-radius:var(--r-pill); padding:5px 12px;
+  font-size:var(--fs-50); font-weight:700; letter-spacing:var(--tr-wide);
+}
+
+/* ── Scroll-driven progress accent on the live ticker rule (PE only) ─── */
+@supports (animation-timeline: scroll()){
+  @media (prefers-reduced-motion: no-preference){
+    .page-hero, .hero{ --_vt: 1; } /* marker; no-op, keeps cascade explicit */
+  }
+}
+
+/* ── Micro-interaction: gentle scale on interactive list rows ────────── */
+.wallet-option:active, .loan-row:active{ transform:scale(.995); }
+
+/* ── Reduced motion: freeze View Transitions + scroll-driven anim ────── */
+@media (prefers-reduced-motion: reduce){
+  @view-transition{ navigation:none; }
+  ::view-transition-old(root),
+  ::view-transition-new(root){ animation:none; }
+}
+
+/* ── Small screens: keep GPU cost low (immersive.css already trims the
+      aurora; here we drop the heaviest text-shadows on stat numbers). ─ */
+@media (max-width:760px){
+  .pstat:hover .v{ text-shadow:none; }
+}

@@ -1,11 +1,12 @@
 /* AgroGlobalDex — Service Worker (PWA shell + kill-switch para Electron)
- * v7 — Capa inmersiva (immersive.css / immersive.js). Bump de cache para
- *      invalidar el shell viejo y servir el rediseño a visitantes recurrentes.
- *      Detecta protocolo file:// (Electron / Capacitor desktop) y se
- *      auto-destruye limpiando caches. En navegador web real (https://) se
- *      comporta como PWA shell normal.
+ * v8 — Rediseño "última generación": sistema de tokens unificado
+ *      (css/tokens.css) + capa de elevación moderna (css/elevate.css).
+ *      Bump de cache para invalidar el shell viejo y servir el rediseño a
+ *      visitantes recurrentes. Detecta protocolo file:// (Electron /
+ *      Capacitor desktop) y se auto-destruye limpiando caches. En navegador
+ *      web real (https://) se comporta como PWA shell normal.
  */
-const CACHE = 'agroglobaldex-v7';
+const CACHE = 'agroglobaldex-v8';
 const IS_FILE = location.protocol === 'file:';
 const SHELL = [
   '/',
@@ -22,6 +23,10 @@ const SHELL = [
   '/contact.html',
   '/team.html',
   '/manifest.webmanifest',
+  '/css/tokens.css',
+  '/css/enhance.css',
+  '/css/immersive.css',
+  '/css/elevate.css',
   '/js/wallet-adapter.js',
   '/js/agroglobaldex-client.js',
   '/js/network-config.js',
