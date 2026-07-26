@@ -6,6 +6,22 @@
 <title>Admin avanzado — AgroGlobalDex</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="Acciones administrativas: revoke KYC, settle yield offerings, update metadata, transferir issuer. Acceso para compliance_signer e issuers.">
+<link rel="canonical" href="https://agroglobaldex.com/admin.html">
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Admin avanzado — AgroGlobalDex">
+<meta property="og:description" content="Acciones administrativas: revoke KYC, settle yield offerings, update metadata, transferir issuer. Acceso para compliance_signer e issuers.">
+<meta property="og:url" content="https://agroglobaldex.com/admin.html">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Admin avanzado — AgroGlobalDex">
+<meta name="twitter:description" content="Acciones administrativas: revoke KYC, settle yield offerings, update metadata, transferir issuer. Acceso para compliance_signer e issuers.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
 <style>
@@ -172,6 +188,7 @@ import {
 import { txUrl } from './js/network-config.js';
 
 const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function toast(msg, kind='success') {
   const t = document.createElement('div');
@@ -184,18 +201,12 @@ function toast(msg, kind='success') {
 }
 
 function txToast(sig) {
-  toast(`✓ Tx confirmado<br><a href="${txUrl(sig)}" target="_blank" style="color:inherit;text-decoration:underline;font-size:11px">${sig.slice(0,12)}…${sig.slice(-8)}</a>`);
+  const s = esc(sig);
+  toast(`✓ Tx confirmado<br><a href="${esc(txUrl(sig))}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;font-size:11px">${s.slice(0,12)}…${s.slice(-8)}</a>`);
 }
 
-// Wallet wiring
-const btn = $('#wallet-btn');
-btn.addEventListener('click', async () => {
-  try {
-    await connectWallet();
-    btn.classList.add('connected');
-    btn.querySelector('span').textContent = getPublicKey().slice(0,4) + '…' + getPublicKey().slice(-4);
-  } catch (e) { toast('Wallet error: ' + e.message, 'error'); }
-});
+// El botón #wallet-btn (clase .nwb) lo maneja wallet-adapter.js:
+// abre el picker de wallets y actualiza el label al conectar/desconectar.
 
 // 1. Revoke KYC
 $('#rk-btn').addEventListener('click', async () => {
@@ -207,7 +218,7 @@ $('#rk-btn').addEventListener('click', async () => {
     const { tx } = await revokeKyc({ walletAddress: wallet, reasonCode });
     txToast(tx);
   } catch (e) {
-    toast('Error: ' + (e.message || e), 'error');
+    toast('Error: ' + esc(e.message || e), 'error');
   } finally {
     $('#rk-btn').disabled = false;
   }
@@ -229,7 +240,7 @@ $('#se-btn').addEventListener('click', async () => {
     });
     txToast(tx);
   } catch (e) {
-    toast('Error: ' + (e.message || e), 'error');
+    toast('Error: ' + esc(e.message || e), 'error');
   } finally {
     $('#se-btn').disabled = false;
   }
@@ -249,7 +260,7 @@ $('#um-btn').addEventListener('click', async () => {
     });
     txToast(tx);
   } catch (e) {
-    toast('Error: ' + (e.message || e) + (String(e).includes('MetadataFrozen') ? '<br>El asset ya fue minteado — metadata frozen.' : ''), 'error');
+    toast('Error: ' + esc(e.message || e) + (String(e).includes('MetadataFrozen') ? '<br>El asset ya fue minteado — metadata frozen.' : ''), 'error');
   } finally {
     $('#um-btn').disabled = false;
   }
@@ -267,7 +278,7 @@ $('#ti-btn').addEventListener('click', async () => {
     });
     txToast(tx);
   } catch (e) {
-    toast('Error: ' + (e.message || e) + (String(e).includes('KycNotVerified') ? '<br>El nuevo issuer no tiene KYC stamped.' : ''), 'error');
+    toast('Error: ' + esc(e.message || e) + (String(e).includes('KycNotVerified') ? '<br>El nuevo issuer no tiene KYC stamped.' : ''), 'error');
   } finally {
     $('#ti-btn').disabled = false;
   }

@@ -6,6 +6,21 @@
 <title>Equipo — AgroGlobalDex</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="Conoce al equipo fundador de AgroGlobalDex.">
+<link rel="canonical" href="https://agroglobaldex.com/team.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Equipo — AgroGlobalDex">
+<meta property="og:description" content="Conoce al equipo fundador de AgroGlobalDex.">
+<meta property="og:url" content="https://agroglobaldex.com/team.html">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Equipo — AgroGlobalDex">
+<meta name="twitter:description" content="Conoce al equipo fundador de AgroGlobalDex.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
 <style>/* ═══════════════════════════════════════════════════════════
@@ -360,13 +375,13 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
       </div>
     </div>
     <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html#currencies">Monedas</a><a href="marketplace.html">Empresas</a></div>
-    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agroglobaldex.io" target="_blank" rel="noopener">Blog</a></div>
-    <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Ayuda</a><a href="#">Docs</a><a href="#">Sistema</a></div>
-    <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="investors.html">Inversores</a></div>
+    <div class="fc-col"><div class="fc-title">Soporte</div><a href="contact.html#faq">Ayuda</a><a href="investors.html">Docs</a><a href="receipts.html">Sistema</a></div>
+    <div class="fc-col"><div class="fc-title">Legal</div><a href="legal.html#terminos">Términos</a><a href="legal.html#privacidad">Privacidad</a><a href="legal.html#cookies">Cookies</a><a href="legal.html#mica">MiCA</a></div>
   </div>
   <div class="fb2">
     <div>© 2026 AgroGlobalDex · Madrid, España · Proyecto en desarrollo. NO autorizado actualmente como CASP MiCA.</div>
-    <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+    <div class="fb2-legal"><a href="legal.html#terminos">Términos</a><a href="legal.html#privacidad">Privacidad</a><a href="legal.html#cookies">Cookies</a></div>
   </div>
 </footer>
 
@@ -572,7 +587,7 @@ const Wallet = {
     document.querySelectorAll('.wallet-btn, .nwb').forEach(btn => {
       if (this.address) {
         btn.classList.add('connected');
-        btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>${this.short()}</span>`;
+        btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>${escHtml(this.short())}</span>`;
       } else {
         btn.classList.remove('connected');
         btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span>`;
@@ -637,19 +652,19 @@ function _wmHConn() {
   return '<button class="modal-close">✕</button>' +
     '<h3 style="margin-bottom:18px">Tu cuenta</h3>' +
     (u ? '<div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r2);margin-bottom:16px">' +
-      '<div style="width:44px;height:44px;border-radius:50%;background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:16px;font-weight:700;flex-shrink:0">' + ini + '</div>' +
-      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--txt)">' + name + '</div>' +
-      '<div style="font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email||'') + '</div>' +
+      '<div style="width:44px;height:44px;border-radius:50%;background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:16px;font-weight:700;flex-shrink:0">' + escHtml(ini) + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--txt)">' + escHtml(name) + '</div>' +
+      '<div style="font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(u.email||'') + '</div>' +
       '<span style="font-size:9px;font-weight:700;background:' + (u.demo?'rgba(240,160,32,.12)':'var(--nd)') + ';color:' + (u.demo?'var(--amb)':'var(--neon)') + ';border:1px solid ' + (u.demo?'rgba(240,160,32,.25)':'var(--nm)') + ';border-radius:20px;padding:2px 8px;display:inline-block;margin-top:4px">' + (u.demo?'⚡ Demo':'✓ Verificado') + '</span></div></div>' : '') +
     (w ? '<div class="wp-balance"><div class="wp-balance-label">Wallet ' + (Wallet.type||'') + '</div>' +
-      '<div class="wp-balance-val">' + (Wallet.balance||'—') + '</div>' +
-      '<div class="wp-balance-sub" style="font-size:11px;word-break:break-all">' + w + '</div></div>' +
+      '<div class="wp-balance-val">' + escHtml(Wallet.balance||'—') + '</div>' +
+      '<div class="wp-balance-sub" style="font-size:11px;word-break:break-all">' + escHtml(w) + '</div></div>' +
       '<div class="wp-actions"><button class="wp-act" id="wm-copy">Copiar dirección</button><button class="wp-act" id="wm-exp">Ver en Explorer</button></div>'
     : '<div id="wm-addw" style="display:flex;align-items:center;gap:10px;padding:13px;background:var(--bg3);border:1px dashed var(--bd2);border-radius:var(--r2);cursor:pointer;margin-bottom:16px">' +
       '<span style="font-size:20px">◎</span><div><div style="font-size:13px;font-weight:600;color:var(--t2)">Conectar wallet Web3</div>' +
       '<div style="font-size:11px;color:var(--t3)">MetaMask · Phantom · Coinbase</div></div>' +
       '<span style="margin-left:auto;color:var(--neon);font-weight:700">+</span></div>') +
-    '<a href="app.html" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;background:linear-gradient(135deg,#166534,var(--neon));border-radius:var(--r);font-size:13px;font-weight:700;color:#000;margin-bottom:8px;text-decoration:none">Abrir App →</a>' +
+    '<a href="marketplace.html" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;background:linear-gradient(135deg,#166534,var(--neon));border-radius:var(--r);font-size:13px;font-weight:700;color:#000;margin-bottom:8px;text-decoration:none">Abrir Marketplace →</a>' +
     '<button id="wm-out" class="wp-disconnect">Cerrar sesión</button>';
 }
 
@@ -787,6 +802,11 @@ function _wmE(el, msg, isOk) {
 
 
 
+/* ═══════ HTML ESCAPE (anti-XSS para datos dinámicos) ═══════ */
+function escHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 /* ═══════ TOAST ═══════ */
 function showToast(msg, type = 'success') {
   let toast = document.getElementById('toast');
@@ -797,7 +817,8 @@ function showToast(msg, type = 'success') {
     document.body.appendChild(toast);
   }
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<div class="toast-ico">${type==='success'?'✓':'!'}</div><div class="toast-txt">${msg}</div>`;
+  toast.innerHTML = `<div class="toast-ico">${type==='success'?'✓':'!'}</div><div class="toast-txt"></div>`;
+  toast.querySelector('.toast-txt').textContent = msg;
   requestAnimationFrame(() => toast.classList.add('show'));
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
@@ -916,7 +937,7 @@ const Auth = {
       const lbl = this.name().slice(0,14);
       document.querySelectorAll('.wallet-btn,.nwb').forEach(b => {
         b.classList.add('connected');
-        b.innerHTML = '<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>' + lbl + '</span>';
+        b.innerHTML = '<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>' + escHtml(lbl) + '</span>';
       });
     }
   },

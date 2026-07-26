@@ -1,12 +1,12 @@
 /* AgroGlobalDex — Service Worker (PWA shell + kill-switch para Electron)
- * v8 — Rediseño "última generación": sistema de tokens unificado
- *      (css/tokens.css) + capa de elevación moderna (css/elevate.css).
- *      Bump de cache para invalidar el shell viejo y servir el rediseño a
- *      visitantes recurrentes. Detecta protocolo file:// (Electron /
- *      Capacitor desktop) y se auto-destruye limpiando caches. En navegador
- *      web real (https://) se comporta como PWA shell normal.
+ * v9 — Auditoría de lanzamiento: fixes de links rotos, escapado XSS en todo
+ *      el JS inline, meta OG/Twitter en todas las páginas, nuevas páginas
+ *      legal.html y 404.html, y security headers (_headers) para Cloudflare.
+ *      Bump de cache para invalidar el shell anterior. Detecta protocolo
+ *      file:// (Electron / Capacitor desktop) y se auto-destruye limpiando
+ *      caches. En navegador web real (https://) es un PWA shell normal.
  */
-const CACHE = 'agroglobaldex-v8';
+const CACHE = 'agroglobaldex-v9';
 const IS_FILE = location.protocol === 'file:';
 const SHELL = [
   '/',
@@ -22,6 +22,8 @@ const SHELL = [
   '/about.html',
   '/contact.html',
   '/team.html',
+  '/legal.html',
+  '/404.html',
   '/manifest.webmanifest',
   '/css/tokens.css',
   '/css/enhance.css',
