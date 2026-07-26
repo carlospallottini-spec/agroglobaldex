@@ -1,0 +1,379 @@
+/* ════════════════════════════════════════════════════════════════════
+   AgroGlobalDex — alive.css
+   ────────────────────────────────────────────────────────────────────
+   The "vivo" layer: organic hero particle field (canvas painted by
+   js/alive.js), breathing aurora, scroll-driven motion, gradient ink,
+   pointer-tracked card glow, directional View Transitions, bottom app
+   tab-bar for Capacitor/mobile, and fintech data polish.
+
+   Loads LAST (after elevate.css) on every page. 100% additive:
+   - No JS hook, id or class consumed by js/ is removed or renamed.
+   - Anything requiring JS is gated behind the `.ag-alive` flag that
+     js/alive.js sets on <html>; no JS ⇒ classic render, nothing hidden.
+   - Every animation honors prefers-reduced-motion.
+   - Heavy effects degrade on small screens (Capacitor webview).
+   Self-contained: no external origins (CSP-safe), noise via data URI.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Registered property → the pointer-glow opacity can interpolate ── */
+@property --ag-o{ syntax:'<number>'; inherits:false; initial-value:0; }
+
+/* ════════════════════════════════════════════════════════════════════
+   1 · SAFE AREAS + APP CHROME (Capacitor first-class)
+   ════════════════════════════════════════════════════════════════════ */
+.tkr{ padding-left:var(--safe-l,0px); padding-right:var(--safe-r,0px); }
+nav.main-nav{
+  padding-left:calc(32px + var(--safe-l,0px));
+  padding-right:calc(32px + var(--safe-r,0px));
+}
+@media (max-width:760px){
+  nav.main-nav{
+    padding-left:calc(14px + var(--safe-l,0px));
+    padding-right:calc(14px + var(--safe-r,0px));
+  }
+  footer{ padding-bottom:calc(24px + var(--safe-b,0px)); }
+}
+
+/* ── Bottom app tab-bar (injected by js/alive.js on dApp pages only) ── */
+.ag-tabbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:400;
+  display:none;
+  padding:6px clamp(6px,2vw,18px) calc(6px + var(--safe-b,0px));
+  background:var(--glass-bg, rgba(13,20,15,.58));
+  -webkit-backdrop-filter:blur(var(--glass-blur,14px)) saturate(1.15);
+  backdrop-filter:blur(var(--glass-blur,14px)) saturate(1.15);
+  border-top:1px solid var(--glass-bd, rgba(255,255,255,.075));
+  box-shadow:0 -14px 40px -18px rgba(0,0,0,.75);
+}
+.ag-tabbar-inner{
+  display:grid; grid-auto-flow:column; grid-auto-columns:1fr;
+  max-width:520px; margin:0 auto; gap:2px;
+}
+.ag-tab{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; min-height:48px; padding:5px 2px;
+  border-radius:var(--r2,14px);
+  color:var(--t3,#647E6A); text-decoration:none;
+  font-family:var(--fb); font-size:9.5px; font-weight:700;
+  letter-spacing:.04em; text-transform:uppercase;
+  transition:color .2s ease, background .2s ease, transform .15s var(--ease-spring, ease);
+  -webkit-tap-highlight-color:transparent;
+}
+.ag-tab svg{
+  width:20px; height:20px; fill:none; stroke:currentColor;
+  stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+  transition:transform .25s var(--ease-spring, ease);
+}
+.ag-tab:active{ transform:scale(.94); }
+.ag-tab[aria-current="page"]{
+  color:var(--bio,var(--neon,#00FF6A));
+  background:var(--neon-08, var(--nd,#00FF6A0D));
+}
+.ag-tab[aria-current="page"] svg{
+  transform:translateY(-1px);
+  filter:drop-shadow(0 0 7px var(--nb,#00FF6A55));
+}
+@media (max-width:760px){
+  .ag-tabbar{ display:block; }
+  body.ag-has-tabbar{ padding-bottom:calc(74px + var(--safe-b,0px)); }
+  body.ag-has-tabbar #toast-stack{ bottom:calc(86px + var(--safe-b,0px)); }
+  body.ag-has-tabbar footer{ padding-bottom:calc(90px + var(--safe-b,0px)); }
+}
+
+/* Touch ergonomics: no hover-dependent affordances on coarse pointers. */
+@media (hover:none){
+  .card:hover, .pstat:hover, .mp-card:hover, .loan-row:hover{ transform:none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   2 · HERO — the living centerpiece
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Canvas particle field (grains/spores) painted by js/alive.js.
+   Injected as FIRST child of the hero with z-index:0 ⇒ paints above the
+   hero's ::before washes but below every later positioned sibling
+   (content wrappers, floating cards) regardless of their z-index:auto. */
+.ag-field{
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  opacity:0; transition:opacity 1.6s ease;
+}
+.ag-field.ag-on{ opacity:1; }
+
+/* Slow tectonic drift on the hero blueprint grid — the page feels like a
+   living map, not a static backdrop. Transform-only: compositor-cheap. */
+@media (prefers-reduced-motion: no-preference){
+  .ag-alive .hero-grid, .ag-alive .page-hero-grid{
+    animation:ag-grid-drift 70s linear infinite;
+    will-change:transform;
+  }
+}
+@keyframes ag-grid-drift{
+  from{ transform:translate3d(0,0,0); }
+  to{ transform:translate3d(-56px,-56px,0); }   /* one full tile = seamless */
+}
+
+/* The italic brand word in display headings becomes living ink:
+   a field→bio→gold gradient that slowly breathes across the glyphs. */
+.ag-alive .hero h1 em, .ag-alive .page-title em,
+.ag-alive .s-h em, .ag-alive .cta-box h2 em, .ag-alive .h1 em{
+  background:linear-gradient(100deg,
+    var(--neon,#00FF6A) 10%, var(--bio,#5CFFA0) 38%,
+    var(--gold-hi,#E8C86A) 62%, var(--neon,#00FF6A) 90%);
+  background-size:220% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:var(--neon,#00FF6A);
+}
+@media (prefers-reduced-motion: no-preference){
+  .ag-alive .hero h1 em, .ag-alive .page-title em,
+  .ag-alive .s-h em, .ag-alive .cta-box h2 em, .ag-alive .h1 em{
+    animation:ag-ink-breathe 9s ease-in-out infinite;
+  }
+}
+@keyframes ag-ink-breathe{
+  0%,100%{ background-position:0% 50%; }
+  50%{ background-position:100% 50%; }
+}
+
+/* Aurora upgrade: the whole field inhales/exhales very slowly, and a faint
+   third gold band rises from the horizon (earth→gold identity). */
+@media (prefers-reduced-motion: no-preference){
+  .ag-alive .ag-aurora{ animation:ag-breathe 16s ease-in-out infinite; }
+}
+@keyframes ag-breathe{
+  0%,100%{ opacity:.9; }
+  50%{ opacity:.68; }
+}
+/* Cursor spotlight (kept from immersive.css) + a faint gold band rising
+   from the horizon (earth→gold identity) + film grain so the gradients
+   never band on OLED. Self-contained data-URI noise; CSP-safe. */
+.ag-alive .ag-aurora{
+  background:
+    var(--noise),
+    radial-gradient(40vmax 40vmax at calc(var(--ag-mx,50%)) calc(var(--ag-my,30%)),
+      rgba(0,255,106,.10), transparent 60%),
+    radial-gradient(120vmax 44vmax at 50% 118%,
+      rgba(200,168,75,.06), transparent 70%);
+}
+
+/* Hero stat rules glow softly to signal "live". */
+.ag-alive .hstat-v, .ag-alive .h-stat-v{
+  text-shadow:0 0 26px rgba(0,255,106,.20);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   3 · SCROLL-DRIVEN LIFE (CSS timeline first, IO reveal already exists)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Reading progress hairline (element injected by js/alive.js). */
+.ag-progress{
+  position:fixed; top:0; left:0; right:0; height:2px; z-index:900;
+  transform-origin:0 50%; transform:scaleX(0);
+  background:linear-gradient(90deg, var(--neon,#00FF6A), var(--gold-hi,#E8C86A));
+  box-shadow:0 0 10px rgba(0,255,106,.5);
+  pointer-events:none;
+}
+@supports (animation-timeline: scroll()){
+  @media (prefers-reduced-motion: no-preference){
+    .ag-progress{ animation:ag-grow linear both; animation-timeline:scroll(root); }
+  }
+}
+@keyframes ag-grow{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
+
+/* Section headers drift up as they enter the viewport — native scroll
+   timeline where supported; elsewhere the IO reveal in immersive.js
+   already covers cards, so nothing is ever hidden without it. */
+@supports (animation-timeline: view()){
+  @media (prefers-reduced-motion: no-preference){
+    .ag-alive .s-tag, .ag-alive .s-h, .ag-alive .s-sub{
+      animation:ag-rise linear both;
+      animation-timeline:view();
+      animation-range:entry 0% entry 62%;
+    }
+    /* Heros gently release as you scroll past (parallax exit). */
+    .ag-alive .hero-content, .ag-alive .page-hero-content{
+      animation:ag-release linear both;
+      animation-timeline:view();
+      animation-range:exit 0% exit 100%;
+    }
+  }
+}
+@keyframes ag-rise{
+  from{ opacity:.001; transform:translateY(26px); }
+  to{ opacity:1; transform:none; }
+}
+@keyframes ag-release{
+  from{ opacity:1; transform:none; }
+  to{ opacity:.25; transform:translateY(-28px); }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   4 · DEPTH — refined glass, noise, colored light
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Cards get film grain + pointer-tracked inner light (vars set by JS).
+   The radial layer is invisible until --ag-o is raised on hover. */
+.ag-alive .card, .ag-alive .pstat, .ag-alive .mp-bs, .ag-alive .hfc{
+  background-image:
+    radial-gradient(240px circle at var(--ag-x,50%) var(--ag-y,50%),
+      rgba(0,255,106,calc(.09 * var(--ag-o,0))), transparent 72%),
+    var(--noise),
+    linear-gradient(180deg, rgba(255,255,255,.022), rgba(255,255,255,0) 40%);
+}
+@media (hover:hover) and (pointer:fine){
+  .ag-alive .card, .ag-alive .pstat, .ag-alive .mp-bs, .ag-alive .hfc{
+    transition-property:transform, border-color, box-shadow, background, --ag-o;
+  }
+  .ag-alive .card:hover, .ag-alive .pstat:hover,
+  .ag-alive .mp-bs:hover, .ag-alive .hfc:hover{ --ag-o:1; }
+  /* Colored light instead of dead black: green-tinted lift shadows. */
+  .ag-alive .card:hover{
+    box-shadow:0 22px 60px -28px rgba(0,0,0,.8),
+               var(--glow-neon-soft,0 24px 70px -30px rgba(0,255,106,.22)),
+               0 0 0 1px var(--nm,#00FF6A28);
+  }
+  .ag-alive .pstat:hover{
+    box-shadow:0 12px 30px -14px rgba(0,0,0,.6),
+               var(--glow-neon-soft,0 24px 70px -30px rgba(0,255,106,.22));
+  }
+}
+
+/* Gold-accented surfaces glow gold, not green (semantic light). */
+.ag-alive .s-tag.gld:hover{ box-shadow:var(--glow-gold,0 10px 40px -12px rgba(200,168,75,.3)); }
+
+/* Modals & wallet pickers: full glass recipe. */
+.ag-alive .modal, .ag-alive .agg-wm-modal{
+  background-color:var(--glass-bg, rgba(13,20,15,.58));
+  -webkit-backdrop-filter:blur(var(--glass-blur,14px)) saturate(1.2);
+  backdrop-filter:blur(var(--glass-blur,14px)) saturate(1.2);
+  border-color:var(--glass-bd, rgba(255,255,255,.075));
+  background-image:var(--noise);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   5 · MICRO-INTERACTIONS — everything touchable answers back
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Primary CTA: harvest shimmer sweeps only on intent; arrow glyphs nudge. */
+@media (hover:hover) and (pointer:fine){
+  .btn-p svg, .nbtn-p svg, .btn-s svg, .nbtn-g svg{
+    transition:transform .25s var(--ease-spring, ease);
+  }
+  .btn-p:hover svg, .nbtn-p:hover svg{ transform:translateX(3px); }
+  .btn-s:hover svg, .nbtn-g:hover svg{ transform:translateX(2px); }
+}
+.btn-p:active:not(:disabled), .nbtn-p:active:not(:disabled){
+  transition-duration:.06s;
+}
+
+/* Wallet connected = bioluminescent success. */
+.ag-alive .nwb.connected{
+  box-shadow:0 0 16px -6px var(--nb,#00FF6A55), inset 0 0 8px -6px var(--nb,#00FF6A55);
+}
+.ag-alive .nwb.connected .wdot{
+  background:var(--bio,var(--neon,#00FF6A));
+  box-shadow:0 0 8px var(--nb,#00FF6A55);
+}
+
+/* Inputs: the focus ring blooms instead of snapping. */
+.ag-alive .field input:focus, .ag-alive .field select:focus,
+.ag-alive .field textarea:focus{
+  box-shadow:0 0 0 3px var(--neon-08,var(--nd,#00FF6A0D)),
+             0 0 0 1px var(--nm,#00FF6A28),
+             0 0 24px -8px var(--nb,#00FF6A55);
+}
+
+/* Nav logo mark breathes very slowly — a resting heartbeat. */
+@media (prefers-reduced-motion: no-preference){
+  .ag-alive .nli{ animation:ag-heartbeat 6s ease-in-out infinite; }
+}
+@keyframes ag-heartbeat{
+  0%,88%,100%{ box-shadow:0 0 0 0 rgba(0,255,106,0); }
+  94%{ box-shadow:0 0 16px -2px var(--nb,#00FF6A55); }
+}
+
+/* Live dots get a soft halo ring, not just opacity blink. */
+.ag-alive .ti-live, .ag-alive .ldot, .ag-alive .page-tag .dot,
+.ag-alive .mp-feed-hd .live{
+  box-shadow:0 0 6px 1px var(--nb,#00FF6A55);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   6 · FINTECH TRUST — data reads like a terminal, not a brochure
+   ════════════════════════════════════════════════════════════════════ */
+.tv, .tup, .tdn, .calc .v, .hfc-r, .stat .v, .pstat .v,
+.mp-bs-n, .hstat-v, .h-stat-v, .sv, td{
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
+}
+
+/* Status semantics: success/pending/error pills glow their own color. */
+.ag-alive .badge.ok, .ag-alive .pill.ok{ box-shadow:0 0 14px -6px var(--nb,#00FF6A55); }
+.ag-alive .badge.warn, .ag-alive .pill.warn{ box-shadow:0 0 14px -6px rgba(240,160,32,.4); }
+.ag-alive .badge.err, .ag-alive .pill.err{ box-shadow:0 0 14px -6px rgba(255,61,74,.4); }
+
+/* Skeletons shimmer with a faint green pulse — "the chain is answering". */
+.ag-alive .ag-skeleton{
+  background:linear-gradient(90deg,
+    var(--bg3,#101610) 25%,
+    color-mix(in srgb, var(--neon,#00FF6A) 6%, var(--bg4,#171F18)) 37%,
+    var(--bg3,#101610) 63%);
+  background-size:200% 100%;
+}
+
+/* Tables: sticky-feel header tint + row focus. */
+.ag-alive table th{
+  background:linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+}
+.ag-alive table tr:hover td:first-child{
+  box-shadow:inset 2px 0 0 var(--neon,#00FF6A);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   7 · DIRECTIONAL VIEW TRANSITIONS (slide+fade, MPA)
+   js/alive.js stamps <html data-ag-nav="fwd|back"> via pagereveal.
+   ════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference){
+  html[data-ag-nav="fwd"]::view-transition-old(root){
+    animation:ag-vt-out-fwd .26s var(--ease-in-out, ease) both;
+  }
+  html[data-ag-nav="fwd"]::view-transition-new(root){
+    animation:ag-vt-in-fwd .3s var(--ease-out, ease) both;
+  }
+  html[data-ag-nav="back"]::view-transition-old(root){
+    animation:ag-vt-out-back .26s var(--ease-in-out, ease) both;
+  }
+  html[data-ag-nav="back"]::view-transition-new(root){
+    animation:ag-vt-in-back .3s var(--ease-out, ease) both;
+  }
+}
+@keyframes ag-vt-out-fwd{ to{ opacity:0; transform:translateX(-28px); } }
+@keyframes ag-vt-in-fwd{ from{ opacity:0; transform:translateX(28px); } }
+@keyframes ag-vt-out-back{ to{ opacity:0; transform:translateX(28px); } }
+@keyframes ag-vt-in-back{ from{ opacity:0; transform:translateX(-28px); } }
+
+/* ════════════════════════════════════════════════════════════════════
+   8 · PERFORMANCE + ACCESSIBILITY GUARDRAILS
+   ════════════════════════════════════════════════════════════════════ */
+@media (max-width:760px){
+  /* Cheap chrome on the webview: lighter blur, no pointer-glow layer,
+     no grid drift repaint pressure. */
+  .ag-tabbar{ -webkit-backdrop-filter:blur(9px); backdrop-filter:blur(9px); }
+  .ag-alive .modal, .ag-alive .agg-wm-modal{
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  }
+  .ag-alive .hero-grid, .ag-alive .page-hero-grid{ animation:none; }
+  .ag-alive .hstat-v, .ag-alive .h-stat-v{ text-shadow:none; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .ag-field{ display:none; }
+  .ag-progress{ display:none; }
+  .ag-alive .hero-grid, .ag-alive .page-hero-grid,
+  .ag-alive .ag-aurora, .ag-alive .nli,
+  .ag-alive .hero h1 em, .ag-alive .page-title em,
+  .ag-alive .s-h em, .ag-alive .cta-box h2 em, .ag-alive .h1 em{
+    animation:none !important;
+  }
+  html[data-ag-nav]::view-transition-old(root),
+  html[data-ag-nav]::view-transition-new(root){ animation:none !important; }
+}
