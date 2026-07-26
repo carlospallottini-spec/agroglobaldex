@@ -168,6 +168,9 @@ pub fn pyth_to_usdc_6dp(price: i64, expo: i32) -> Result<u64> {
 /// Reject prices whose confidence band is wider than `max_confidence_bps`
 /// relative to the price. `max_confidence_bps == 0` disables the check.
 pub fn check_confidence(price: i64, conf: u64, max_confidence_bps: u16) -> Result<()> {
+    // Revalidate on our own (audit L-4): a non-positive price cast to u128
+    // would wrap to a huge divisor and make any confidence ratio "pass".
+    require!(price > 0, AgroError::InvalidPythPrice);
     if max_confidence_bps == 0 {
         return Ok(());
     }
@@ -385,6 +388,9 @@ mod tests {
         assert!(check_confidence(1_000_000, 10_000, 50).is_err());
         // zero bound disables the check.
         assert!(check_confidence(1_000_000, 999_999, 0).is_ok());
+        // non-positive price is rejected even with the check disabled (L-4).
+        assert!(check_confidence(0, 1, 0).is_err());
+        assert!(check_confidence(-1_000_000, 1, 200).is_err());
     }
 
     #[test]

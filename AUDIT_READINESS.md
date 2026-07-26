@@ -36,6 +36,65 @@ de cada uno se conserva intacto abajo como contexto para el auditor.
 
 ---
 
+## 0b. Sweep final pre-auditoría (2026-07-26)
+
+Barrido final de seguridad/completitud sobre `solana/programs/*/src` previo a la
+auditoría externa. Se corrigieron los hallazgos accionables con fix mínimo; los
+de diseño quedan documentados. `cargo check --workspace` compila sin errores ni
+warnings nuevos; los 11 tests unitarios Rust (oracle) pasan; se actualizaron los
+2 call-sites de `liquidate` en `tests/agroglobaldex.ts` por el cambio de cuentas.
+
+> Nota de entorno: en este sandbox no hay `cargo build-sbf`, `anchor` ni
+> `node_modules`/IDL, de modo que la verificación de compilación se hizo con
+> `cargo check --workspace` (equivalente a nivel typecheck/borrow-check) y no se
+> pudo correr `anchor build` ni `tsc`. Recomendado re-correr `anchor build` +
+> `anchor test` en CI antes de congelar el tag.
+
+### Corregidos
+
+| # | Sev | Dónde | Problema | Fix |
+|---|-----|-------|----------|-----|
+| **S-1** | 🟠 Alto | `compliance-hook/src/lib.rs` (resolver meta #9 + `execute`) | El `source_compliance` se derivaba con la *transfer authority* (índice 3). En una transferencia **delegada** esa authority es el DELEGADO, no el titular: un holder con KYC revocado / jurisdicción bloqueada podía sacar tokens vía cualquier delegado compliant, evadiendo el control de origen. | Derivar `source_compliance` del **owner real** de la cuenta source (offset 32 de los datos SPL), tanto en el `ExtraAccountMeta` como en la re-derivación de `execute`. Fail-closed y consistente con cómo ya se resuelve `destination`. |
+| **S-2** | 🟠 Alto | `cancel_listing.rs` | Usaba `transfer_checked` **plano** para devolver el escrow. Los mints nativos llevan el TransferHook de compliance, así que el CPI revertía en todo mint hooked → tokens **atrapados** en el escrow (solo salían si alguien compraba). DoS funcional del cancel. | Cambiado a `spl_token_2022::onchain::invoke_transfer_checked` con `remaining_accounts` (hook-aware), igual que `list_asset`/`buy_asset`. Firma del handler ahora toma `remaining_accounts`; `lib.rs` actualizado. |
+| **S-3** | 🟠 Alto | `lending.rs` `Liquidate` | `borrower_collateral_ata` era `Account` no-init. El borrower **posee** ese ATA y podía **cerrarlo** tras abrir el préstamo → toda liquidación revierte al deserializar la cuenta = **liquidation-DoS** (posición imposible de liquidar, bad-debt garantizado). | `init_if_needed` con `payer = liquidator` (+ `associated_token_program`/`system_program`). El liquidador re-crea el ATA si falta; el borrower ya no puede bloquear la liquidación. |
+| **S-4** | 🟡 Medio | `lending.rs` `open_loan` | El préstamo se autorizaba contra `usdc_pool.amount` (balance crudo del ATA), no contra `total_liquidity` (contabilidad). USDC donado directo al pool infla el balance por encima de `total_liquidity`; prestarlo hacía `total_liquidity` caer por debajo de lo removido (antes `saturating_sub` → se perdía contabilidad, rompe invariantes 2 y 3). | Añadido `require!(total_liquidity >= borrow_amount)` y cambiado el `saturating_sub(borrow_amount)` por `checked_sub` con `InsufficientLiquidity`. La check de `usdc_pool.amount` queda como defensa en profundidad. |
+| **S-5** | ⚪ Bajo | `lending.rs` (`accrue_interest`, `deposit`, `withdraw`) | Narrowing `u128 as u64` por truncamiento silencioso. `overflow-checks` **no** cubre casts `as`; en entradas extremas (p.ej. `shares == total_shares` con `pool_value` sumando dos u64) el resultado podía envolver. | Reemplazados los tres `as u64` sobre montos/shares/interés por `try_into().map_err(PriceOverflow)` (fallible). |
+| **L-3** | ⚪ Bajo | `lending.rs` `set_collateral_config` | Al volver a modo manual no limpiaba `oracle_feed_id`/`max_staleness_secs`/`max_confidence_bps` → estado stale del oráculo persistía. | Se limpian los tres campos al desactivar el oráculo. |
+| **L-4** | ⚪ Bajo | `oracle.rs` `check_confidence` | La función pública no revalidaba `price > 0`; un precio no-positivo casteado a `u128` da un divisor enorme y hace "pasar" cualquier ratio. Los callers ya garantizaban `price>0`, pero la función era insegura por sí sola. | `require!(price > 0)` al inicio + tests unitarios nuevos (`price=0` y `price<0`). |
+
+### Documentados (diseño / dudosos — NO se tocó código)
+
+- **D-1 (Medio funcional) — `LoanPosition` nunca se cierra.** `open_loan` usa
+  `init` con seeds `[LOAN, lending_market, borrower, asset_registry]`. Tras
+  `repay`/`liquidate` la cuenta queda con `active=false` pero **no se cierra**, así
+  que un mismo borrower **no puede reabrir** un préstamo contra el mismo
+  `asset_registry` (el `init` falla "already in use"). No es robo, pero limita el
+  producto a un préstamo one-shot por (borrower, colateral). Fix sugerido para el
+  auditor: `init_if_needed` con guard `!loan.active` + reset de campos, o una ix
+  `close_loan` que cierre el PDA tras liquidación/repago. No se cambió por ser
+  decisión de diseño con implicancias de contabilidad.
+- **D-2 (Bajo) — rent del liquidador en `remainder==0`.** Con el fix S-3,
+  `liquidate` siempre `init_if_needed` el `borrower_collateral_ata` aunque en el
+  path underwater (remainder 0) no se le devuelva nada; el liquidador adelanta
+  ~0.002 SOL de rent innecesario en ese caso. Trade-off aceptado a cambio de
+  cerrar el liquidation-DoS (S-3).
+- **D-3 (Bajo) — dirección de redondeo (revisada, correcta).** `deposit`
+  (`floor` de shares), `withdraw` (`floor` de USDC) y `liquidate`
+  (`ceil` de `seize_units`, `floor` de `repaid`) redondean **a favor del
+  protocolo/pool/LP**. Confirmado consistente; se deja registrado para que la
+  auditoría lo valide contra los invariantes 1-6.
+- **H-3 (reiterado) — parseo manual de Pyth.** Sin cambios; ya tenía owner-check,
+  discriminador, feed binding, gate de firmas, future-skew, staleness y
+  confidence. Migración a `pyth-solana-receiver-sdk` sigue como decisión del
+  auditor. El fix L-4 endurece adicionalmente `check_confidence`.
+- **CPI program-ids fijados (verificado, sin acción).** `compliance_hook::ID` se
+  address-checkea en `register_asset`; el receiver de Pyth se owner-checkea contra
+  `PYTH_RECEIVER_PROGRAM_ID`; los mints de colateral se atan a
+  `asset_registry.mint` (PDA del programa) por lo que su hook program es siempre
+  el nuestro. No hay CPI a programa arbitrario.
+
+---
+
 ## 1. Veredicto de mainnet-readiness (en la fecha del assessment)
 
 **No. Hoy no es seguro mover dinero real en mainnet, y el propio repo lo dice**

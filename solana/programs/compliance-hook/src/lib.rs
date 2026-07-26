@@ -176,7 +176,13 @@ pub mod compliance_hook {
                 false,
             )
             .map_err(|_| HookError::AccountMetaConstructionFailed)?,
-            // 9: source compliance record — seeds [COMPLIANCE_RECORD_SEED, marketplace, source_owner]
+            // 9: source compliance record — seeds [COMPLIANCE_RECORD_SEED,
+            //    marketplace, source token account OWNER]. The owner is read
+            //    from the source token account data (offset 32), NOT from the
+            //    transfer authority at index 3: with a delegated transfer the
+            //    authority is the DELEGATE, and keying compliance off the
+            //    delegate would let a KYC-revoked / blocked holder move tokens
+            //    out through any compliant delegate.
             ExtraAccountMeta::new_external_pda_with_seeds(
                 7,
                 &[
@@ -184,7 +190,11 @@ pub mod compliance_hook {
                         bytes: COMPLIANCE_RECORD_SEED.to_vec(),
                     },
                     Seed::AccountKey { index: 6 }, // marketplace
-                    Seed::AccountKey { index: 3 }, // source owner
+                    Seed::AccountData {
+                        account_index: 0, // source token account
+                        data_index: 32,   // SPL token account `owner` field offset
+                        length: 32,
+                    },
                 ],
                 false,
                 false,
@@ -289,7 +299,20 @@ pub mod compliance_hook {
         );
 
         // source_compliance = PDA([COMPLIANCE_RECORD_SEED, marketplace, source_owner], agroglobaldex)
-        let source_owner = ctx.accounts.owner.key();
+        // The source owner is read from the source TOKEN ACCOUNT's `owner`
+        // field (offset 32), NOT from `ctx.accounts.owner` (the transfer
+        // authority at index 3). On a delegated transfer the authority is the
+        // DELEGATE, and keying the compliance check off the delegate would let
+        // a KYC-revoked / jurisdiction-blocked holder move tokens out via any
+        // compliant delegate. Reading the real owner closes that bypass and
+        // keeps the derivation identical to the TLV resolver's Seed::AccountData.
+        let source_owner = {
+            let data = ctx.accounts.source.try_borrow_data()?;
+            require!(data.len() >= 64, HookError::DeserializationFailed);
+            let mut buf = [0u8; 32];
+            buf.copy_from_slice(&data[32..64]);
+            Pubkey::new_from_array(buf)
+        };
         let (expected_src, _) = Pubkey::find_program_address(
             &[
                 COMPLIANCE_RECORD_SEED,

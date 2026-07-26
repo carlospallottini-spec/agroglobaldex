@@ -56,7 +56,11 @@ fn accrue_interest(loan: &mut LoanPosition, now: i64) -> Result<()> {
     let denom = 10_000u128
         .checked_mul(SECONDS_PER_YEAR as u128)
         .ok_or(AgroError::PriceOverflow)?;
-    let new_interest = (numerator / denom) as u64;
+    // Fallible narrowing: a truncating `as u64` here would silently wrap the
+    // accrued interest for absurd (but attacker-choosable) inputs.
+    let new_interest: u64 = (numerator / denom)
+        .try_into()
+        .map_err(|_| AgroError::PriceOverflow)?;
     loan.accrued_interest_usdc = loan
         .accrued_interest_usdc
         .checked_add(new_interest)
@@ -294,7 +298,7 @@ pub fn deposit_liquidity_handler(ctx: Context<DepositLiquidity>, amount: u64) ->
             / pool_value;
         // Reject dust deposits that would mint zero shares (free donation).
         require!(delta > 0, AgroError::InvalidAmount);
-        let d = delta as u64;
+        let d: u64 = delta.try_into().map_err(|_| AgroError::PriceOverflow)?;
         (d, d)
     };
 
@@ -401,10 +405,12 @@ pub fn withdraw_liquidity_handler(ctx: Context<WithdrawLiquidity>, shares: u64) 
         .checked_add(ctx.accounts.lending_market.total_borrowed as u128)
         .ok_or(AgroError::PriceOverflow)?;
     let total_shares = ctx.accounts.lending_market.total_shares as u128;
-    let amount = ((shares as u128)
+    let amount: u64 = ((shares as u128)
         .checked_mul(pool_value)
         .ok_or(AgroError::PriceOverflow)?
-        / total_shares) as u64;
+        / total_shares)
+        .try_into()
+        .map_err(|_| AgroError::PriceOverflow)?;
     require!(amount > 0, AgroError::InvalidAmount);
     // Can't withdraw USDC that's currently lent out — only idle liquidity.
     require!(
@@ -516,8 +522,12 @@ pub fn set_collateral_config_handler(
     cfg.bump = ctx.bumps.collateral_config;
     // This instruction is the manual-relay path: setting a price by hand
     // switches the collateral back to manual mode. Use `set_collateral_oracle`
-    // to (re-)bind a Pyth feed.
+    // to (re-)bind a Pyth feed. Clear the oracle wiring too (audit L-3) so no
+    // stale feed id / staleness window survives the mode switch.
     cfg.oracle_enabled = false;
+    cfg.oracle_feed_id = [0u8; 32];
+    cfg.max_staleness_secs = 0;
+    cfg.max_confidence_bps = 0;
 
     emit!(CollateralConfigured {
         lending_market: cfg.lending_market,
@@ -678,6 +688,15 @@ pub fn open_loan_handler<'info>(
         (borrow_amount as u128) <= max_borrow,
         AgroError::ExceedsMaxLtv
     );
+    // Borrow against TRACKED liquidity, not the raw pool balance: USDC donated
+    // straight to the pool ATA is not in `total_liquidity`, and lending it out
+    // would silently underflow the pool accounting (invariant:
+    // usdc_pool.amount >= total_liquidity). The ATA check stays as
+    // defense-in-depth.
+    require!(
+        ctx.accounts.lending_market.total_liquidity >= borrow_amount,
+        AgroError::InsufficientLiquidity
+    );
     require!(
         ctx.accounts.usdc_pool.amount >= borrow_amount,
         AgroError::InsufficientLiquidity
@@ -738,7 +757,10 @@ pub fn open_loan_handler<'info>(
     loan.bump = ctx.bumps.loan;
 
     let lm = &mut ctx.accounts.lending_market;
-    lm.total_liquidity = lm.total_liquidity.saturating_sub(borrow_amount);
+    lm.total_liquidity = lm
+        .total_liquidity
+        .checked_sub(borrow_amount)
+        .ok_or(AgroError::InsufficientLiquidity)?;
     lm.total_borrowed = lm
         .total_borrowed
         .checked_add(borrow_amount)
@@ -967,8 +989,13 @@ pub struct Liquidate<'info> {
     #[account(address = loan.borrower)]
     pub borrower: UncheckedAccount<'info>,
 
+    /// Recreated on demand if missing: the borrower owns this ATA and could
+    /// otherwise CLOSE it after opening the loan, making every liquidation
+    /// revert at deserialization (liquidation-DoS). The liquidator fronts the
+    /// rent when re-creation is needed.
     #[account(
-        mut,
+        init_if_needed,
+        payer = liquidator,
         associated_token::mint = collateral_mint,
         associated_token::authority = borrower,
         associated_token::token_program = collateral_token_program,
@@ -1001,6 +1028,8 @@ pub struct Liquidate<'info> {
 
     pub collateral_token_program: Interface<'info, TokenInterface>,
     pub usdc_token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn liquidate_handler<'info>(ctx: Context<'_, '_, '_, 'info, Liquidate<'info>>) -> Result<()> {
