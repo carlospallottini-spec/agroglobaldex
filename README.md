@@ -93,7 +93,7 @@ Y 4 nuevas instrucciones (HIGH: #15, #16, #19, #20):
 
 Además: `AssetRegistry.redeemed_supply` tracking (audit #18), `aggregate.active=false` por default (audit #7).
 
-23 tests mocha. Run book operativo en [`solana/RUNBOOK.md`](solana/RUNBOOK.md).
+47 tests de integración mocha en CI (`anchor test`). Run book operativo en [`solana/RUNBOOK.md`](solana/RUNBOOK.md).
 Security policy en [`SECURITY.md`](SECURITY.md).
 
 ---
@@ -108,7 +108,7 @@ Security policy en [`SECURITY.md`](SECURITY.md).
 | [`mobile/`](mobile/) | Capacitor scaffold para APK Android. |
 | [`marketing/`](marketing/) | Pitch deck, financials, FAQ inversores, LOI templates, Colosseum submission, guías. |
 | [`legal/`](legal/) | Análisis MiCA, T&Cs draft, Privacy, white paper template, checklist. |
-| [`docs/`](docs/) | Whitepaper. |
+| [`docs/`](docs/) | Data room para inversores: [one-pager](docs/INVESTOR_ONE_PAGER.md) · [índice del data room](docs/DATA_ROOM.md) · [arquitectura](docs/ARCHITECTURE.md) · whitepaper. |
 | [`.github/workflows/`](.github/workflows/) | CI builds automáticos del `.exe`/`.dmg`/`.AppImage` por tag. |
 
 ---
@@ -119,6 +119,10 @@ Servir [`/investors.html`](web%202.0/investors.html) local o ver:
 
 | Documento | Para qué sirve |
 |---|---|
+| [One-pager honesto](docs/INVESTOR_ONE_PAGER.md) | Problema, solución, estado REAL, roadmap 3 fases, uso de fondos |
+| [Data room (índice)](docs/DATA_ROOM.md) | Todo documento del repo indexado + checklist de lo que falta |
+| [Arquitectura](docs/ARCHITECTURE.md) | Diagramas del sistema y del flujo de lending/compliance |
+| [Checklist maestro de lanzamiento](LAUNCH.md) | Qué está hecho, qué falta y cuánto cuesta (estimaciones) |
 | [Pitch Deck completo](marketing/pitch-deck-full.md) | 14 slides + apéndice |
 | [Cómo pasar el deck a visual](marketing/pitch-deck-to-figma-guide.md) | Gamma 15min · Pitch · Figma · Canva · Slidev |
 | [Financial model 5y](marketing/financials-5y.md) | Proyecciones + sensitivity + comparables |

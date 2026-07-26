@@ -9,3 +9,12 @@ ios/App/Pods/
 ios/App/build/
 ios/.symlinks/
 .DS_Store
+
+# 🚨 Clave de firma Android — NUNCA subir al repo (ver README, paso 5)
+*.keystore
+*.jks
+android/keystore.properties
+
+# Artefactos PWA que @capacitor/assets genera si se corre sin plataformas
+icons/
+www/manifest.json

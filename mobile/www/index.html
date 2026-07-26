@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05080A">
+<title>Sin conexión — AgroGlobalDex</title>
+<style>
+  :root{
+    --bg:#05080A; --bg2:#0A0F0C; --neon:#00FF6A; --gold:#C8A84B;
+    --txt:#ECF0EC; --t2:#7A9080; --bd2:#1E2D20; --r3:20px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%, #0A1F12 0%, var(--bg) 55%, #000 100%);
+    color:var(--txt);
+    font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px calc(20px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    -webkit-user-select:none;user-select:none;
+  }
+  .card{max-width:420px;width:100%;text-align:center;padding:40px 28px;
+    border:1px solid var(--bd2);border-radius:var(--r3);
+    background:linear-gradient(180deg, rgba(0,255,106,.04), rgba(0,0,0,.25));
+    box-shadow:0 30px 80px rgba(0,0,0,.6);}
+  .logo{width:104px;height:104px;margin:0 auto 24px;display:block;
+    filter:drop-shadow(0 0 26px rgba(0,255,106,.25));}
+  h1{font-size:1.45rem;font-weight:600;letter-spacing:.2px;margin-bottom:10px}
+  h1 em{font-style:normal;color:var(--neon)}
+  p{color:var(--t2);font-size:.95rem;line-height:1.55;margin-bottom:28px}
+  button{
+    appearance:none;border:1px solid rgba(0,255,106,.35);cursor:pointer;
+    background:rgba(0,255,106,.08);color:var(--neon);
+    font:inherit;font-weight:600;font-size:1rem;
+    min-height:48px;padding:12px 34px;border-radius:999px;
+    transition:background .2s,transform .1s;
+  }
+  button:active{background:rgba(0,255,106,.18);transform:scale(.98)}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:#FF3D4A;margin-right:8px;vertical-align:1px;
+    animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .status{font-size:.8rem;color:var(--t2);margin-top:20px;letter-spacing:.3px}
+</style>
+</head>
+<body>
+  <main class="card">
+    <svg class="logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AgroGlobalDex">
+      <defs>
+        <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stop-color="#0A1F12"/><stop offset="60%" stop-color="#05100A"/><stop offset="100%" stop-color="#000"/>
+        </radialGradient>
+        <linearGradient id="neon" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#7DFFB0"/><stop offset="55%" stop-color="#00FF6A"/><stop offset="100%" stop-color="#00B84B"/>
+        </linearGradient>
+        <linearGradient id="seed" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#9CFFC0"/><stop offset="50%" stop-color="#00FF6A"/><stop offset="100%" stop-color="#008C3A"/>
+        </linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+      <rect x="20" y="20" width="472" height="472" rx="84" fill="none" stroke="#00FF6A" stroke-opacity=".25" stroke-width="2"/>
+      <g transform="translate(256 256)">
+        <path d="M0 -170 L147 -85 L147 85 L0 170 L-147 85 L-147 -85 Z"
+              fill="none" stroke="url(#neon)" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="0" cy="-170" r="11" fill="#00FF6A"/><circle cx="147" cy="-85" r="11" fill="#00FF6A"/>
+        <circle cx="147" cy="85" r="11" fill="#00FF6A"/><circle cx="0" cy="170" r="11" fill="#00FF6A"/>
+        <circle cx="-147" cy="85" r="11" fill="#00FF6A"/><circle cx="-147" cy="-85" r="11" fill="#00FF6A"/>
+        <path d="M0 -78 Q44 -78 56 -32 Q68 14 32 56 Q0 78 -32 56 Q-68 14 -56 -32 Q-44 -78 0 -78 Z" fill="url(#seed)"/>
+        <path d="M0 -70 Q-6 0 0 70" stroke="#04200F" stroke-width="4" fill="none" stroke-linecap="round" opacity=".55"/>
+        <ellipse cx="-18" cy="-30" rx="10" ry="16" fill="#B6FFD0" opacity=".55"/>
+      </g>
+    </svg>
+    <h1>Sin conexión</h1>
+    <p><em style="color:var(--neon);font-style:normal">AgroGlobalDex</em> necesita internet para operar.
+       Verificá tu conexión Wi-Fi o datos móviles y reintentá.</p>
+    <button type="button" onclick="retry()">Reintentar</button>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusTxt">Esperando conexión…</span></div>
+  </main>
+  <script>
+    var SITE = 'https://agroglobaldex.com';
+    function retry(){ window.location.href = SITE; }
+    // Reintento automático en cuanto el sistema recupera la conexión.
+    window.addEventListener('online', function(){
+      document.getElementById('statusTxt').textContent = 'Conexión detectada — cargando…';
+      document.getElementById('dot').style.background = '#00FF6A';
+      setTimeout(retry, 600);
+    });
+    if (navigator.onLine) {
+      // A veces el fallo fue transitorio: probar de nuevo a los 4 s.
+      setTimeout(function(){ if (navigator.onLine) retry(); }, 4000);
+    }
+  </script>
+</body>
+</html>
