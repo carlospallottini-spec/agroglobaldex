@@ -6,6 +6,21 @@
 <title>Tokenizar activo — AgroGlobalDex</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="AgroGlobalDex (Demo/PoC) — Tokenizá granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<link rel="canonical" href="https://agroglobaldex.com/tokenize.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Tokenizar activo — AgroGlobalDex">
+<meta property="og:description" content="AgroGlobalDex (Demo/PoC) — Tokenizá granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<meta property="og:url" content="https://agroglobaldex.com/tokenize.html">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Tokenizar activo — AgroGlobalDex">
+<meta name="twitter:description" content="AgroGlobalDex (Demo/PoC) — Tokenizá granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
 <style>
@@ -126,6 +141,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
   <link rel="stylesheet" href="css/enhance.css">
   <link rel="stylesheet" href="css/immersive.css">
   <link rel="stylesheet" href="css/elevate.css">
+  <link rel="stylesheet" href="css/alive.css">
 </head>
 <body>
 
@@ -332,7 +348,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
 
       <div class="field"><label>White paper URI (MiCA Art. 6)</label>
         <input type="text" id="f-whitePaper" placeholder="ipfs://… o https://…">
-        <div class="hint">Obligatorio bajo MiCA. Si todavía no tenés uno, usá un template en <a href="../legal/08-white-paper-template.md" target="_blank" style="color:var(--neon)">/legal/08-white-paper-template.md</a> y subilo a IPFS/Arweave.</div>
+        <div class="hint">Obligatorio bajo MiCA. Si todavía no tenés uno, usá un template en <a href="https://github.com/carlospallottini-spec/agroglobaldex/blob/main/legal/08-white-paper-template.md" target="_blank" rel="noopener" style="color:var(--neon)">legal/08-white-paper-template.md (GitHub)</a> y subilo a IPFS/Arweave.</div>
       </div>
 
       <div class="field"><label>Metadata URI (JSON con imagen y descripción)</label>
@@ -383,13 +399,15 @@ import { checkKyc, reasonToMessage } from './js/kyc-gate.js';
 
 const state = { kind: null, file: null, hash: null };
 const $ = (sel) => document.querySelector(sel);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 function showToast(msg, kind = 'success') {
   const stack = $('#toast-stack');
   const t = document.createElement('div');
   t.className = 'toast ' + kind;
-  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt">${msg}</div>`;
+  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt"></div>`;
+  t.querySelector('.toast-txt').textContent = msg;
   stack.appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 350); }, 4200);
 }
@@ -496,7 +514,7 @@ async function renderReview() {
     ['Cert. SHA-256', state.hash ? Array.from(state.hash).slice(0,4).map(b => b.toString(16).padStart(2,'0')).join('') + '…' : '—'],
     ['Red', NETWORK],
   );
-  r.innerHTML = rows.map(([k, v]) => `<div class="review-row"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  r.innerHTML = rows.map(([k, v]) => `<div class="review-row"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('');
 
   await renderKycBanner();
 }
@@ -511,10 +529,10 @@ async function renderKycBanner() {
   b.innerHTML = `<div class="warn">Verificando KYC on-chain…</div>`;
   const kyc = await checkKyc(getPublicKey());
   if (kyc.ok) {
-    b.innerHTML = `<div class="ok">✓ KYC verificado · Jurisdicción ${kyc.jurisdiction}</div>`;
+    b.innerHTML = `<div class="ok">✓ KYC verificado · Jurisdicción ${esc(kyc.jurisdiction)}</div>`;
     $('#submit-tx').disabled = false;
   } else {
-    b.innerHTML = `<div class="warn"><strong>KYC requerido.</strong> ${reasonToMessage(kyc.reason, kyc.jurisdiction)} <a href="contact.html?kyc=1" style="color:var(--neon)">Solicitar KYC</a></div>`;
+    b.innerHTML = `<div class="warn"><strong>KYC requerido.</strong> ${esc(reasonToMessage(kyc.reason, kyc.jurisdiction))} <a href="contact.html?kyc=1" style="color:var(--neon)">Solicitar KYC</a></div>`;
     $('#submit-tx').disabled = false; // permitimos intentar; el programa rechazará
   }
 }
@@ -552,8 +570,8 @@ function collectForm() {
 
 $('#submit-tx').addEventListener('click', async () => {
   if (!isConnected()) {
-    const pk = await connectWallet();
-    if (!pk) return;
+    const pk = await connectWallet(); // abre el picker de wallets
+    if (!pk) return showToast('Conectá tu wallet y volvé a tocar "Firmar y tokenizar"', 'error');
   }
   const btn = $('#submit-tx');
   btn.disabled = true;
@@ -584,5 +602,6 @@ $('#submit-tx').addEventListener('click', async () => {
 <script type="module" src="js/pwa-install.js"></script>
 <script src="js/ux.js" defer></script>
 <script src="js/immersive.js" defer></script>
+<script src="js/alive.js" defer></script>
 </body>
 </html>

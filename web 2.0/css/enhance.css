@@ -45,9 +45,14 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible{
   border-radius:var(--r,8px);
 }
 
-/* Page enters with a soft fade+rise (skipped under reduced-motion). */
+/* Page enters with a soft fade+rise (skipped under reduced-motion).
+   IMPORTANT: fill-mode must be `backwards`, NOT `both` — a retained
+   transform on <body> makes it a containing block for every
+   position:fixed descendant (toasts, aurora, tab-bar), anchoring them to
+   the document instead of the viewport. `backwards` still covers the
+   pre-start frame, then releases the transform when the entrance ends. */
 @keyframes ag-page-in{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
-body{ animation:ag-page-in .5s var(--ease-out) both; }
+body{ animation:ag-page-in .5s var(--ease-out) backwards; }
 
 /* ── Primary buttons — tactile lift + neon glow + press ──────────────── */
 .btn-p, .nbtn-p{

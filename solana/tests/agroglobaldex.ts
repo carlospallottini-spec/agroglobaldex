@@ -1466,6 +1466,8 @@ describe("agroglobaldex", function () {
         liquidatorUsdcAta,
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID,
         usdcTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       })
       // Underwater (collateral < debt+bonus) → full seizure, remainder 0, so
       // only the vault→liquidator transfer fires (no borrower refund). The CU
@@ -1863,6 +1865,7 @@ describe("agroglobaldex", function () {
         borrower: borrower5.publicKey, borrowerCollateralAta: borrower5CollateralAta,
         vaultAuthority: vaultAuth, collateralVault, usdcMint, usdcPool, liquidatorUsdcAta,
         collateralTokenProgram: TOKEN_2022_PROGRAM_ID, usdcTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
       })
       .preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })])
       .remainingAccounts(remaining)

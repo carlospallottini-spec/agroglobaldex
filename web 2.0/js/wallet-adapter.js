@@ -291,7 +291,9 @@ function showWalletToast(msg, kind = 'success') {
   }
   const t = document.createElement('div');
   t.className = 'toast show ' + kind;
-  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt">${msg}</div>`;
+  // msg puede incluir err.message del provider — nunca lo interpretamos como HTML.
+  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt"></div>`;
+  t.querySelector('.toast-txt').textContent = msg;
   stack.appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 350); }, 3800);
 }

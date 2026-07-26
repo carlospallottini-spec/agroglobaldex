@@ -44,8 +44,11 @@
   --r-pill:999px;
 
   /* ── Type families ──────────────────────────────────────────────── */
-  --fd:'DM Serif Display',serif;
-  --fb:'Outfit',sans-serif;
+  /* High-quality self-contained fallback stacks: if the webfont is ever
+     unavailable (offline Capacitor, strict CSP), the site still looks
+     deliberate — an editorial serif + a geometric-humanist sans. */
+  --fd:'DM Serif Display','Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,'Times New Roman',serif;
+  --fb:'Outfit','Avenir Next',Avenir,'Segoe UI Variable Display','Segoe UI',Inter,Roboto,'Helvetica Neue',system-ui,sans-serif;
 
   /* ════════════════════════════════════════════════════════════════
      ELEVATED LAYER — additive modern tokens (new names, never clash)
@@ -102,3 +105,56 @@
 /* Honor brand: always dark. Provide a sane base for any chrome the UA
    draws (form controls, scrollbars) so it matches the theme. */
 :root{ color-scheme:dark; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ALIVE LAYER TOKENS — "premium agro-fintech vivo"
+   Additive vocabulary consumed by css/alive.css. Solid hex fallbacks
+   first; wide-gamut oklch upgrades below where the engine supports it.
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  /* Bioluminescent green — brighter ink for active/success states. */
+  --bio:#5CFFA0;
+  /* Harvest gold, one step brighter than --gold for highlights. */
+  --gold-hi:#E8C86A;
+  /* Deep earth tone anchoring the tierra→oro gradients. */
+  --earth:#2A2013;
+
+  /* Signature gradients (earth→gold, field→bio). */
+  --grad-harvest:linear-gradient(120deg, var(--earth) 0%, #6B5426 45%, var(--gold) 78%, var(--gold-hi) 100%);
+  --grad-field:linear-gradient(120deg, #0A2916 0%, #0E4A24 45%, var(--neon) 100%);
+  --grad-ink-neon:linear-gradient(135deg, var(--txt) 30%, var(--neon) 82%, var(--gold-hi) 115%);
+
+  /* Colored glow shadows (replace flat black where depth should feel lit). */
+  --glow-neon:0 10px 40px -12px rgba(0,255,106,.28);
+  --glow-gold:0 10px 40px -12px rgba(200,168,75,.30);
+  --glow-neon-soft:0 24px 70px -30px rgba(0,255,106,.22);
+
+  /* Glass surface recipe. */
+  --glass-bg:rgba(13,20,15,.58);
+  --glass-bd:rgba(255,255,255,.075);
+  --glass-blur:14px;
+
+  /* Inline SVG film-grain (self-contained: data URI, CSP-safe). */
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+
+  /* Safe areas (Capacitor / notched devices). */
+  --safe-t:env(safe-area-inset-top, 0px);
+  --safe-r:env(safe-area-inset-right, 0px);
+  --safe-b:env(safe-area-inset-bottom, 0px);
+  --safe-l:env(safe-area-inset-left, 0px);
+}
+
+/* Wide-gamut upgrade: same hues, more chroma on P3/OLED screens. The hex
+   values above remain the universal fallback. */
+@supports (color: oklch(50% 0.1 150)){
+  :root{
+    --neon:oklch(87.5% 0.29 150.5);
+    --bio:oklch(90% 0.22 154);
+    --gold:oklch(74% 0.105 87);
+    --gold-hi:oklch(83% 0.115 90);
+    --red:oklch(64% 0.24 22);
+    --amb:oklch(76% 0.16 70);
+    --blu:oklch(67% 0.15 250);
+    --pur:oklch(65% 0.17 285);
+  }
+}

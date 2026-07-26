@@ -1,12 +1,15 @@
 /* AgroGlobalDex — Service Worker (PWA shell + kill-switch para Electron)
- * v8 — Rediseño "última generación": sistema de tokens unificado
- *      (css/tokens.css) + capa de elevación moderna (css/elevate.css).
- *      Bump de cache para invalidar el shell viejo y servir el rediseño a
- *      visitantes recurrentes. Detecta protocolo file:// (Electron /
- *      Capacitor desktop) y se auto-destruye limpiando caches. En navegador
- *      web real (https://) se comporta como PWA shell normal.
+ * v9 — Auditoría de lanzamiento: fixes de links rotos, escapado XSS en todo
+ *      el JS inline, meta OG/Twitter en todas las páginas, nuevas páginas
+ *      legal.html y 404.html, y security headers (_headers) para Cloudflare.
+ *      Bump de cache para invalidar el shell anterior. Detecta protocolo
+ *      file:// (Electron / Capacitor desktop) y se auto-destruye limpiando
+ *      caches. En navegador web real (https://) es un PWA shell normal.
+ * v10 — Rediseño "vivo": nueva capa css/alive.css + js/alive.js (partículas,
+ *      count-up, tab-bar móvil, view transitions direccionales) y se añaden
+ *      al precache ux.js / immersive.js que faltaban. Bump de cache.
  */
-const CACHE = 'agroglobaldex-v8';
+const CACHE = 'agroglobaldex-v10';
 const IS_FILE = location.protocol === 'file:';
 const SHELL = [
   '/',
@@ -22,11 +25,17 @@ const SHELL = [
   '/about.html',
   '/contact.html',
   '/team.html',
+  '/legal.html',
+  '/404.html',
   '/manifest.webmanifest',
   '/css/tokens.css',
   '/css/enhance.css',
   '/css/immersive.css',
   '/css/elevate.css',
+  '/css/alive.css',
+  '/js/ux.js',
+  '/js/immersive.js',
+  '/js/alive.js',
   '/js/wallet-adapter.js',
   '/js/agroglobaldex-client.js',
   '/js/network-config.js',

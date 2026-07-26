@@ -6,6 +6,22 @@
 <title>Agregador (admin) — AgroGlobalDex</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="Pantalla admin: cura tokens RWA-agro de terceras plataformas para que aparezcan en el marketplace de AgroGlobalDex.">
+<link rel="canonical" href="https://agroglobaldex.com/aggregate.html">
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Agregador (admin) — AgroGlobalDex">
+<meta property="og:description" content="Pantalla admin: cura tokens RWA-agro de terceras plataformas para que aparezcan en el marketplace de AgroGlobalDex.">
+<meta property="og:url" content="https://agroglobaldex.com/aggregate.html">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Agregador (admin) — AgroGlobalDex">
+<meta name="twitter:description" content="Pantalla admin: cura tokens RWA-agro de terceras plataformas para que aparezcan en el marketplace de AgroGlobalDex.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
 <style>
@@ -57,6 +73,7 @@ td{padding:14px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}
   <link rel="stylesheet" href="css/enhance.css">
   <link rel="stylesheet" href="css/immersive.css">
   <link rel="stylesheet" href="css/elevate.css">
+  <link rel="stylesheet" href="css/alive.css">
 </head>
 <body>
 <div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Pantalla admin. Sólo accesible para la authority del marketplace en devnet.</div>
@@ -150,6 +167,7 @@ import {
 import { txUrl, addrUrl } from './js/network-config.js';
 
 const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(msg, kind='success'){
   const t=document.createElement('div');
   t.style.cssText='padding:14px 18px;background:#0A0F0C;border:1px solid '+(kind==='error'?'#FF3D4A55':'#00FF6A28')+';border-radius:8px;color:'+(kind==='error'?'#FF3D4A':'#00FF6A')+';font-size:13px;min-width:260px';
@@ -186,18 +204,20 @@ async function refresh() {
     const kind = Object.keys(a.assetClass || {})[0] || '—';
     const platform = a.sourcePlatform || '—';
     const ref = a.mint ? a.mint.toString() : `${a.externalChainId}:${a.externalContract}`;
+    // Solo URLs http(s) — evita javascript: u otros esquemas inyectados on-chain.
+    const srcUrl = /^https?:\/\//i.test(a.sourceUrl || '') ? a.sourceUrl : '';
     return `
       <tr>
         <td><span class="tag ${a.mint ? 'tag-spl' : 'tag-cross'}">${a.mint ? 'SPL' : 'CROSS'}</span></td>
-        <td>${platform}</td>
-        <td>${kind}</td>
-        <td style="font-family:ui-monospace,monospace;font-size:11px">${ref.slice(0, 14)}…</td>
+        <td>${esc(platform)}</td>
+        <td>${esc(kind)}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:11px">${esc(ref.slice(0, 14))}…</td>
         <td><span class="tag ${a.verified ? 'tag-ok' : 'tag-no'}">${a.verified ? 'Verificado' : 'No'}</span></td>
         <td><span class="tag ${a.active ? 'tag-ok' : 'tag-no'}">${a.active ? 'Activo' : 'Inactivo'}</span></td>
         <td>
-          <button class="btn-g" data-act="verify" data-pk="${a.publicKey}" data-v="${!a.verified}" data-a="${a.active}">${a.verified ? 'Quitar verif.' : 'Verificar'}</button>
-          <button class="btn-g" data-act="toggle" data-pk="${a.publicKey}" data-v="${a.verified}" data-a="${!a.active}">${a.active ? 'Desactivar' : 'Activar'}</button>
-          <a class="btn-g" href="${a.sourceUrl}" target="_blank">↗</a>
+          <button class="btn-g" data-act="verify" data-pk="${esc(a.publicKey)}" data-v="${!a.verified}" data-a="${a.active}">${a.verified ? 'Quitar verif.' : 'Verificar'}</button>
+          <button class="btn-g" data-act="toggle" data-pk="${esc(a.publicKey)}" data-v="${a.verified}" data-a="${!a.active}">${a.active ? 'Desactivar' : 'Activar'}</button>
+          ${srcUrl ? `<a class="btn-g" href="${esc(srcUrl)}" target="_blank" rel="noopener">↗</a>` : ''}
         </td>
       </tr>`;
   }).join('');
@@ -217,7 +237,10 @@ async function refresh() {
 }
 
 $('#btn-add').addEventListener('click', async () => {
-  if (!isConnected()) { await connectWallet(); }
+  if (!isConnected()) {
+    await connectWallet(); // abre el picker; el usuario reintenta tras conectar
+    if (!isConnected()) return toast('Conectá tu wallet (authority) y volvé a tocar Agregar', 'error');
+  }
   const tab = document.querySelector('.tab.active').dataset.tab;
   const form = {
     kind: tab === 'spl' ? 'spl' : 'cross',
@@ -247,5 +270,6 @@ checkAuth(); refresh();
 <script type="module" src="js/pwa-install.js"></script>
 <script src="js/ux.js" defer></script>
 <script src="js/immersive.js" defer></script>
+<script src="js/alive.js" defer></script>
 </body>
 </html>

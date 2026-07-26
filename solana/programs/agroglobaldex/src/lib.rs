@@ -127,7 +127,12 @@ pub mod agroglobaldex {
         instructions::update_listing_price::handler(ctx, new_price_usdc)
     }
 
-    pub fn cancel_listing(ctx: Context<CancelListing>) -> Result<()> {
+    /// Cancel a listing, returning escrowed tokens to the seller. Pass the
+    /// compliance TransferHook accounts as `remaining_accounts` (the
+    /// escrow→seller return fires the hook on native mints).
+    pub fn cancel_listing<'info>(
+        ctx: Context<'_, '_, '_, 'info, CancelListing<'info>>,
+    ) -> Result<()> {
         instructions::cancel_listing::handler(ctx)
     }
 

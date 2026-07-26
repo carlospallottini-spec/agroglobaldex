@@ -6,6 +6,21 @@
 <title>Invertir — Yield Offerings — AgroGlobalDex</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="AgroGlobalDex (Demo/PoC) — Yield offerings agropecuarios tokenizados. Solo para inversores acreditados bajo MiCA/MiFID II.">
+<link rel="canonical" href="https://agroglobaldex.com/invest.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Invertir — Yield Offerings — AgroGlobalDex">
+<meta property="og:description" content="AgroGlobalDex (Demo/PoC) — Yield offerings agropecuarios tokenizados. Solo para inversores acreditados bajo MiCA/MiFID II.">
+<meta property="og:url" content="https://agroglobaldex.com/invest.html">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Invertir — Yield Offerings — AgroGlobalDex">
+<meta name="twitter:description" content="AgroGlobalDex (Demo/PoC) — Yield offerings agropecuarios tokenizados. Solo para inversores acreditados bajo MiCA/MiFID II.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
 <style>
@@ -85,6 +100,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
   <link rel="stylesheet" href="css/enhance.css">
   <link rel="stylesheet" href="css/immersive.css">
   <link rel="stylesheet" href="css/elevate.css">
+  <link rel="stylesheet" href="css/alive.css">
 </head>
 <body>
 
@@ -157,10 +173,14 @@ import { txUrl, addrUrl, formatUsdc, NETWORK } from './js/network-config.js';
 import { checkKyc, reasonToMessage } from './js/kyc-gate.js';
 
 const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Solo https:// (o ipfs:// convertido a gateway) — evita javascript: inyectado on-chain.
+function safeUri(u){ u = String(u || ''); if (u.startsWith('ipfs://')) u = 'https://ipfs.io/ipfs/' + u.slice(7); return /^https:\/\//i.test(u) ? u : ''; }
 function toast(msg, kind='success'){
   const t = document.createElement('div');
   t.className = 'toast ' + kind;
-  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt">${msg}</div>`;
+  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt"></div>`;
+  t.querySelector('.toast-txt').textContent = msg;
   $('#toast-stack').appendChild(t);
   setTimeout(() => { t.style.opacity='0'; setTimeout(() => t.remove(), 350); }, 4000);
 }
@@ -221,8 +241,8 @@ function render() {
           <span class="offer-kind">${KIND_LABEL[kind] || kind}</span>
           <span class="acc-tag">Acreditados</span>
         </div>
-        <div class="offer-name">${productName || 'Sin nombre'}</div>
-        <div class="offer-issuer">Emisor ${issuer.slice(0,6)}…${issuer.slice(-4)}</div>
+        <div class="offer-name">${esc(productName || 'Sin nombre')}</div>
+        <div class="offer-issuer">Emisor ${esc(issuer.slice(0,6))}…${esc(issuer.slice(-4))}</div>
         <div class="offer-roi">${fmtRoi(m.expectedYieldBps)}<span>ROI esperado</span></div>
         <div class="offer-row"><div>Plazo</div><div class="v">${fmtMonths(m.durationMonths)}</div></div>
         <div class="offer-row"><div>Maduración</div><div class="v">${fmtDate(m.maturityUnixTs)}</div></div>
@@ -274,17 +294,19 @@ function openDetail(pk) {
   const wp = offer.whitePaperUri || offer.account?.whitePaperUri || '';
   const mu = offer.metadataUri || offer.account?.metadataUri || '';
 
+  const wpUrl = safeUri(wp);
+  const muUrl = safeUri(mu);
   $('#modal-body').innerHTML = `
-    <div class="modal-title">${productName}</div>
+    <div class="modal-title">${esc(productName)}</div>
     <div style="color:var(--t2);font-size:13px;margin-bottom:18px">${KIND_LABEL[kind] || kind}</div>
     <div class="modal-row"><div class="k">ROI esperado</div><div class="v" style="color:var(--gold);font-size:18px">${fmtRoi(m.expectedYieldBps)}</div></div>
     <div class="modal-row"><div class="k">Duración</div><div class="v">${fmtMonths(m.durationMonths)}</div></div>
     <div class="modal-row"><div class="k">Maduración</div><div class="v">${fmtDate(m.maturityUnixTs)}</div></div>
-    <div class="modal-row"><div class="k">Emisor</div><div class="v" style="font-family:ui-monospace,monospace;font-size:11px"><a href="${addrUrl(issuer)}" target="_blank" style="color:var(--gold)">${issuer.slice(0,12)}…</a></div></div>
+    <div class="modal-row"><div class="k">Emisor</div><div class="v" style="font-family:ui-monospace,monospace;font-size:11px"><a href="${esc(addrUrl(issuer))}" target="_blank" rel="noopener" style="color:var(--gold)">${esc(issuer.slice(0,12))}…</a></div></div>
     ${listing ? `<div class="modal-row"><div class="k">Precio por token</div><div class="v">${formatUsdc(listing.priceUsdc)}</div></div>` : ''}
     ${listing ? `<div class="modal-row"><div class="k">Tokens disponibles</div><div class="v">${Number(listing.remaining).toLocaleString('es-ES')}</div></div>` : ''}
-    ${wp ? `<div class="modal-row"><div class="k">White paper (MiCA)</div><div class="v"><a href="${wp.startsWith('ipfs://') ? wp.replace('ipfs://','https://ipfs.io/ipfs/') : wp}" target="_blank" style="color:var(--gold)">Abrir ↗</a></div></div>` : ''}
-    ${mu ? `<div class="modal-row"><div class="k">Metadata</div><div class="v"><a href="${mu.startsWith('ipfs://') ? mu.replace('ipfs://','https://ipfs.io/ipfs/') : mu}" target="_blank" style="color:var(--gold)">Abrir ↗</a></div></div>` : ''}
+    ${wpUrl ? `<div class="modal-row"><div class="k">White paper (MiCA)</div><div class="v"><a href="${esc(wpUrl)}" target="_blank" rel="noopener" style="color:var(--gold)">Abrir ↗</a></div></div>` : ''}
+    ${muUrl ? `<div class="modal-row"><div class="k">Metadata</div><div class="v"><a href="${esc(muUrl)}" target="_blank" rel="noopener" style="color:var(--gold)">Abrir ↗</a></div></div>` : ''}
     <div style="background:#FF3D4A12;border:1px solid #FF3D4A55;padding:12px 14px;border-radius:10px;margin-top:18px;font-size:12px;color:#FF8A93;line-height:1.6">
       <strong style="color:#FF3D4A">Riesgo.</strong> ROI es una expectativa, no garantía. Performance depende del activo subyacente (clima, mercado, gestión). Possible pérdida del 100%. Liquidación off-chain por contrato. Leé el white paper.
     </div>
@@ -309,8 +331,8 @@ $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') $('#mo
 
 async function handleInvest(listingPk, offerPk, amount = 1) {
   if (!isConnected()) {
-    await connectWallet();
-    if (!isConnected()) return;
+    await connectWallet(); // abre el picker de wallets
+    if (!isConnected()) return toast('Conectá tu wallet y volvé a tocar Invertir', 'error');
   }
   // KYC gate
   const k = await checkKyc(getPublicKey());
@@ -335,5 +357,6 @@ load();
 <script type="module" src="js/pwa-install.js"></script>
 <script src="js/ux.js" defer></script>
 <script src="js/immersive.js" defer></script>
+<script src="js/alive.js" defer></script>
 </body>
 </html>

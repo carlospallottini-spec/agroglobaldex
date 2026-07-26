@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
-    close_account, transfer_checked, CloseAccount, Mint, TokenAccount, TokenInterface,
-    TransferChecked,
+    close_account, CloseAccount, Mint, TokenAccount, TokenInterface,
 };
 
 use crate::errors::AgroError;
@@ -10,6 +9,12 @@ use crate::state::*;
 
 /// Cancel an active listing. Returns escrowed tokens to the seller and
 /// closes the listing PDA, refunding rent to the seller.
+///
+/// Native mints carry the compliance TransferHook, so the escrow → seller
+/// return MUST be a hook-aware transfer with the hook program + its extra
+/// accounts passed as `remaining_accounts` (same as `list_asset`/`buy_asset`).
+/// A plain `transfer_checked` CPI would revert on every hooked mint, leaving
+/// the escrowed tokens permanently locked unless someone bought them.
 #[derive(Accounts)]
 pub struct CancelListing<'info> {
     #[account(mut)]
@@ -60,7 +65,7 @@ pub struct CancelListing<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<CancelListing>) -> Result<()> {
+pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, CancelListing<'info>>) -> Result<()> {
     let listing = &ctx.accounts.listing;
     let amount = listing.remaining;
 
@@ -75,20 +80,19 @@ pub fn handler(ctx: Context<CancelListing>) -> Result<()> {
     ]];
 
     if amount > 0 {
+        // Hook-aware escrow return: resolves the TransferHook from the mint
+        // and forwards the extra accounts supplied in `remaining_accounts`.
         let decimals = ctx.accounts.mint.decimals;
-        transfer_checked(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    from: ctx.accounts.escrow.to_account_info(),
-                    mint: ctx.accounts.mint.to_account_info(),
-                    to: ctx.accounts.seller_token_account.to_account_info(),
-                    authority: listing.to_account_info(),
-                },
-                signer_seeds,
-            ),
+        spl_token_2022::onchain::invoke_transfer_checked(
+            &ctx.accounts.token_program.key(),
+            ctx.accounts.escrow.to_account_info(),
+            ctx.accounts.mint.to_account_info(),
+            ctx.accounts.seller_token_account.to_account_info(),
+            ctx.accounts.listing.to_account_info(),
+            ctx.remaining_accounts,
             amount,
             decimals,
+            signer_seeds,
         )?;
     }
 
