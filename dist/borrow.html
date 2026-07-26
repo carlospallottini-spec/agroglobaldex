@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crédito — AgroGlobalDex</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<meta name="description" content="Crédito USDC instantáneo contra tu cosecha tokenizada. Sin banco. Depositá tus tokens RWA-agro como colateral y tomá un préstamo on-chain.">
+<link rel="canonical" href="https://agroglobaldex.com/borrow.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Crédito — AgroGlobalDex">
+<meta property="og:description" content="Crédito USDC instantáneo contra tu cosecha tokenizada. Sin banco. Depositá tus tokens RWA-agro como colateral y tomá un préstamo on-chain.">
+<meta property="og:url" content="https://agroglobaldex.com/borrow.html">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Crédito — AgroGlobalDex">
+<meta name="twitter:description" content="Crédito USDC instantáneo contra tu cosecha tokenizada. Sin banco. Depositá tus tokens RWA-agro como colateral y tomá un préstamo on-chain.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fb);background:var(--bg);color:var(--txt);min-height:100vh}
+a{color:inherit;text-decoration:none}
+nav.main-nav{position:sticky;top:0;z-index:150;background:rgba(5,8,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);height:62px;display:flex;align-items:center;padding:0 32px;gap:14px}
+.nli{width:28px;height:28px;background:var(--neon);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nli svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nlt{font-family:var(--fd);font-size:16px}
+.nlt span{color:var(--neon)}
+.nav-links{display:flex;gap:2px;margin-left:28px;flex-wrap:wrap}
+.nav-links a{font-size:13px;font-weight:500;color:var(--t2);padding:7px 13px;border-radius:var(--r)}
+.nav-links a.active,.nav-links a:hover{color:var(--neon)}
+.nav-r{margin-left:auto}
+.nwb{display:flex;align-items:center;gap:7px;padding:8px 16px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.nwb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.nwb.connected{border-color:var(--nm);color:var(--neon);background:var(--nd)}
+.nwb.connected .wdot{background:var(--neon)}
+.demo-banner{background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px}
+main{max-width:1100px;margin:32px auto;padding:0 32px 80px}
+h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
+.sub{color:var(--t2);margin-bottom:24px;font-size:14px;max-width:780px}
+.pool-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+@media(max-width:760px){.pool-stats{grid-template-columns:1fr 1fr}}
+.pstat{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:18px}
+.pstat .v{font-family:var(--fd);font-size:26px;color:var(--neon)}
+.pstat .l{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:24px;margin-bottom:18px}
+.card h3{font-family:var(--fd);font-size:22px;margin-bottom:6px}
+.card .desc{color:var(--t2);font-size:13px;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px}
+.field input,.field select{width:100%;padding:11px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);color:var(--txt);font-family:var(--fb);font-size:14px}
+.calc{background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin:14px 0;font-size:13px}
+.calc .row{display:flex;justify-content:space-between;padding:4px 0}
+.calc .row .v{color:var(--neon);font-weight:700}
+.btn-p{width:100%;padding:13px 22px;background:var(--neon);color:#000;border:none;border-radius:var(--r);font-weight:700;font-size:14px;cursor:pointer;font-family:var(--fb)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed}
+.warn{background:#F0A0201A;border:1px solid #F0A02055;border-radius:var(--r);padding:12px;color:var(--amb);font-size:12px;margin-bottom:18px}
+.loan-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--bd2);border-radius:var(--r);margin-bottom:8px;font-size:13px}
+.loan-row .meta{color:var(--t2);font-size:11px}
+.btn-s{padding:8px 14px;background:var(--bg4);border:1px solid var(--bd3);border-radius:var(--r);color:var(--neon);font-size:12px;font-weight:700;cursor:pointer}
+.empty{text-align:center;padding:40px;color:var(--t3);font-size:13px}
+.steps{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.step{flex:1;min-width:160px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:14px}
+.step .n{width:24px;height:24px;background:var(--nd);border:1px solid var(--nm);color:var(--neon);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;margin-bottom:8px}
+.step .t{font-size:12px;color:var(--t2)}
+</style>
+  <link rel="stylesheet" href="css/enhance.css">
+  <link rel="stylesheet" href="css/immersive.css">
+  <link rel="stylesheet" href="css/elevate.css">
+  <link rel="stylesheet" href="css/alive.css">
+</head>
+<body>
+<div class="demo-banner">DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Crédito colateralizado on-chain · devnet · NO es oferta de crédito real</div>
+<nav class="main-nav">
+  <a href="index.html" class="nav-logo">
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nlt">AgroGlobal<span>Dex</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Inicio</a>
+    <a href="marketplace.html">Marketplace</a>
+    <a href="tokenize.html">Tokenizar</a>
+    <a href="borrow.html" class="active">Crédito</a>
+    <a href="invest.html">Invertir</a>
+    <a href="receipts.html">Comprobantes</a>
+  </div>
+  <div class="nav-r">
+    <button id="wallet-btn" class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
+  </div>
+</nav>
+
+<main>
+  <h1>Crédito contra tu cosecha</h1>
+  <div class="sub">El problema #1 del productor no es vender — es acceder a <strong>financiamiento</strong>. Tenés grano en silo o cosecha tokenizada, pero el banco no presta. Acá depositás tus tokens RWA-agro como colateral y tomás <strong>USDC al instante</strong>, sin banco, sin papeleo, settlement en segundos sobre Solana.</div>
+
+  <div class="steps">
+    <div class="step"><div class="n">1</div><div class="t">Tokenizás tu producto (grano, vino, carne…)</div></div>
+    <div class="step"><div class="n">2</div><div class="t">Lo depositás como colateral</div></div>
+    <div class="step"><div class="n">3</div><div class="t">Recibís USDC hasta el LTV máximo</div></div>
+    <div class="step"><div class="n">4</div><div class="t">Repagás capital + interés, recuperás colateral</div></div>
+  </div>
+
+  <div class="pool-stats">
+    <div class="pstat"><div class="v" id="ps-liq">—</div><div class="l">Liquidez disponible</div></div>
+    <div class="pstat"><div class="v" id="ps-borrowed">—</div><div class="l">Total prestado</div></div>
+    <div class="pstat"><div class="v" id="ps-apr">—</div><div class="l">APR</div></div>
+    <div class="pstat"><div class="v" id="ps-ltv">—</div><div class="l">Max LTV</div></div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <h3>Pedir préstamo</h3>
+        <div class="desc">Elegí un asset que tengas en tu wallet y esté habilitado como colateral.</div>
+        <div class="field"><label>Asset colateral</label>
+          <select id="b-asset"><option value="">Cargá tu wallet…</option></select>
+        </div>
+        <div class="field"><label>Cantidad de colateral (tokens)</label>
+          <input type="number" inputmode="decimal" id="b-collateral" placeholder="ej. 50000" min="1">
+        </div>
+        <div class="calc" id="b-calc" style="display:none">
+          <div class="row"><div>Precio colateral</div><div class="v" id="c-price">—</div></div>
+          <div class="row"><div>Valor colateral</div><div class="v" id="c-value">—</div></div>
+          <div class="row"><div>Máximo a pedir (LTV)</div><div class="v" id="c-max">—</div></div>
+        </div>
+        <div class="field"><label>USDC a pedir</label>
+          <input type="number" inputmode="decimal" id="b-borrow" placeholder="hasta el máximo LTV" min="1">
+        </div>
+        <button class="btn-p" id="b-btn">Pedir préstamo</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>Mis préstamos</h3>
+        <div class="desc">Préstamos activos. Repagá para liberar tu colateral.</div>
+        <div id="loans-wrap"><div class="empty">Conectá tu wallet para ver tus préstamos.</div></div>
+      </div>
+      <div class="card">
+        <h3>Proveer liquidez</h3>
+        <div class="desc">Aportá USDC al pool y financiá a productores. (En MVP el interés acumulado vuelve al pool.)</div>
+        <div class="calc" id="l-pos" style="display:none">
+          <div class="row"><div>Tus shares del pool</div><div class="v" id="l-deposited">—</div></div>
+        </div>
+        <div class="field"><label>USDC a depositar</label>
+          <input type="number" inputmode="decimal" id="l-amount" placeholder="ej. 10000" min="1">
+        </div>
+        <button class="btn-p" id="l-btn">Depositar liquidez</button>
+        <div class="field" style="margin-top:14px"><label>Shares a retirar</label>
+          <input type="number" inputmode="decimal" id="w-amount" placeholder="hasta tus shares" min="1">
+        </div>
+        <button class="btn-s" id="w-btn">Retirar liquidez</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast-stack" style="position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px"></div>
+
+<script type="module">
+import { connectWallet, getPublicKey, isConnected } from './js/wallet-adapter.js';
+import {
+  fetchLendingMarket, fetchAllLoans, fetchCollateralConfig, fetchAllAssets,
+  openLoan, repayLoan, depositLiquidity, withdrawLiquidity, fetchMyLiquidityPosition,
+} from './js/agroglobaldex-client.js';
+import { txUrl, formatUsdc, truncateAddress } from './js/network-config.js';
+
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let _lm = null, _assets = [], _selectedCfg = null;
+
+function toast(msg, kind='success') {
+  const t = document.createElement('div');
+  t.style.cssText = 'padding:14px 18px;background:#0A0F0C;border:1px solid '+
+    (kind==='error'?'#FF3D4A55':'#00FF6A28')+';border-radius:8px;color:'+
+    (kind==='error'?'#FF3D4A':'#00FF6A')+';font-size:13px;min-width:240px';
+  t.innerHTML = msg; $('#toast-stack').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},6000);
+}
+function txToast(sig){ const s = esc(sig); toast(`✓ Confirmado<br><a href="${esc(txUrl(sig))}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;font-size:11px">${s.slice(0,12)}…</a>`); }
+function n(x){ return typeof x==='object'&&x?.toNumber?x.toNumber():Number(x||0); }
+
+async function loadPool() {
+  _lm = await fetchLendingMarket();
+  if (!_lm) {
+    $('#ps-liq').textContent = '—'; $('#ps-borrowed').textContent='—';
+    $('#ps-apr').textContent='—'; $('#ps-ltv').textContent='—';
+    return;
+  }
+  $('#ps-liq').textContent = formatUsdc(n(_lm.totalLiquidity), 0);
+  $('#ps-borrowed').textContent = formatUsdc(n(_lm.totalBorrowed), 0);
+  $('#ps-apr').textContent = (n(_lm.aprBps)/100).toFixed(1) + '%';
+  $('#ps-ltv').textContent = (n(_lm.maxLtvBps)/100).toFixed(0) + '%';
+}
+
+async function loadAssets() {
+  _assets = await fetchAllAssets();
+  const sel = $('#b-asset');
+  sel.innerHTML = '<option value="">Elegí un asset…</option>' +
+    _assets.map(a => `<option value="${esc(a.publicKey)}">${esc(a.productName || a.account?.productName || a.publicKey.slice(0,8))}</option>`).join('');
+}
+
+async function loadMyPosition() {
+  if (!isConnected()) { $('#l-pos').style.display='none'; return; }
+  try {
+    const pos = await fetchMyLiquidityPosition();
+    if (pos && n(pos.shares) > 0) {
+      $('#l-deposited').textContent = n(pos.shares).toLocaleString('es-ES');
+      $('#l-pos').style.display = '';
+    } else {
+      $('#l-pos').style.display = 'none';
+    }
+  } catch (_) { $('#l-pos').style.display='none'; }
+}
+
+async function loadLoans() {
+  if (!isConnected()) { $('#loans-wrap').innerHTML = '<div class="empty">Conectá tu wallet.</div>'; return; }
+  const loans = await fetchAllLoans({ borrower: getPublicKey() });
+  const active = loans.filter(l => l.active);
+  if (!active.length) { $('#loans-wrap').innerHTML = '<div class="empty">Sin préstamos activos.</div>'; return; }
+  $('#loans-wrap').innerHTML = active.map(l => `
+    <div class="loan-row">
+      <div>
+        <div><strong>${formatUsdc(n(l.principalUsdc))}</strong> prestado</div>
+        <div class="meta">Colateral: ${n(l.collateralAmount).toLocaleString('es-ES')} tokens · APR ${(n(l.aprBps)/100).toFixed(1)}%</div>
+      </div>
+      <button class="btn-s" data-repay="${l.assetRegistry?.toString?.()||l.assetRegistry}">Repagar</button>
+    </div>`).join('');
+  $('#loans-wrap').querySelectorAll('[data-repay]').forEach(b => {
+    b.addEventListener('click', async () => {
+      try {
+        b.disabled = true; b.textContent = '…';
+        const { tx } = await repayLoan({ assetRegistryPubkey: b.dataset.repay });
+        txToast(tx); await loadLoans(); await loadPool();
+      } catch (e) { toast('Error: '+esc(e.message||e), 'error'); b.disabled=false; b.textContent='Repagar'; }
+    });
+  });
+}
+
+async function onAssetChange() {
+  const reg = $('#b-asset').value;
+  if (!reg || !_lm) { $('#b-calc').style.display='none'; _selectedCfg=null; return; }
+  _selectedCfg = await fetchCollateralConfig(_lm.publicKey, reg);
+  if (!_selectedCfg || !_selectedCfg.enabled) {
+    $('#b-calc').style.display='';
+    $('#c-price').textContent = 'No habilitado'; $('#c-value').textContent='—'; $('#c-max').textContent='—';
+    return;
+  }
+  recalc();
+}
+
+function recalc() {
+  if (!_selectedCfg || !_lm) return;
+  const coll = Number($('#b-collateral').value || 0);
+  const price = n(_selectedCfg.priceUsdcPerToken);
+  const value = coll * price;
+  const max = value * n(_lm.maxLtvBps) / 10000;
+  $('#b-calc').style.display='';
+  $('#c-price').textContent = formatUsdc(price, 4) + ' / token';
+  $('#c-value').textContent = formatUsdc(value);
+  $('#c-max').textContent = formatUsdc(max);
+}
+
+// El botón #wallet-btn (clase .nwb) lo maneja wallet-adapter.js (picker + label).
+// Refrescamos préstamos y posición cuando cambia la sesión de wallet.
+window.addEventListener('wallet:connected', async () => { await loadLoans(); await loadMyPosition(); });
+window.addEventListener('wallet:disconnected', async () => { await loadLoans(); await loadMyPosition(); });
+$('#b-asset').addEventListener('change', onAssetChange);
+$('#b-collateral').addEventListener('input', recalc);
+
+$('#b-btn').addEventListener('click', async () => {
+  const reg = $('#b-asset').value;
+  const coll = $('#b-collateral').value;
+  const borrow = $('#b-borrow').value;
+  if (!reg || !coll || !borrow) return toast('Completá todos los campos', 'error');
+  if (!isConnected()) { await connectWallet(); if (!isConnected()) return toast('Conectá tu wallet para pedir el préstamo', 'error'); }
+  try {
+    $('#b-btn').disabled = true;
+    const { tx } = await openLoan({ assetRegistryPubkey: reg, collateralAmount: coll, borrowAmount: borrow });
+    txToast(tx); await loadLoans(); await loadPool();
+  } catch (e) {
+    const m = String(e.message||e);
+    let hint = '';
+    if (m.includes('ExceedsMaxLtv')) hint = '<br>Pedís más del LTV máximo. Bajá el monto.';
+    else if (m.includes('CollateralNotEnabled')) hint = '<br>Este asset no está habilitado como colateral.';
+    else if (m.includes('InsufficientLiquidity')) hint = '<br>El pool no tiene suficiente USDC.';
+    else if (m.includes('KycNotVerified')) hint = '<br>Necesitás KYC aprobado.';
+    toast('Error: ' + esc(m) + hint, 'error');
+  } finally { $('#b-btn').disabled = false; }
+});
+
+$('#l-btn').addEventListener('click', async () => {
+  const amt = $('#l-amount').value;
+  if (!amt) return toast('Ingresá un monto', 'error');
+  if (!isConnected()) return toast('Conectá tu wallet primero', 'error');
+  try {
+    $('#l-btn').disabled = true;
+    const { tx } = await depositLiquidity({ amount: amt });
+    txToast(tx); $('#l-amount').value=''; await loadPool(); await loadMyPosition();
+  } catch (e) { toast('Error: '+esc(e.message||e), 'error'); }
+  finally { $('#l-btn').disabled = false; }
+});
+
+$('#w-btn').addEventListener('click', async () => {
+  const amt = $('#w-amount').value;
+  if (!amt) return toast('Ingresá un monto', 'error');
+  if (!isConnected()) return toast('Conectá tu wallet primero', 'error');
+  try {
+    $('#w-btn').disabled = true;
+    const { tx } = await withdrawLiquidity({ amount: amt });
+    txToast(tx); $('#w-amount').value=''; await loadPool(); await loadMyPosition();
+  } catch (e) {
+    const m = String(e.message||e);
+    let hint = '';
+    if (m.includes('ExceedsDeposit')) hint = '<br>Pedís más de lo que aportaste al pool.';
+    else if (m.includes('InsufficientLiquidity')) hint = '<br>El pool no tiene suficiente USDC ocioso (parte está prestada). Probá un monto menor o esperá repagos.';
+    toast('Error: ' + esc(m) + hint, 'error');
+  } finally { $('#w-btn').disabled = false; }
+});
+
+// init
+(async () => { await loadPool(); await loadAssets(); })();
+</script>
+
+<script type="module" src="js/pwa-install.js"></script>
+<script src="js/ux.js" defer></script>
+<script src="js/immersive.js" defer></script>
+<script src="js/alive.js" defer></script>
+</body>
+</html>

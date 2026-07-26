@@ -1,0 +1,28 @@
+# AgroGlobalDex — Cloudflare Pages security headers
+#
+# CSP notes (revisar antes de endurecer):
+# - 'unsafe-inline' en script-src es necesario: las páginas usan <script> inline
+#   (sin build step no hay nonces/hashes estables). Mitigado con escapado de todo
+#   dato dinámico en el JS (escHtml/esc) y sanitización de URLs on-chain.
+# - script-src externos: unpkg.com (Leaflet), cdn.jsdelivr.net (Supabase, solo se
+#   carga si se configuran claves), esm.sh (Mobile Wallet Adapter bajo demanda).
+# - connect-src: RPCs públicos de Solana, CoinGecko (precios en marketplace) y
+#   Supabase (desactivado por defecto; el wildcard cubre la futura instancia).
+# - img-src: tiles de mapa satelital (Esri) y labels (Carto) usados por Leaflet.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  X-XSS-Protection: 0
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://unpkg.com https://server.arcgisonline.com https://*.basemaps.cartocdn.com; connect-src 'self' https://api.devnet.solana.com https://api.mainnet-beta.solana.com https://api.coingecko.com https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests
+
+# Assets con hash implícito de versión (cache largo, revalidación por SW)
+/css/*
+  Cache-Control: public, max-age=86400
+/js/*
+  Cache-Control: public, max-age=86400
+/icons/*
+  Cache-Control: public, max-age=604800

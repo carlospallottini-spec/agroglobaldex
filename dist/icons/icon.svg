@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#05080A"/>
+  <g transform="translate(76,76)" fill="none" stroke="#00FF6A" stroke-width="22" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M180 0L0 100v160l180 100 180-100V100L180 0z"/>
+    <path d="M180 180v180M180 180L0 100M180 180l180-100"/>
+  </g>
+  <text x="256" y="470" text-anchor="middle" font-family="DM Serif Display, serif" font-size="40" fill="#ECF0EC">AgroGlobal<tspan fill="#00FF6A">Dex</tspan></text>
+</svg>
