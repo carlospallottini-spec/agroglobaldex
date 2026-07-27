@@ -1,15 +1,15 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  // Proyecto de Cloudflare PAGES (agroglobaldex.pages.dev -> agroglobaldex.com).
+  //
+  // IMPORTANTE: para Pages el campo obligatorio es "pages_build_output_dir".
+  // El autoconfig de junio dejo aqui una configuracion de Worker (bloque
+  // "assets" + directorio "dist" inexistente), que Pages no admite: desde
+  // entonces TODOS los builds fallaban y el dominio quedo congelado.
+  //
+  // "dist" es un espejo exacto de "web 2.0" (la fuente canonica del sitio).
+  // Tras cambiar algo en "web 2.0", resincronizar con:
+  //     rm -rf dist && mkdir dist && cp -r "web 2.0/." dist/
   "name": "agroglobaldex",
   "compatibility_date": "2026-06-05",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": "dist",
-    "not_found_handling": "404-page"
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+  "pages_build_output_dir": "dist"
 }
