@@ -1,0 +1,69 @@
+name: deploy-pages
+
+# Despliegue directo a Cloudflare Pages, sin depender de la integracion Git del
+# panel de Cloudflare (que dejo de disparar builds).
+#
+# Para activarlo hacen falta secretos del repositorio:
+#   CLOUDFLARE_API_TOKEN   (obligatorio) token con permiso Cloudflare Pages: Edit
+#   CLOUDFLARE_ACCOUNT_ID  (recomendado) id de la cuenta de Cloudflare
+#
+# Sin el token, el workflow no falla: simplemente se salta el despliegue.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web 2.0/**'
+      - 'dist/**'
+      - 'wrangler.jsonc'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN_PRESENT: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar credenciales
+        id: check
+        run: |
+          if [ "$CF_TOKEN_PRESENT" != "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Falta el secreto CLOUDFLARE_API_TOKEN; se omite el despliegue."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sincronizar dist/ desde 'web 2.0/'
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          rm -rf dist && mkdir dist && cp -r "web 2.0/." dist/
+          echo "Archivos a publicar: $(find dist -type f | wc -l)"
+          test -f dist/index.html
+          test -f dist/_headers
+
+      - name: Publicar en Cloudflare Pages
+        if: steps.check.outputs.skip == 'false'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=agroglobaldex \
+            --branch=main \
+            --commit-dirty=true
+
+      - name: Verificar que el sitio sirve la version nueva
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          for i in $(seq 1 10); do
+            sleep 20
+            if curl -sL --max-time 15 https://agroglobaldex.pages.dev/ | grep -q 'alive.css'; then
+              echo "OK: pages.dev ya sirve la version nueva"
+              exit 0
+            fi
+          done
+          echo "::warning::El despliegue termino pero pages.dev aun no muestra la version nueva."
