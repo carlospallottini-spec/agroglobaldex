@@ -1,8 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#05080A"/>
-  <g transform="translate(76,76)" fill="none" stroke="#00FF6A" stroke-width="22" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M180 0L0 100v160l180 100 180-100V100L180 0z"/>
-    <path d="M180 180v180M180 180L0 100M180 180l180-100"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bgG" cx="50%" cy="42%" r="72%">
+      <stop offset="0%"   stop-color="#0e2718"/>
+      <stop offset="55%"  stop-color="#071309"/>
+      <stop offset="100%" stop-color="#020604"/>
+    </radialGradient>
+    <radialGradient id="seedG" cx="38%" cy="30%" r="78%">
+      <stop offset="0%"  stop-color="#b6ffd2"/>
+      <stop offset="38%" stop-color="#5cf59a"/>
+      <stop offset="100%" stop-color="#10b551"/>
+    </radialGradient>
+    <filter id="glowA" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowB" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="13" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect x="6" y="6" width="500" height="500" rx="112" fill="url(#bgG)"/>
+  <rect x="6" y="6" width="500" height="500" rx="112" fill="none"
+        stroke="#2f9a5b" stroke-width="3" opacity=".85"/>
+
+  <g filter="url(#glowA)">
+    <path d="M256 80 L408.4 168 L408.4 344 L256 432 L103.6 344 L103.6 168 Z"
+          fill="none" stroke="#25e863" stroke-width="9"
+          stroke-linejoin="round" stroke-linecap="round"/>
   </g>
-  <text x="256" y="470" text-anchor="middle" font-family="DM Serif Display, serif" font-size="40" fill="#ECF0EC">AgroGlobal<tspan fill="#00FF6A">Dex</tspan></text>
+
+  <g filter="url(#glowB)">
+    <ellipse cx="256" cy="256" rx="58" ry="82" fill="url(#seedG)"/>
+    <path d="M256 176 C249 212 249 300 257 336" fill="none"
+          stroke="#0b5c2c" stroke-width="4.5" stroke-linecap="round" opacity=".85"/>
+  </g>
+
+  <g fill="#8dffbc" filter="url(#glowA)">
+    <circle cx="256"   cy="80"  r="12"/>
+    <circle cx="408.4" cy="168" r="12"/>
+    <circle cx="408.4" cy="344" r="12"/>
+    <circle cx="256"   cy="432" r="12"/>
+    <circle cx="103.6" cy="344" r="12"/>
+    <circle cx="103.6" cy="168" r="12"/>
+  </g>
 </svg>
