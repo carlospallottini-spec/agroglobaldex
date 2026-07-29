@@ -148,4 +148,4 @@ MIT (código) · CC-BY-4.0 (docs).
 ## Contacto
 
 **Carlos Pallottini** — Founder
-carlos@agroglobaldex.io
+agroglobaldex@gmail.com

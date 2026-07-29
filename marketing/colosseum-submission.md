@@ -155,4 +155,4 @@ MIT (code) · CC-BY-4.0 (docs).
 
 ## Contact
 
-**Carlos Pallottini** · carlos@agroglobaldex.io · [LinkedIn] · [Twitter]
+**Carlos Pallottini** · agroglobaldex@gmail.com · [LinkedIn] · [Twitter]

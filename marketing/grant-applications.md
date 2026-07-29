@@ -36,7 +36,7 @@
 
 **Team:** Carlos Pallottini (founder, full-stack + Solana). [Co-founder hiring in progress.]
 
-**Contact:** carlos@agroglobaldex.io · GitHub @carlospallottini-spec
+**Contact:** agroglobaldex@gmail.com · GitHub @carlospallottini-spec
 
 ---
 

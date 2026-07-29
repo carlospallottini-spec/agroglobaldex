@@ -14,7 +14,7 @@
 ```
 Carlos Pallottini
 Founder & CEO · AgroGlobalDex
-carlos@agroglobaldex.io · linkedin.com/in/[VERIFICAR]
+agroglobaldex@gmail.com · linkedin.com/in/[VERIFICAR]
 github.com/carlospallottini-spec/agroglobaldex
 
 —

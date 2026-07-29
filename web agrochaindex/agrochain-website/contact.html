@@ -302,12 +302,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
   <div class="container">
     <div class="contact-grid">
       <div class="c-info rv">
-        <div class="c-item"><div class="c-ico">✉</div><div><h4>Email General</h4><a href="mailto:hello@agroglobaldex.io">hello@agroglobaldex.io</a></div></div>
-        <div class="c-item"><div class="c-ico">◎</div><div><h4>Sede Central</h4><p>Madrid, España<br>Hub de Innovación Agrícola</p></div></div>
-        <div class="c-item"><div class="c-ico">◈</div><div><h4>Inversores</h4><a href="mailto:invest@agroglobaldex.io">invest@agroglobaldex.io</a></div></div>
-        <div class="c-item"><div class="c-ico">⬡</div><div><h4>Prensa & Media</h4><a href="mailto:press@agroglobaldex.io">press@agroglobaldex.io</a></div></div>
-        <div class="c-item"><div class="c-ico">◉</div><div><h4>Productores & Partners</h4><a href="mailto:partners@agroglobaldex.io">partners@agroglobaldex.io</a></div></div>
-        <div class="c-item"><div class="c-ico">⊞</div><div><h4>Soporte Técnico</h4><a href="mailto:support@agroglobaldex.io">support@agroglobaldex.io</a></div></div>
+        <div class="c-item"><div class="c-ico">✉</div><div><h4>Contacto</h4><a href="mailto:agroglobaldex@gmail.com">agroglobaldex@gmail.com</a><p style="font-size:.85em;opacity:.75;margin-top:.35em">Inversores, productores, prensa y soporte</p></div></div>
+        <div class="c-item"><div class="c-ico">◎</div><div><h4>Ubicación</h4><p>Madrid, España</p></div></div>
       </div>
 
       <div class="c-form-wrap rv rv-d1">
@@ -362,11 +358,11 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
       <h2 class="s-h rv" style="max-width:600px;margin:0 auto">Preguntas <em>frecuentes</em></h2>
     </div>
     <div class="faq-list">
-      <details class="faq rv rv-d1"><summary>¿Cómo puedo empezar a tokenizar mis productos agrícolas?</summary><p>Contacta con nuestro equipo en <a href="mailto:partners@agroglobaldex.io">partners@agroglobaldex.io</a>. Tras un proceso de verificación KYC, podrás crear tu perfil de productor y comenzar a tokenizar tus commodities.</p></details>
+      <details class="faq rv rv-d1"><summary>¿Cómo puedo empezar a tokenizar mis productos agrícolas?</summary><p>Contacta con nuestro equipo en <a href="mailto:agroglobaldex@gmail.com">agroglobaldex@gmail.com</a>. Tras un proceso de verificación KYC, podrás crear tu perfil de productor y comenzar a tokenizar tus commodities.</p></details>
       <details class="faq rv rv-d2"><summary>¿Qué monedas se aceptan en la plataforma?</summary><p>Aceptamos <strong>BTC, ETH, SOL, USDC</strong> y transferencias <strong>EUR fiat vía SEPA</strong>. No tenemos token propietario — usamos solo activos digitales establecidos y moneda fiat para garantizar liquidez institucional.</p></details>
       <details class="faq rv rv-d3"><summary>¿Qué wallets son compatibles?</summary><p>Soportamos <strong>MetaMask, Phantom, Coinbase Wallet y WalletConnect</strong>. Conecta tu wallet desde el botón "Conectar Wallet" en cualquier página.</p></details>
       <details class="faq rv rv-d4"><summary>¿Cuáles son las comisiones?</summary><p>Nuestras comisiones están por debajo del <strong>0.5%</strong> por transacción. Liquidación en aproximadamente 5 segundos gracias a la infraestructura blockchain.</p></details>
-      <details class="faq rv rv-d5"><summary>¿Cómo invertir en AgroGlobalDex?</summary><p>Para oportunidades de inversión escríbenos a <a href="mailto:invest@agroglobaldex.io">invest@agroglobaldex.io</a>. Actualmente estamos en ronda seed con ticket mínimo de 25.000€.</p></details>
+      <details class="faq rv rv-d5"><summary>¿Cómo invertir en AgroGlobalDex?</summary><p>Para oportunidades de inversión escríbenos a <a href="mailto:agroglobaldex@gmail.com">agroglobaldex@gmail.com</a>. Actualmente estamos en ronda seed con ticket mínimo de 25.000€.</p></details>
       <details class="faq rv rv-d6"><summary>¿Está regulada la plataforma?</summary><p>Sí, operamos bajo <strong>MiCA (UE)</strong> y cumplimos con AML/KYC aplicables. Trabajamos con asesores legales en cada jurisdicción.</p></details>
     </div>
   </div>
@@ -1004,7 +1000,7 @@ document.getElementById('contactForm').addEventListener('submit', function(e){
   e.preventDefault();
   const d=new FormData(this);
   const body=`Nombre: ${d.get('name')}\nEmail: ${d.get('email')}\nEmpresa: ${d.get('company')||'-'}\nTipo: ${d.get('type')}\nAsunto: ${d.get('subject')}\n\n${d.get('message')}`;
-  window.location.href=`mailto:hello@agroglobaldex.io?subject=${encodeURIComponent('['+d.get('type')+'] '+d.get('subject'))}&body=${encodeURIComponent(body)}`;
+  window.location.href=`mailto:agroglobaldex@gmail.com?subject=${encodeURIComponent('['+d.get('type')+'] '+d.get('subject'))}&body=${encodeURIComponent(body)}`;
   showToast('Abriendo cliente de email...','success');
   setTimeout(()=>this.reset(),500);
 });
