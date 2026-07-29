@@ -33,7 +33,7 @@ Abrir issue en GitHub con tag `security` describiendo:
 ### En scope
 - Programs Anchor: `agroglobaldex` (`G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a`)
 - Programs Anchor: `compliance_hook` (`GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL`)
-- Frontend `web 2.0/` y `agrochain-electron/`
+- Frontend `web 2.0/` y `escritorio/`
 - CI workflows `.github/workflows/`
 
 ### Fuera de scope

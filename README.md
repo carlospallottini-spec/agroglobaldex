@@ -104,7 +104,7 @@ Security policy en [`SECURITY.md`](SECURITY.md).
 |---|---|
 | [`solana/`](solana/) | Programa Anchor principal + `compliance-hook` (Transfer Hook). Build OK. |
 | [`web 2.0/`](web%202.0/) | App web (8 páginas) + PWA + cliente Anchor JS + multi-wallet. |
-| [`agrochain-electron/`](agrochain-electron/) | Wrapper Electron para builds desktop. Mirror de `web 2.0/`. |
+| [`escritorio/`](escritorio/) | Wrapper Electron para builds desktop. Mirror de `web 2.0/`. |
 | [`mobile/`](mobile/) | Capacitor scaffold para APK Android. |
 | [`marketing/`](marketing/) | Pitch deck, financials, FAQ inversores, LOI templates, Colosseum submission, guías. |
 | [`legal/`](legal/) | Análisis MiCA, T&Cs draft, Privacy, white paper template, checklist. |

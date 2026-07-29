@@ -1,12 +1,12 @@
 # AgroGlobalDex Electron — Cómo regenerar el .exe
 
-> El `agrochain-electron/src/` es ahora un **mirror** de `web 2.0/`.
+> El `escritorio/src/` es ahora un **mirror** de `web 2.0/`.
 > Cada vez que actualices la web, sincronizá con:
 >
 > ```bash
-> rm -rf agrochain-electron/src
-> mkdir -p agrochain-electron/src
-> cp -r "web 2.0/." agrochain-electron/src/
+> rm -rf escritorio/src
+> mkdir -p escritorio/src
+> cp -r "web 2.0/." escritorio/src/
 > ```
 
 ## Build del .exe (Windows portable + NSIS installer)
@@ -15,7 +15,7 @@ Requiere **máquina Windows o WSL con Wine + electron-builder**. Lo más fácil:
 en una máquina Windows propia.
 
 ```bash
-cd agrochain-electron
+cd escritorio
 npm install                # primera vez
 npm run build              # genera dist/AgroGlobalDex-2.0.0-portable.exe
                            #          dist/AgroGlobalDex Setup 2.0.0.exe (NSIS)
@@ -31,7 +31,7 @@ Linux puede generar `.exe` Windows con Wine + Mono instalados:
 # Ubuntu
 sudo apt-get install wine wine32 wine64 mono-complete
 
-cd agrochain-electron
+cd escritorio
 npm install
 npm run build
 ```
@@ -61,16 +61,16 @@ jobs:
       - name: Sync web into electron src
         shell: pwsh
         run: |
-          Remove-Item -Recurse -Force agrochain-electron\src -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path agrochain-electron\src | Out-Null
-          Copy-Item -Recurse "web 2.0\*" agrochain-electron\src\
+          Remove-Item -Recurse -Force escritorio\src -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path escritorio\src | Out-Null
+          Copy-Item -Recurse "web 2.0\*" escritorio\src\
       - name: Install
-        run: cd agrochain-electron && npm install
+        run: cd escritorio && npm install
       - name: Build
-        run: cd agrochain-electron && npm run build
+        run: cd escritorio && npm run build
       - uses: softprops/action-gh-release@v2
         with:
-          files: agrochain-electron/dist/*.exe
+          files: escritorio/dist/*.exe
 ```
 
 Después, en local:

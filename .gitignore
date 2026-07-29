@@ -1,7 +1,7 @@
 # ---- Dependencias y artefactos de build ----
 node_modules/
-agrochain-electron/dist/
-agrochain-electron/out/
+escritorio/dist/
+escritorio/out/
 
 # .exe finales copiados al root (se publican via GitHub Releases)
 AgroChain-Portable.exe
