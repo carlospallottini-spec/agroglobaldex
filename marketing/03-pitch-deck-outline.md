@@ -157,7 +157,7 @@
 
 **Título:** Let's build the EU liquidity layer for global agro.
 
-- Carlos Pallottini — carlos@agroglobaldex.io [VERIFICAR email]
+- Carlos Pallottini — agroglobaldex@gmail.com [VERIFICAR email]
 - LinkedIn: [VERIFICAR URL]
 - Demo: [URL de la demo]
 - Data room: available under NDA.

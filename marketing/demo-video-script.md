@@ -92,7 +92,7 @@ público.
 > "Estamos levantando 500 mil dólares para llevarlo a mainnet con audit y
 > autorización CASP MiCA. Si esto te interesa, escríbeme."
 
-**On-screen text + audio outro:** "agroglobaldex.io · carlos@agroglobaldex.io"
+**On-screen text + audio outro:** "agroglobaldex.io · agroglobaldex@gmail.com"
 
 ---
 

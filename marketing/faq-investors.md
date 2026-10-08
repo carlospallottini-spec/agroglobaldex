@@ -120,4 +120,4 @@ Si un inversor pide alguno de estos, pasamos.
 
 ---
 
-**¿Hay una pregunta que NO está acá y que tu inversor te hizo? Mandala a `carlos@agroglobaldex.io` y la agrego a la próxima versión.**
+**¿Hay una pregunta que NO está acá y que tu inversor te hizo? Mandala a `agroglobaldex@gmail.com` y la agrego a la próxima versión.**

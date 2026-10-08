@@ -73,4 +73,4 @@ Data room completo indexado en [`docs/DATA_ROOM.md`](./DATA_ROOM.md) · Pitch de
 
 ## Contacto
 
-**Carlos Pallottini** — Founder · carlos@agroglobaldex.io · Web: agroglobaldex.com
+**Carlos Pallottini** — Founder · agroglobaldex@gmail.com · Web: agroglobaldex.com

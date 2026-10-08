@@ -3,12 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marketplace Global — AgroGlobalDex</title>
+<title>Contacto — AgroGlobalDex</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<meta name="description" content="AgroGlobalDex (Demo/PoC) — Casos piloto previstos para el marketplace de tokenización agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
+<meta name="description" content="Contacta con AgroGlobalDex. Productores, inversores, prensa.">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>/* ═══════════════════════════════════════════════════════════
    AGROGLOBALDEX — SHARED STYLES
    Color palette: neon green #00FF6A + deep black #05080A
@@ -221,96 +219,60 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 @keyframes _sp{to{transform:rotate(360deg)}}
 </style>
 <style>
-.mp-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px}
-.mp-pill{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--bd);border-radius:50px;padding:7px 14px;font-size:12px}
-.mp-pill .live{width:6px;height:6px;border-radius:50%;background:var(--neon);animation:pd 1.5s infinite}
-.mp-pill span{color:var(--t2)}
-.mp-pill strong{color:var(--neon);font-weight:700}
+.contact-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:48px;margin-top:30px}
+.c-info{display:flex;flex-direction:column;gap:12px}
+.c-item{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);transition:all .25s}
+.c-item:hover{border-color:var(--bd2);transform:translateX(3px)}
+.c-ico{width:44px;height:44px;border-radius:var(--r);background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.c-item h4{font-size:14px;font-weight:600;margin-bottom:3px}
+.c-item p,.c-item a{color:var(--t2);font-size:13px;line-height:1.6}
+.c-item a{color:var(--neon)}
+.c-item a:hover{text-decoration:underline}
 
-.mp-layout{display:grid;grid-template-columns:1fr 400px;gap:20px}
-.mp-map-box{border:1px solid var(--bd);border-radius:var(--r3);overflow:hidden;height:520px;background:var(--bg2)}
-#map{width:100%;height:100%;z-index:1}
-.leaflet-tile-pane{filter:saturate(.15) brightness(.35) contrast(1.1) hue-rotate(80deg)}
-.leaflet-control-zoom a{background:rgba(5,8,10,.9)!important;color:var(--neon)!important;border:1px solid var(--bd2)!important;width:30px!important;height:30px!important;line-height:30px!important;border-radius:6px!important}
-.leaflet-control-attribution{display:none!important}
-.mk{position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
-.mk-dot{width:10px;height:10px;border-radius:50%;background:var(--neon);box-shadow:0 0 12px rgba(0,255,106,.5);position:relative;z-index:2}
-.mk-dot.gold{background:var(--gold);box-shadow:0 0 12px rgba(200,168,75,.5)}
-.mk-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--neon);opacity:.4;animation:mpulse 2.5s infinite}
-.mk-ring.gold{border-color:var(--gold)}
-@keyframes mpulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
-.leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid var(--bd2)!important;border-radius:var(--r2)!important;color:var(--txt)!important}
-.leaflet-popup-tip{background:var(--bg2)!important}
-.leaflet-popup-close-button{color:var(--t2)!important}
-.pop-t{font-family:var(--fd);font-size:15px;color:var(--neon);margin-bottom:4px}
-.pop-i{font-size:11.5px;color:var(--t2);line-height:1.6;margin-bottom:4px}
-.pop-v{font-size:12px;color:var(--gold);font-weight:700}
+.c-form-wrap{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:36px}
+.c-form h3{font-family:var(--fd);font-size:24px;font-weight:400;margin-bottom:8px;letter-spacing:-.02em}
+.c-form > p{color:var(--t2);font-size:13px;margin-bottom:22px;line-height:1.7}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);padding:11px 14px;color:var(--txt);font-family:var(--fb);font-size:13px;outline:none;transition:border-color .2s;resize:vertical}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--nm)}
+.fg textarea{min-height:120px}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--t3)}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-.mp-filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
-.mp-f{background:var(--bg2);border:1px solid var(--bd);border-radius:50px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:var(--fb)}
-.mp-f:hover{border-color:var(--bd2);color:var(--txt)}
-.mp-f.active{background:var(--nd);border-color:var(--nm);color:var(--neon)}
-.mp-f .cnt{background:var(--bg3);border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--neon)}
+.social-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;max-width:820px;margin:32px auto 0}
+.sc{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r2);padding:26px 14px;text-align:center;transition:all .3s;display:block}
+.sc:hover{border-color:var(--nm);transform:translateY(-3px)}
+.sc-ico{width:52px;height:52px;border-radius:50%;background:var(--nd);color:var(--neon);border:1px solid var(--nm);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;margin:0 auto 12px;transition:all .3s}
+.sc:hover .sc-ico{background:var(--neon);color:#000}
+.sc h5{font-size:13px;font-weight:600;margin-bottom:3px;color:var(--txt)}
+.sc span{font-size:10.5px;color:var(--t3)}
 
-.mp-sidebar{display:flex;flex-direction:column;gap:14px}
-.mp-feed{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:18px;max-height:240px;overflow:hidden}
-.mp-feed-hd{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-.mp-feed-hd .live{width:6px;height:6px;border-radius:50%;background:var(--neon);animation:pd 1.5s infinite}
-.mp-fi{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);font-size:12px;margin-bottom:5px;animation:fi-in .4s ease}
-@keyframes fi-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.faq-list{display:flex;flex-direction:column;gap:8px;margin-top:28px;max-width:780px;margin-left:auto;margin-right:auto}
+.faq{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:18px 22px;cursor:pointer;transition:all .25s}
+.faq:hover{border-color:var(--bd2)}
+.faq summary{font-size:14px;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center;color:var(--txt)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';font-size:20px;color:var(--neon);transition:transform .25s;font-weight:300}
+.faq[open] summary::after{transform:rotate(45deg)}
+.faq p{color:var(--t2);font-size:13px;line-height:1.75;margin-top:14px}
+.faq a{color:var(--neon)}
 
-.mp-cards{display:flex;flex-direction:column;gap:8px;max-height:460px;overflow-y:auto;padding-right:4px}
-.mp-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:14px;cursor:pointer;transition:all .25s}
-.mp-card:hover{border-color:var(--bd2);transform:translateX(3px)}
-
-.mp-bottom{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px}
-.mp-bs{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:22px;text-align:center;transition:all .3s}
-.mp-bs:hover{border-color:var(--nm)}
-.mp-bs-n{font-family:var(--fd);font-size:32px;font-weight:400;color:var(--neon);line-height:1}
-.mp-bs-n em{color:var(--gold);font-style:normal}
-.mp-bs-l{font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-top:6px;font-weight:600}
-
-/* CURRENCIES SECTION */
-.cur-section{background:var(--bg2)}
-.cur-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:32px}
-.cur-card{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r2);padding:22px;transition:all .3s;text-align:center}
-.cur-card:hover{border-color:var(--nm);transform:translateY(-3px)}
-.cur-ico{width:52px;height:52px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;font-family:var(--fd)}
-.cur-sym{font-family:var(--fd);font-size:20px;font-weight:400;margin-bottom:4px}
-.cur-name{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:10px}
-.cur-px{font-size:14px;color:var(--txt);font-weight:600}
-.cur-ch{font-size:11px;font-weight:700;margin-top:4px}
-.cur-ch.up{color:var(--neon)}
-.cur-ch.dn{color:var(--red)}
-
-/* FEATURES */
-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
-.feat{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:28px;transition:all .3s;position:relative;overflow:hidden}
-.feat:hover{border-color:var(--bd2);transform:translateY(-3px)}
-.feat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--neon);opacity:0;transition:opacity .3s}
-.feat:hover::after{opacity:1}
-.feat-ico{width:46px;height:46px;border-radius:var(--r2);background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:18px}
-.feat-ico.w{background:var(--gd);border-color:var(--gm);color:var(--gold)}
-.feat h3{font-family:var(--fd);font-size:20px;font-weight:400;margin-bottom:10px;letter-spacing:-.01em}
-.feat p{color:var(--t2);font-size:13.5px;line-height:1.7}
-
-@media(max-width:1100px){.mp-layout{grid-template-columns:1fr}.cur-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:900px){.mp-map-box{height:360px}.mp-bottom{grid-template-columns:repeat(2,1fr)}.feat-grid{grid-template-columns:1fr}}
-@media(max-width:600px){.mp-bottom{grid-template-columns:1fr}.cur-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.contact-grid{grid-template-columns:1fr;gap:24px}.c-form-wrap{padding:24px}.social-grid{grid-template-columns:repeat(2,1fr)}.fg-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <!-- DEMO BANNER -->
 <div style="background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px;line-height:1.55;letter-spacing:0.2px;font-family:Outfit,sans-serif">
-  DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; Casos de uso ilustrativos. AgroGlobalDex no es una plataforma operativa. No constituye oferta de inversión ni servicios sobre criptoactivos. No autorizado actualmente como CASP MiCA.
+  DEMO / PROOF OF CONCEPT &nbsp;·&nbsp; AgroGlobalDex se encuentra en fase de diseño y desarrollo. No constituye oferta de inversión.
 </div>
 
 <div class="tkr"><div class="tkr-inner" id="ticker"></div></div>
 
 <nav class="main-nav">
   <a href="index.html" class="nav-logo">
-    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><path d="M12 12v8M12 12L3 7M12 12l9-5"/></svg></div>
+    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2.5L20.23 7.25L20.23 16.75L12 21.5L3.77 16.75L3.77 7.25Z"/><ellipse cx="12" cy="12" rx="3.1" ry="4.3"/></svg></div>
     <div class="nlt">AgroGlobal<span>Dex</span></div>
   </a>
   <div class="nav-links">
@@ -318,7 +280,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
   </div>
   <div class="nav-r">
     <button class="nwb"><div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span></button>
-    <a href="#marketplace" class="nbtn-p">Explorar</a>
+    <a href="marketplace.html" class="nbtn-p">Empezar</a>
   </div>
   <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
 </nav>
@@ -331,106 +293,78 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <section class="page-hero">
   <div class="page-hero-grid"></div>
   <div class="page-hero-content">
-    <div class="page-tag"><div class="dot"></div>Casos piloto · En evaluación</div>
-    <h1 class="page-title">Casos de uso <em>ilustrativos</em><br>para el piloto en <em>España</em></h1>
-    <p class="page-subtitle">Ejemplos de producciones agropecuarias que podrían tokenizarse en el piloto regulado. Sin operaciones reales todavía: previa firma de LOI con cooperativa, constitución de SPV propietaria del activo y validación regulatoria (CNMV / MiCA Art. 1.4).</p>
+    <div class="page-tag"><div class="dot"></div>Contacto</div>
+    <h1 class="page-title">Hablemos del <em>futuro</em> del agro</h1>
+    <p class="page-subtitle">¿Eres productor, inversor, prensa o quieres sumarte al equipo? Nos encantaría escucharte. Respondemos en menos de 24h hábiles.</p>
   </div>
 </section>
 
-<!-- ACCEPTED CURRENCIES -->
-<section class="cur-section" id="currencies">
+<section>
   <div class="container">
-    <div class="s-tag"><div class="ldot"></div>Monedas aceptadas</div>
-    <h2 class="s-h rv">Paga con <em>activos reales</em></h2>
-    <p class="s-sub rv rv-d1">Aceptamos las principales criptomonedas y EUR fiat. Sin tokens propietarios — solo activos establecidos con liquidez global.</p>
+    <div class="contact-grid">
+      <div class="c-info rv">
+        <div class="c-item"><div class="c-ico">✉</div><div><h4>Contacto</h4><a href="mailto:agroglobaldex@gmail.com">agroglobaldex@gmail.com</a><p style="font-size:.85em;opacity:.75;margin-top:.35em">Inversores, productores, prensa y soporte</p></div></div>
+        <div class="c-item"><div class="c-ico">◎</div><div><h4>Ubicación</h4><p>Madrid, España</p></div></div>
+      </div>
 
-    <div class="cur-grid">
-      <div class="cur-card rv rv-d1">
-        <div class="cur-ico" style="background:#F7931A15;color:#F7931A;border:1px solid #F7931A30">₿</div>
-        <div class="cur-sym">BTC</div>
-        <div class="cur-name">Bitcoin</div>
-        <div class="cur-px" id="px-btc">$68,420</div>
-        <div class="cur-ch up">+1.4% 24h</div>
-      </div>
-      <div class="cur-card rv rv-d2">
-        <div class="cur-ico" style="background:#627EEA15;color:#627EEA;border:1px solid #627EEA30">Ξ</div>
-        <div class="cur-sym">ETH</div>
-        <div class="cur-name">Ethereum</div>
-        <div class="cur-px" id="px-eth">$3,842</div>
-        <div class="cur-ch up">+1.2% 24h</div>
-      </div>
-      <div class="cur-card rv rv-d3">
-        <div class="cur-ico" style="background:#9945FF15;color:#9945FF;border:1px solid #9945FF30">◎</div>
-        <div class="cur-sym">SOL</div>
-        <div class="cur-name">Solana</div>
-        <div class="cur-px" id="px-sol">$187.32</div>
-        <div class="cur-ch up">+3.8% 24h</div>
-      </div>
-      <div class="cur-card rv rv-d4">
-        <div class="cur-ico" style="background:#2775CA15;color:#2775CA;border:1px solid #2775CA30">◈</div>
-        <div class="cur-sym">USDC</div>
-        <div class="cur-name">USD Coin</div>
-        <div class="cur-px" id="px-usdc">$1.00</div>
-        <div class="cur-ch up">Stable</div>
-      </div>
-      <div class="cur-card rv rv-d5">
-        <div class="cur-ico" style="background:var(--nd);color:var(--neon);border:1px solid var(--nm)">€</div>
-        <div class="cur-sym">EUR</div>
-        <div class="cur-name">Fiat (SEPA)</div>
-        <div class="cur-px">Fiat</div>
-        <div class="cur-ch up">Transferencia</div>
+      <div class="c-form-wrap rv rv-d1">
+        <form class="c-form" id="contactForm">
+          <h3>Envíanos un mensaje</h3>
+          <p>Rellena el formulario y nos pondremos en contacto contigo lo antes posible.</p>
+          <div class="fg-row">
+            <div class="fg"><label>Nombre *</label><input type="text" name="name" required placeholder="Tu nombre"></div>
+            <div class="fg"><label>Email *</label><input type="email" name="email" required placeholder="tu@email.com"></div>
+          </div>
+          <div class="fg-row">
+            <div class="fg"><label>Empresa</label><input type="text" name="company" placeholder="Tu empresa"></div>
+            <div class="fg"><label>Tipo *</label><select name="type" required>
+              <option value="">Selecciona...</option>
+              <option value="producer">Soy productor</option>
+              <option value="investor">Inversor</option>
+              <option value="press">Prensa</option>
+              <option value="partner">Partnership</option>
+              <option value="support">Soporte</option>
+              <option value="other">Otro</option>
+            </select></div>
+          </div>
+          <div class="fg"><label>Asunto *</label><input type="text" name="subject" required placeholder="¿De qué quieres hablar?"></div>
+          <div class="fg"><label>Mensaje *</label><textarea name="message" required placeholder="Cuéntanos más..."></textarea></div>
+          <button type="submit" class="btn-p" style="width:100%;justify-content:center">Enviar Mensaje →</button>
+        </form>
       </div>
     </div>
   </div>
 </section>
 
-<!-- MARKETPLACE -->
-<section id="marketplace">
+<section style="background:var(--bg2);text-align:center">
   <div class="container">
-    <div class="mp-stats rv">
-      <div class="mp-pill"><div class="live"></div><span>Marketplace</span><strong>EN VIVO</strong></div>
-      <div class="mp-pill"><span>Empresas:</span><strong>63</strong></div>
-      <div class="mp-pill"><span>Vol 24h:</span><strong>$2.4M</strong></div>
-      <div class="mp-pill"><span>Tx hoy:</span><strong>418</strong></div>
-    </div>
+    <div class="s-tag" style="display:inline-flex"><div class="ldot"></div>Comunidad</div>
+    <h2 class="s-h rv" style="max-width:600px;margin:0 auto">Síguenos en <em>redes sociales</em></h2>
+    <p class="s-sub rv rv-d1" style="margin:16px auto 0">Únete a nuestra comunidad global y mantente al día.</p>
 
-    <div class="mp-layout rv rv-d1">
-      <div>
-        <div class="mp-map-box"><div id="map"></div></div>
-        <div class="mp-filters" id="filters"></div>
-      </div>
-      <div class="mp-sidebar">
-        <div class="mp-feed">
-          <div class="mp-feed-hd"><div class="live"></div>Transacciones en vivo</div>
-          <div id="feed"></div>
-        </div>
-        <div class="mp-cards" id="cards"></div>
-      </div>
-    </div>
-
-    <div class="mp-bottom rv rv-d2">
-      <div class="mp-bs"><div class="mp-bs-n">14<em>+</em></div><div class="mp-bs-l">Países Activos</div></div>
-      <div class="mp-bs"><div class="mp-bs-n">63<em>+</em></div><div class="mp-bs-l">Empresas</div></div>
-      <div class="mp-bs"><div class="mp-bs-n">$24<em>M</em></div><div class="mp-bs-l">Volumen Total</div></div>
-      <div class="mp-bs"><div class="mp-bs-n">6.8K<em>+</em></div><div class="mp-bs-l">Tokens Emitidos</div></div>
+    <div class="social-grid">
+      <a href="https://twitter.com/agroglobaldex" target="_blank" rel="noopener" class="sc rv rv-d1"><div class="sc-ico">𝕏</div><h5>Twitter</h5><span>@agroglobaldex</span></a>
+      <a href="https://linkedin.com/company/agroglobaldex" target="_blank" rel="noopener" class="sc rv rv-d2"><div class="sc-ico">in</div><h5>LinkedIn</h5><span>AgroGlobalDex</span></a>
+      <a href="https://discord.gg/agroglobaldex" target="_blank" rel="noopener" class="sc rv rv-d3"><div class="sc-ico">◉</div><h5>Discord</h5><span>12k miembros</span></a>
+      <a href="https://t.me/agroglobaldex" target="_blank" rel="noopener" class="sc rv rv-d4"><div class="sc-ico">✈</div><h5>Telegram</h5><span>Canal oficial</span></a>
+      <a href="https://github.com/agroglobaldex" target="_blank" rel="noopener" class="sc rv rv-d5"><div class="sc-ico">◆</div><h5>GitHub</h5><span>Open source</span></a>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section id="features" style="background:var(--bg2)">
+<section>
   <div class="container">
-    <div class="s-tag"><div class="ldot"></div>Plataforma</div>
-    <h2 class="s-h rv">Infraestructura <em>completa</em> para el comercio agrícola digital</h2>
-    <p class="s-sub rv rv-d1">Todo lo que necesitas para tokenizar, comerciar y financiar commodities en una sola plataforma.</p>
-
-    <div class="feat-grid">
-      <div class="feat rv rv-d1"><div class="feat-ico">⬡</div><h3>Tokenización</h3><p>Convierte granos, café, cacao y más en tokens digitales respaldados por activos reales con datos verificados de origen.</p></div>
-      <div class="feat rv rv-d2"><div class="feat-ico w">◈</div><h3>Liquidación Instantánea</h3><p>Transacciones en ~5 segundos. Smart contracts automáticos eliminan intermediarios bancarios.</p></div>
-      <div class="feat rv rv-d3"><div class="feat-ico">◉</div><h3>Trazabilidad</h3><p>NFTs registran origen, transporte, almacenamiento y propiedad de la finca al consumidor final.</p></div>
-      <div class="feat rv rv-d4"><div class="feat-ico w">⊞</div><h3>Multi-Divisa</h3><p>Paga con BTC, ETH, SOL, USDC o EUR fiat vía SEPA. On/off ramps integrados.</p></div>
-      <div class="feat rv rv-d5"><div class="feat-ico">◫</div><h3>Financiamiento</h3><p>Financia cosechas futuras usando tokens como colateral. Capital sin burocracia bancaria.</p></div>
-      <div class="feat rv rv-d6"><div class="feat-ico w">⬢</div><h3>Cumplimiento regulatorio (en diseño)</h3><p>Estructura prevista: SPV por activo, CASP MiCA o vía Folleto Art. 1.4 UE 2017/1129, KYC/AML6 con proveedor licenciado, custodia institucional Fireblocks/Anchorage. Aún no autorizado.</p></div>
+    <div style="text-align:center">
+      <div class="s-tag" style="display:inline-flex"><div class="ldot"></div>FAQ</div>
+      <h2 class="s-h rv" style="max-width:600px;margin:0 auto">Preguntas <em>frecuentes</em></h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq rv rv-d1"><summary>¿Cómo puedo empezar a tokenizar mis productos agrícolas?</summary><p>Contacta con nuestro equipo en <a href="mailto:agroglobaldex@gmail.com">agroglobaldex@gmail.com</a>. Tras un proceso de verificación KYC, podrás crear tu perfil de productor y comenzar a tokenizar tus commodities.</p></details>
+      <details class="faq rv rv-d2"><summary>¿Qué monedas se aceptan en la plataforma?</summary><p>Aceptamos <strong>BTC, ETH, SOL, USDC</strong> y transferencias <strong>EUR fiat vía SEPA</strong>. No tenemos token propietario — usamos solo activos digitales establecidos y moneda fiat para garantizar liquidez institucional.</p></details>
+      <details class="faq rv rv-d3"><summary>¿Qué wallets son compatibles?</summary><p>Soportamos <strong>MetaMask, Phantom, Coinbase Wallet y WalletConnect</strong>. Conecta tu wallet desde el botón "Conectar Wallet" en cualquier página.</p></details>
+      <details class="faq rv rv-d4"><summary>¿Cuáles son las comisiones?</summary><p>Nuestras comisiones están por debajo del <strong>0.5%</strong> por transacción. Liquidación en aproximadamente 5 segundos gracias a la infraestructura blockchain.</p></details>
+      <details class="faq rv rv-d5"><summary>¿Cómo invertir en AgroGlobalDex?</summary><p>Para oportunidades de inversión escríbenos a <a href="mailto:agroglobaldex@gmail.com">agroglobaldex@gmail.com</a>. Actualmente estamos en ronda seed con ticket mínimo de 25.000€.</p></details>
+      <details class="faq rv rv-d6"><summary>¿Está regulada la plataforma?</summary><p>Sí, operamos bajo <strong>MiCA (UE)</strong> y cumplimos con AML/KYC aplicables. Trabajamos con asesores legales en cada jurisdicción.</p></details>
     </div>
   </div>
 </section>
@@ -454,7 +388,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
     <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">MiCA</a></div>
   </div>
   <div class="fb2">
-    <div>© 2026 AgroGlobalDex · Madrid, España · Proyecto en desarrollo. NO autorizado actualmente como CASP MiCA. Aviso: este sitio es un prototipo (Demo/PoC) y no constituye oferta de valores ni servicios de inversión.</div>
+    <div>© 2026 AgroGlobalDex · Madrid, España · Proyecto en desarrollo. NO autorizado actualmente como CASP MiCA.</div>
     <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
   </div>
 </footer>
@@ -480,8 +414,8 @@ const TICKER_DATA = [
   {n:'Soja BR',v:'$478/T',c:'+0.9%',u:1},
   {n:'Cacao',v:'$3,180/T',c:'+5.3%',u:1},
   {n:'Vol 24h',v:'$2.4M',c:'+12%',u:1},
+  {n:'Cebada EU',v:'€198/T',c:'-0.7%',u:0},
   {n:'Status',v:'PoC',c:'DEMO',u:1},
-  {n:'Países',v:'14',c:'LIVE',u:1},
 ];
 
 /* ═══════ TICKER RENDERER ═══════ */
@@ -1063,106 +997,14 @@ const Auth = {
 };
 </script>
 <script>
-const COUNTRIES=[
-  {code:"ES",name:"España",flag:"🇪🇸",lat:40.4,lng:-3.7,comp:12,prod:"Aceite, vino, cereales",vol:"$420K",g:0},
-  {code:"FR",name:"Francia",flag:"🇫🇷",lat:46.6,lng:2.2,comp:9,prod:"Vino, queso, trigo",vol:"$380K",g:0},
-  {code:"IT",name:"Italia",flag:"🇮🇹",lat:42.5,lng:12.5,comp:8,prod:"EVOO, pasta, vino",vol:"$350K",g:1},
-  {code:"DE",name:"Alemania",flag:"🇩🇪",lat:51.2,lng:10.4,comp:7,prod:"Cereales, lácteos",vol:"$310K",g:0},
-  {code:"NL",name:"P. Bajos",flag:"🇳🇱",lat:52.1,lng:5.3,comp:3,prod:"Flores, lácteos",vol:"$180K",g:1},
-  {code:"GR",name:"Grecia",flag:"🇬🇷",lat:38.3,lng:23.7,comp:3,prod:"Aceitunas",vol:"$95K",g:1},
-  {code:"PT",name:"Portugal",flag:"🇵🇹",lat:39.4,lng:-8.2,comp:2,prod:"Corcho, vino Porto",vol:"$48K",g:1},
-  {code:"PL",name:"Polonia",flag:"🇵🇱",lat:51.9,lng:19.1,comp:4,prod:"Cereales, manzanas",vol:"$120K",g:0},
-  {code:"TR",name:"Turquía",flag:"🇹🇷",lat:39.9,lng:32.9,comp:3,prod:"Avellanas",vol:"$110K",g:0},
-  {code:"MA",name:"Marruecos",flag:"🇲🇦",lat:31.8,lng:-7.1,comp:2,prod:"Cítricos, argán",vol:"$65K",g:1},
-  {code:"CO",name:"Colombia",flag:"🇨🇴",lat:4.6,lng:-74.1,comp:3,prod:"Café, cacao",vol:"$190K",g:1},
-  {code:"BR",name:"Brasil",flag:"🇧🇷",lat:-14.2,lng:-51.9,comp:4,prod:"Soja, café",vol:"$280K",g:0},
-  {code:"KE",name:"Kenia",flag:"🇰🇪",lat:-1.3,lng:36.8,comp:2,prod:"Té, flores",vol:"$85K",g:0},
-  {code:"UK",name:"R. Unido",flag:"🇬🇧",lat:53.5,lng:-1.5,comp:3,prod:"Cordero",vol:"$140K",g:0},
-];
-const COMPS=[
-  {name:"Olivares del Sur",ctr:"ES",flag:"🇪🇸",sector:"Aceite EVOO",prog:87,vol:"$42K",av:"OS"},
-  {name:"Bodegas Rioja",ctr:"ES",flag:"🇪🇸",sector:"Vino Reserva",prog:94,vol:"$68K",av:"BR"},
-  {name:"Ganadería Extremadura",ctr:"ES",flag:"🇪🇸",sector:"Ibérico",prog:45,vol:"$28K",av:"GE"},
-  {name:"Dehesa Manchega",ctr:"ES",flag:"🇪🇸",sector:"Queso Manchego",prog:72,vol:"$31K",av:"DM"},
-  {name:"Domaine Loire",ctr:"FR",flag:"🇫🇷",sector:"Vino Blanc",prog:78,vol:"$55K",av:"DL"},
-  {name:"Fromagerie Alpes",ctr:"FR",flag:"🇫🇷",sector:"Queso Artesanal",prog:91,vol:"$38K",av:"FA"},
-  {name:"Fattoria Toscana",ctr:"IT",flag:"🇮🇹",sector:"EVOO Premium",prog:96,vol:"$72K",av:"FT"},
-  {name:"Vigneti Piemonte",ctr:"IT",flag:"🇮🇹",sector:"Barolo",prog:70,vol:"$48K",av:"VP"},
-  {name:"Bayern Milch AG",ctr:"DE",flag:"🇩🇪",sector:"Lácteos Bio",prog:88,vol:"$62K",av:"BM"},
-  {name:"Schwäbisch Rind",ctr:"DE",flag:"🇩🇪",sector:"Ternera",prog:73,vol:"$41K",av:"SR"},
-  {name:"Dutch Bloom",ctr:"NL",flag:"🇳🇱",sector:"Tulipanes",prog:95,vol:"$88K",av:"DB"},
-  {name:"Kalamata Olives",ctr:"GR",flag:"🇬🇷",sector:"Aceitunas",prog:82,vol:"$36K",av:"KO"},
-  {name:"Café Sierra Nevada",ctr:"CO",flag:"🇨🇴",sector:"Café Especial",prog:81,vol:"$63K",av:"CS"},
-  {name:"Nairobi Tea",ctr:"KE",flag:"🇰🇪",sector:"Té Premium",prog:67,vol:"$34K",av:"NT"},
-  {name:"Quinta do Douro",ctr:"PT",flag:"🇵🇹",sector:"Vino Porto",prog:84,vol:"$52K",av:"QD"},
-  {name:"Fazenda São Paulo",ctr:"BR",flag:"🇧🇷",sector:"Soja Orgánica",prog:63,vol:"$45K",av:"FS"},
-];
-const FEED=[
-  {u:"Olivares del Sur",f:"🇪🇸",a:"tokenizó 12T Aceite EVOO",amt:"$42K"},
-  {u:"Fattoria Toscana",f:"🇮🇹",a:"vendió 580u EVOO",amt:"$487"},
-  {u:"Domaine Loire",f:"🇫🇷",a:"compró 1,200u VINO",amt:"$1.8K"},
-  {u:"Bayern Milch",f:"🇩🇪",a:"listó Lácteos Bio Q2",amt:"$62K"},
-  {u:"Café Sierra Nevada",f:"🇨🇴",a:"tokenizó 8T Café",amt:"$63K"},
-];
-
-let activeF="ALL";const markers={};
-const map=L.map('map',{center:[25,0],zoom:2,zoomControl:true,scrollWheelZoom:true,attributionControl:false,minZoom:2,maxZoom:6});
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(map);
-COUNTRIES.forEach(c=>{
-  const icon=L.divIcon({className:'',html:`<div class="mk"><div class="mk-ring ${c.g?'gold':''}"></div><div class="mk-dot ${c.g?'gold':''}"></div></div>`,iconSize:[28,28],iconAnchor:[14,14]});
-  const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
-  m.bindPopup(`<div class="pop-t">${c.flag} ${c.name}</div><div class="pop-i">${c.prod}</div><div class="pop-v">${c.comp} empresas · ${c.vol}</div>`);
-  m.on('click',()=>{const btn=document.querySelector(`.mp-f[data-f="${c.code}"]`);if(btn)btn.click()});
-  markers[c.code]=m;
+document.getElementById('contactForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const d=new FormData(this);
+  const body=`Nombre: ${d.get('name')}\nEmail: ${d.get('email')}\nEmpresa: ${d.get('company')||'-'}\nTipo: ${d.get('type')}\nAsunto: ${d.get('subject')}\n\n${d.get('message')}`;
+  window.location.href=`mailto:agroglobaldex@gmail.com?subject=${encodeURIComponent('['+d.get('type')+'] '+d.get('subject'))}&body=${encodeURIComponent(body)}`;
+  showToast('Abriendo cliente de email...','success');
+  setTimeout(()=>this.reset(),500);
 });
-
-const fEl=document.getElementById('filters');
-const total=COMPS.length;
-fEl.innerHTML=`<div class="mp-f active" data-f="ALL">🌍 Todos<span class="cnt">${total}</span></div>`+COUNTRIES.map(c=>{
-  const n=COMPS.filter(x=>x.ctr===c.code).length;
-  return `<div class="mp-f" data-f="${c.code}">${c.flag} ${c.name}<span class="cnt">${n}</span></div>`;
-}).join('');
-fEl.addEventListener('click',e=>{
-  const b=e.target.closest('.mp-f');if(!b)return;
-  document.querySelectorAll('.mp-f').forEach(f=>f.classList.remove('active'));
-  b.classList.add('active');activeF=b.dataset.f;
-  renderCards();
-  if(activeF!=='ALL'&&markers[activeF]){map.flyTo(markers[activeF].getLatLng(),5,{duration:1.2});markers[activeF].openPopup()}
-  else{map.flyTo([25,0],2,{duration:1})}
-});
-
-function renderCards(){
-  const list=activeF==='ALL'?COMPS:COMPS.filter(c=>c.ctr===activeF);
-  document.getElementById('cards').innerHTML=list.map(c=>`
-    <div class="mp-card">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div style="width:36px;height:36px;border-radius:var(--r);background:var(--nd);border:1px solid var(--nm);display:flex;align-items:center;justify-content:center;color:var(--neon);font-weight:700;font-size:12px">${c.av}</div>
-        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--txt)">${c.name}</div><div style="font-size:10.5px;color:var(--t3)">${c.flag} ${c.sector}</div></div>
-        <div style="font-size:12px;font-weight:700;color:var(--neon)">${c.vol}</div>
-      </div>
-      <div style="height:3px;background:var(--bg4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${c.prog}%;background:var(--neon)"></div></div>
-      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9.5px;color:var(--t3)"><span>Tokenización</span><span>${c.prog}%</span></div>
-    </div>
-  `).join('');
-}
-renderCards();
-
-function rFeed(){document.getElementById('feed').innerHTML=FEED.map(f=>`
-  <div class="mp-fi"><span style="font-size:1rem">${f.f}</span>
-    <div style="flex:1;min-width:0"><div style="font-size:11.5px;color:var(--txt);font-weight:600">${f.u}</div><div style="font-size:10px;color:var(--t3)">${f.a}</div></div>
-    <div style="font-size:11.5px;color:var(--neon);font-weight:700">${f.amt}</div>
-  </div>`).join('')}
-rFeed();
-setInterval(()=>{FEED.unshift(FEED.pop());rFeed()},4500);
-
-// Fetch LIVE crypto prices from CoinGecko (free API, no key needed)
-fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,usd-coin&vs_currencies=usd&include_24hr_change=true')
-  .then(r=>r.json()).then(d=>{
-    if(d.bitcoin){document.getElementById('px-btc').textContent='$'+d.bitcoin.usd.toLocaleString('en',{maximumFractionDigits:0})}
-    if(d.ethereum){document.getElementById('px-eth').textContent='$'+d.ethereum.usd.toLocaleString('en',{maximumFractionDigits:0})}
-    if(d.solana){document.getElementById('px-sol').textContent='$'+d.solana.usd.toLocaleString('en',{maximumFractionDigits:2})}
-    if(d['usd-coin']){document.getElementById('px-usdc').textContent='$'+d['usd-coin'].usd.toFixed(2)}
-  }).catch(()=>{});
 </script>
 <script type="module" src="js/pwa-install.js"></script>
 </body>

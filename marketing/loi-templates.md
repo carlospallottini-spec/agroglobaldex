@@ -26,7 +26,7 @@ Entre las siguientes partes:
 1. AGROGLOBALDEX (en adelante, "AgroGlobalDex" o "la Plataforma"),
    representada por Carlos Pallottini, en calidad de fundador, con
    domicilio a efectos de notificación en [DIRECCIÓN], correo
-   electrónico carlos@agroglobaldex.io.
+   electrónico agroglobaldex@gmail.com.
 
 2. [NOMBRE DE LA BODEGA / COOPERATIVA] (en adelante, "el Productor"),
    con domicilio en [DIRECCIÓN], C.I.F. [CIF], inscrita en el Registro
@@ -154,7 +154,7 @@ Entre las siguientes partes:
 1. AGROGLOBALDEX (en adelante, "AgroGlobalDex" o "la Plataforma"),
    representada por Carlos Pallottini, en calidad de fundador, con
    domicilio a efectos de notificación en [DIRECCIÓN], correo
-   electrónico carlos@agroglobaldex.io.
+   electrónico agroglobaldex@gmail.com.
 
 2. [NOMBRE DE LA FINCA / EMPRESA PECUARIA] (en adelante, "el
    Productor"), con domicilio en [DIRECCIÓN], R.I.F. [RIF], inscrita

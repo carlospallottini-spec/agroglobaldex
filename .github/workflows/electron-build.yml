@@ -29,21 +29,21 @@ jobs:
         with:
           node-version: 20
 
-      - name: Sync web 2.0/ into agrochain-electron/src/
+      - name: Sync web 2.0/ into escritorio/src/
         shell: pwsh
         run: |
-          if (Test-Path agrochain-electron\src) {
-            Remove-Item -Recurse -Force agrochain-electron\src
+          if (Test-Path escritorio\src) {
+            Remove-Item -Recurse -Force escritorio\src
           }
-          New-Item -ItemType Directory -Path agrochain-electron\src | Out-Null
-          Copy-Item -Recurse "web 2.0\*" agrochain-electron\src\
+          New-Item -ItemType Directory -Path escritorio\src | Out-Null
+          Copy-Item -Recurse "web 2.0\*" escritorio\src\
 
       - name: Install dependencies
-        working-directory: agrochain-electron
+        working-directory: escritorio
         run: npm install
 
       - name: Build Windows installers
-        working-directory: agrochain-electron
+        working-directory: escritorio
         run: npm run build
 
       - name: Upload Windows artifacts
@@ -51,8 +51,8 @@ jobs:
         with:
           name: AgroGlobalDex-Windows
           path: |
-            agrochain-electron/dist/*.exe
-            agrochain-electron/dist/latest.yml
+            escritorio/dist/*.exe
+            escritorio/dist/latest.yml
 
   # ──────────────────────────────────────────────────────────────────
   # macOS .dmg (Intel + Apple Silicon)
@@ -65,18 +65,18 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
 
-      - name: Sync web 2.0/ into agrochain-electron/src/
+      - name: Sync web 2.0/ into escritorio/src/
         run: |
-          rm -rf agrochain-electron/src
-          mkdir -p agrochain-electron/src
-          cp -r "web 2.0/." agrochain-electron/src/
+          rm -rf escritorio/src
+          mkdir -p escritorio/src
+          cp -r "web 2.0/." escritorio/src/
 
       - name: Install dependencies
-        working-directory: agrochain-electron
+        working-directory: escritorio
         run: npm install
 
       - name: Build macOS .dmg
-        working-directory: agrochain-electron
+        working-directory: escritorio
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npx electron-builder --mac --x64 --arm64 -c.mac.identity=null
@@ -88,8 +88,8 @@ jobs:
         with:
           name: AgroGlobalDex-macOS
           path: |
-            agrochain-electron/dist/*.dmg
-            agrochain-electron/dist/*.zip
+            escritorio/dist/*.dmg
+            escritorio/dist/*.zip
 
   # ──────────────────────────────────────────────────────────────────
   # Linux .AppImage + .deb
@@ -101,18 +101,18 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
 
-      - name: Sync web 2.0/ into agrochain-electron/src/
+      - name: Sync web 2.0/ into escritorio/src/
         run: |
-          rm -rf agrochain-electron/src
-          mkdir -p agrochain-electron/src
-          cp -r "web 2.0/." agrochain-electron/src/
+          rm -rf escritorio/src
+          mkdir -p escritorio/src
+          cp -r "web 2.0/." escritorio/src/
 
       - name: Install dependencies
-        working-directory: agrochain-electron
+        working-directory: escritorio
         run: npm install
 
       - name: Build Linux .AppImage
-        working-directory: agrochain-electron
+        working-directory: escritorio
         run: npx electron-builder --linux AppImage --x64
         continue-on-error: true
 
@@ -122,8 +122,8 @@ jobs:
         with:
           name: AgroGlobalDex-Linux
           path: |
-            agrochain-electron/dist/*.AppImage
-            agrochain-electron/dist/*.deb
+            escritorio/dist/*.AppImage
+            escritorio/dist/*.deb
 
   # ──────────────────────────────────────────────────────────────────
   # ANDROID APK (Capacitor) — debug-signed, sideloadable
@@ -164,7 +164,7 @@ jobs:
       - name: Rename APK with version
         working-directory: mobile/android/app/build/outputs/apk/debug
         run: |
-          VERSION=$(node -p "require('../../../../../../../agrochain-electron/package.json').version")
+          VERSION=$(node -p "require('../../../../../../../escritorio/package.json').version")
           mv app-debug.apk "AgroGlobalDex-${VERSION}-debug.apk"
 
       - name: Upload Android APK

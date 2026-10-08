@@ -48,7 +48,7 @@ python3 -m http.server 8000 --directory "web 2.0"
 ### Electron desktop
 
 ```bash
-cd agrochain-electron/
+cd escritorio/
 npm install
 npm run build  # genera dist/AgroGlobalDex-Setup-2.1.0.exe (Windows)
 ```
@@ -118,7 +118,7 @@ web 2.0/                       Frontend (9 HTML + PWA)
 ├── js/                        Anchor client + multi-wallet + MWA
 └── manifest.webmanifest, sw.js
 
-agrochain-electron/            Desktop wrapper (.exe / .dmg / .AppImage)
+escritorio/            Desktop wrapper (.exe / .dmg / .AppImage)
 mobile/                        Capacitor Android scaffold
 marketing/                     Pitch deck, financials, FAQ, LOIs, grants
 legal/                         MiCA + T&Cs + Privacy + white paper template
