@@ -20,8 +20,8 @@ Orquestador de agentes IA. Inspirado en gstack (Garry Tan, MIT).
 
 ## Estado del proyecto
 
-- 17 instrucciones Solana + 2 programas Anchor + 5 AssetClass (Commodity 9-sector)
-- 9 paginas web + PWA + Capacitor + Electron .exe v2.0.2
+- 31 instrucciones Solana + 2 programas Anchor + 5 AssetClass (Commodity 9-sector)
+- 14 paginas web + PWA + Capacitor + Electron .exe v2.3.0
 - Pre-seed: 2 LOIs (Espana vinos + Venezuela carnes) + Colosseum
 - Toolchain: Solana 3.0.0 + Anchor 0.31.1 + platform-tools v1.54
 - Auditoria, CASP filing, mainnet: PENDIENTES

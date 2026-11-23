@@ -110,7 +110,7 @@ tr:hover td{background:var(--bg2)}
   </div>
 
   <div id="table-wrap">
-    <div class="empty">Conectá una wallet o esperá a que cargue el ledger…</div>
+    <div class="empty">Conecta una wallet o espera a que cargue el ledger…</div>
   </div>
 </main>
 
@@ -207,7 +207,7 @@ async function load(buyerFilter) {
 }
 
 // El botón #wallet-btn (clase .nwb) lo maneja wallet-adapter.js: abre el picker
-// y actualiza el label al conectar. Acá solo refrescamos datos según la sesión.
+// y actualiza el label al conectar. Aqui solo refrescamos datos según la sesión.
 window.addEventListener('wallet:connected', () => {
   toast('Wallet conectada — el ledger es público, no requiere firma.');
 });

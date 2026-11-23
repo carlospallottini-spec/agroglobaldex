@@ -1,6 +1,6 @@
 # AgroGlobalDex — Checklist maestro de lanzamiento
 
-> **Actualizado: 2026-07-26.** Documento vivo. Este es EL documento que Carlos abre
+> **Actualizado: 2026-11-23.** Documento vivo. Este es EL documento que Carlos abre
 > para saber "qué me falta". Leyenda:
 > **✅ hecho** (con fecha) · **🔜 listo, requiere acción de Carlos** (con coste estimado) · **⬜ viene después**
 >
@@ -13,7 +13,7 @@
 
 | Ítem | Fecha | Evidencia |
 |---|---|---|
-| ✅ Contrato Solana feature-complete (2 programas Anchor, 30 instrucciones, 5 clases de activo) | 2026-06 | `solana/`, CHANGELOG v0.5 |
+| ✅ Contrato Solana feature-complete (2 programas Anchor, 31 instrucciones, 5 clases de activo) | 2026-06 | `solana/`, CHANGELOG v0.5 |
 | ✅ Suite de tests en CI verde: 47 tests de integración (happy + sad + fuzz + adversarios del hook) | 2026-06-16 | `solana/tests/agroglobaldex.ts`, workflow `anchor-test.yml` |
 | ✅ Gates de CI: clippy + fmt + cargo-audit + guard de deriva del IDL | 2026-06 | `.github/workflows/` |
 | ✅ Hardening interno completo: críticos y altos de código remediados y verificados en CI (kill-switch cubre lending, bypass de acreditación P2P cerrado, oráculo exigible, liquidación justa, LP shares) | 2026-06-16 | `AUDIT_READINESS.md` §0, `SECURITY.md` |
@@ -25,6 +25,11 @@
 | ✅ Paquete de fundraising (deck, one-pager, FAQ, financials 5y, templates LOI/outreach, guiones) | 2026-06 | `marketing/` |
 | ✅ Data room indexado + one-pager honesto + doc de arquitectura | 2026-07-26 | `docs/DATA_ROOM.md`, `docs/INVESTOR_ONE_PAGER.md`, `docs/ARCHITECTURE.md` |
 | ✅ Script de deploy mainnet con traspaso de upgrade authority a multisig | 2026-06 | `solana/scripts/deploy-mainnet.sh` |
+| ✅ Consulta al Portal Fintech de la CNMV redactada y enviada | 2026-10 | `legal/12-consulta-cnmv-borrador.md` |
+| ✅ Correo de contacto real y unificado en web, apps y material de inversores | 2026-10 | `agroglobaldex@gmail.com` (sustituye 6 direcciones inexistentes) |
+| ✅ Copy legal saneado: sin afirmaciones de operativa en presente ("aceptamos SEPA" → condicional + "hoy no se acepta ningún pago ni se custodian fondos") | 2026-10-08 | `contact.html`, `marketplace.html` |
+| ✅ Aviso de capital bloqueado junto a la cifra de rendimiento, y rendimiento sin protagonismo visual | 2026-10-19 | `invest.html` |
+| ✅ Idioma unificado a español peninsular (37 correcciones de voseo rioplatense) y barra inferior duplicada eliminada en páginas de app | 2026-11-23 | `web 2.0/` |
 
 ---
 
@@ -36,8 +41,9 @@ Ordenado por impacto/urgencia. Nada de esto lo puede hacer un agente ni está en
 
 - [ ] 🔜 **Grabar el video demo de 90s** (guion listo abajo, §5). Es la pieza que destraba todo el fundraising. Coste: tiempo.
 - [ ] 🔜 **Publicar el video** en YouTube + LinkedIn y ponerlo en investors.html.
-- [ ] 🔜 **Completar el one-pager**: LinkedIn real, link de agenda (cal.com), y decidir qué email usar (los `@agroglobaldex` de SECURITY.md son placeholders hasta tener dominio de email operativo).
-- [ ] 🔜 **Unificar la fecha de mainnet en la web**: hoy conviven Q3 2026 / Q4 2026 / Q1 2027 en distintas páginas. Mensaje honesto único: "9–15 meses post-funding *(estimación)*".
+- [ ] 🔜 **Completar el one-pager**: LinkedIn real y link de agenda (cal.com). El correo ya está resuelto: `agroglobaldex@gmail.com` es operativo y está en web, apps y material de inversores. Queda migrar a un dominio propio cuando se constituya la sociedad.
+- [x] ✅ **Unificar la fecha de mainnet en la web** — hecho: no queda ninguna fecha dura de lanzamiento; el mensaje único es "9–15 meses tras financiación y auditoría externa *(estimación)*".
+- [ ] 🔜 **Registrar el criterio de la CNMV** cuando llegue. Define el producto: si la tokenización de cosecha futura con reparto de resultado es valor negociable (→ folleto o licencia), o si el camino es grano ya depositado. De esa respuesta dependen la clase de activo por defecto y si el mercado secundario puede abrirse. Ver `legal/12-consulta-cnmv-borrador.md` §4.2.
 - [ ] 🔜 **Escribir su bio/CV de founder** para el data room (ver `docs/DATA_ROOM.md` §2).
 
 ### 2.2 Fundraising (semanas 1–12)

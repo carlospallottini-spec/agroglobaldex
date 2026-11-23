@@ -265,6 +265,12 @@
     bar.appendChild(inner);
     document.body.appendChild(bar);
     document.body.classList.add('ag-has-tabbar');
+
+    // pwa-install.js inyecta su propia barra inferior (.agg-mtab) en TODAS las
+    // paginas. En las de app esta la sustituye, asi que la anterior quedaba
+    // oculta debajo: mismo sitio, z-index menor. Se retira para no duplicar
+    // navegacion en el DOM ni acumular padding-bottom en el body.
+    document.querySelectorAll('.agg-mtab').forEach(function (old) { old.remove(); });
   }
 
   function boot() {

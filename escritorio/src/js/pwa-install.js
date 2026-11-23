@@ -59,6 +59,12 @@ function ensureInstallStyles() {
     @media(max-width:780px){
       .agg-mtab{display:flex}
       body{padding-bottom:64px}
+      /* Apple HIG 44px tap target — aplicado solo en mobile para no estorbar desktop */
+      .btn-p,.btn-g,.nwb,button.btn,.nbtn-p,.nbtn-g,.filt,.filters button{min-height:44px}
+      /* Input zoom prevention en iOS: font-size>=16px evita el auto-zoom */
+      input,select,textarea{font-size:16px!important}
+      /* Tables overflow horizontal en lugar de romper layout */
+      table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
     }
   `;
   document.head.appendChild(s);
@@ -94,8 +100,8 @@ function buildMobileTabBar() {
     { href: 'index.html',       label: 'Inicio',     svg: '<path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5z"/>' },
     { href: 'marketplace.html', label: 'Mercado',    svg: '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/>' },
     { href: 'tokenize.html',    label: 'Tokenizar',  svg: '<circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/>' },
+    { href: 'borrow.html',      label: 'Crédito',    svg: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M7 15h3"/>' },
     { href: 'invest.html',      label: 'Invertir',   svg: '<path d="M3 17l6-6 4 4 8-8"/><polyline points="14 7 21 7 21 14"/>' },
-    { href: 'contact.html',     label: 'Contacto',   svg: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.91.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>' },
   ];
   const bar = document.createElement('nav');
   bar.id = 'agg-mtab';

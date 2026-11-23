@@ -6,25 +6,31 @@
 <title>AgroGlobalDex — Marketplace agro tokenizado (Demo / PoC)</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <meta name="description" content="AgroGlobalDex: prototipo de marketplace para tokenización de producción agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
+<link rel="canonical" href="https://agroglobaldex.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="AgroGlobalDex — Marketplace agro tokenizado (Demo / PoC)">
+<meta property="og:description" content="AgroGlobalDex: prototipo de marketplace para tokenización de producción agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
+<meta property="og:url" content="https://agroglobaldex.com/">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="AgroGlobalDex — Marketplace agro tokenizado (Demo / PoC)">
+<meta name="twitter:description" content="AgroGlobalDex: prototipo de marketplace para tokenización de producción agropecuaria sobre Solana. Proyecto en desarrollo, no operativo.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="css/tokens.css">
 <style>/* ═══════════════════════════════════════════════════════════
    AGROGLOBALDEX — SHARED STYLES
    Color palette: neon green #00FF6A + deep black #05080A
    Inspired by AgroGlobalDex Dex Global final design
 ═══════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--bg5:#1E2820;
-  --neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--nb:#00FF6A55;
-  --gold:#C8A84B;--gd:#C8A84B0D;--gm:#C8A84B28;
-  --txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--t4:#202E22;
-  --red:#FF3D4A;--amb:#F0A020;--blu:#3A9EF5;--pur:#8A78F0;
-  --bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;
-  --r:8px;--r2:14px;--r3:20px;--r4:28px;
-  --fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif;
-}
 html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh;position:relative;font-weight:400}
 a{color:inherit;text-decoration:none}
@@ -261,15 +267,18 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 /* MARKETPLACE PREVIEW */
 .mp-preview{background:var(--bg)}
 .mp-layout{display:grid;grid-template-columns:1fr 380px;gap:24px;max-width:1200px;margin:0 auto;margin-top:40px}
-.mp-map-box{border:1px solid var(--bd);border-radius:var(--r3);overflow:hidden;height:440px;position:relative;background:var(--bg2)}
+.mp-map-box{border:1px solid var(--bd);border-radius:var(--r3);overflow:hidden;height:440px;position:relative;background:#0a1424}
 #map{width:100%;height:100%;z-index:1}
-.leaflet-tile-pane{filter:saturate(.15) brightness(.35) contrast(1.1) hue-rotate(80deg)}
+/* Sutil overlay para que los labels y markers se lean bien sobre el satelite */
+.leaflet-tile-pane{filter:saturate(1) brightness(.96) contrast(1.02)}
+/* Overlay de labels en blanco para que los nombres de paises se vean sobre el satelite oscuro de oceano */
+.leaflet-overlay-pane svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .leaflet-control-zoom a{background:rgba(5,8,10,.9)!important;color:var(--neon)!important;border:1px solid var(--bd2)!important;width:30px!important;height:30px!important;line-height:30px!important;border-radius:6px!important;font-family:var(--fb)!important}
 .leaflet-control-attribution{display:none!important}
-.mk{position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
-.mk-dot{width:10px;height:10px;border-radius:50%;background:var(--neon);position:relative;z-index:2;box-shadow:0 0 12px rgba(0,255,106,.5)}
-.mk-dot.gold{background:var(--gold);box-shadow:0 0 12px rgba(200,168,75,.5)}
-.mk-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--neon);opacity:.4;animation:mpulse 2.5s infinite}
+.mk{position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+.mk-dot{width:12px;height:12px;border-radius:50%;background:var(--neon);position:relative;z-index:2;box-shadow:0 0 0 2px rgba(5,8,10,.85),0 0 16px rgba(0,255,106,.9),0 2px 6px rgba(0,0,0,.6)}
+.mk-dot.gold{background:var(--gold);box-shadow:0 0 0 2px rgba(5,8,10,.85),0 0 16px rgba(200,168,75,.9),0 2px 6px rgba(0,0,0,.6)}
+.mk-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--neon);opacity:.65;animation:mpulse 2.5s infinite}
 .mk-ring.gold{border-color:var(--gold)}
 @keyframes mpulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
 .leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid var(--bd2)!important;border-radius:var(--r2)!important;color:var(--txt)!important}
@@ -310,8 +319,14 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 @media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}.mp-bottom{grid-template-columns:repeat(2,1fr)}.mp-map-box{height:340px}.cta{padding:50px 20px}.cta-box{padding:40px 24px}}
 @media(max-width:600px){.stats-row{grid-template-columns:1fr}.mp-bottom{grid-template-columns:1fr}.h-btns,.h-stats{gap:12px}}
 </style>
+  <link rel="stylesheet" href="css/enhance.css">
+  <link rel="stylesheet" href="css/immersive.css">
+  <link rel="stylesheet" href="css/elevate.css">
+  <link rel="stylesheet" href="css/alive.css">
 </head>
 <body>
+
+<a href="#main" class="skip-link">Saltar al contenido</a>
 
 <!-- DEMO BANNER (legalmente obligatorio mientras no haya licencia CASP/folleto) -->
 <div style="background:linear-gradient(90deg,#F0A020,#E89815);color:#0a0a0a;padding:10px 16px;text-align:center;font-weight:700;font-size:12px;line-height:1.55;letter-spacing:0.2px;font-family:Outfit,sans-serif">
@@ -324,7 +339,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 <!-- NAV -->
 <nav class="main-nav">
   <a href="index.html" class="nav-logo">
-    <div class="nli"><svg viewBox="0 0 24 24"><path d="M12 2.5L20.23 7.25L20.23 16.75L12 21.5L3.77 16.75L3.77 7.25Z"/><ellipse cx="12" cy="12" rx="3.1" ry="4.3"/></svg></div>
+    <div class="nli"><svg viewBox="0 0 24 24" role="img" aria-labelledby="logo-title-nav"><title id="logo-title-nav">AgroGlobalDex</title><path d="M12 2.5L20.23 7.25L20.23 16.75L12 21.5L3.77 16.75L3.77 7.25Z"/><ellipse cx="12" cy="12" rx="3.1" ry="4.3"/></svg></div>
     <div class="nlt">AgroGlobal<span>Dex</span></div>
   </a>
   <div class="nav-links">
@@ -332,20 +347,20 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
     <a href="about.html">Nosotros</a>
     <a href="marketplace.html">Marketplace</a>
     <a href="tokenize.html">Tokenizar</a>
-    <a href="invest.html">Invertir</a>
-    <a href="investors.html">Inversores</a>
+    <a href="borrow.html">Crédito</a><a href="invest.html">Invertir</a>
+    <a href="receipts.html">Comprobantes</a><a href="investors.html">Inversores</a>
     <a href="team.html">Equipo</a>
     <a href="contact.html">Contacto</a>
   </div>
   <div class="nav-r">
-    <button class="nwb">
+    <button class="nwb" aria-label="Conectar wallet">
       <div class="wdot"></div>
-      <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
       <span>Conectar Wallet</span>
     </button>
     <a href="marketplace.html" class="nbtn-p">Empezar</a>
   </div>
-  <div class="nav-burger" id="burger"><span></span><span></span><span></span></div>
+  <div class="nav-burger" id="burger" role="button" tabindex="0" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></div>
 </nav>
 <div class="mobile-overlay" id="mob-overlay"></div>
 <div class="mobile-menu" id="mob-menu">
@@ -353,17 +368,18 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
   <a href="about.html">Nosotros</a>
   <a href="marketplace.html">Marketplace</a>
   <a href="tokenize.html">Tokenizar</a>
-  <a href="invest.html">Invertir</a>
-  <a href="investors.html">Inversores</a>
+  <a href="borrow.html">Crédito</a><a href="invest.html">Invertir</a>
+  <a href="receipts.html">Comprobantes</a><a href="investors.html">Inversores</a>
   <a href="team.html">Equipo</a>
   <a href="contact.html">Contacto</a>
-  <button class="nwb wallet-btn" style="margin-top:16px">
+  <button class="nwb wallet-btn" style="margin-top:16px" aria-label="Conectar wallet">
     <div class="wdot"></div>
-    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
     <span>Conectar Wallet</span>
   </button>
 </div>
 
+<main id="main">
 <!-- HERO -->
 <section class="hero">
   <div class="hero-grid"></div>
@@ -383,7 +399,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
       <div class="hstat"><div class="hstat-v">€280B</div><div class="hstat-l">Mercado agro UE/año<br><span style="font-size:9px;opacity:.6">Fuente: Eurostat 2024</span></div></div>
       <div class="hstat"><div class="hstat-v">Solana</div><div class="hstat-l">Capa base</div></div>
       <div class="hstat"><div class="hstat-v">100€</div><div class="hstat-l">Ticket inicial<br><span style="font-size:9px;opacity:.6">Plan, no oferta</span></div></div>
-      <div class="hstat"><div class="hstat-v">Q4 2026</div><div class="hstat-l">Lanzamiento<br>previsto</div></div>
+      <div class="hstat"><div class="hstat-v">9–15 m</div><div class="hstat-l">Mainnet tras financiación<br><span style="font-size:9px;opacity:.6">y auditoría externa (estimación)</span></div></div>
     </div>
   </div>
   <div class="h-float rv rv-d2">
@@ -422,7 +438,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
       <div class="mp-map-box"><div id="map"></div></div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="mp-feed">
-          <div class="mp-feed-hd"><div class="live"></div>Transacciones en vivo</div>
+          <div class="mp-feed-hd"><div class="live"></div>Actividad de ejemplo · datos simulados</div>
           <div id="feed"></div>
         </div>
         <div class="mp-cards" id="cards"></div>
@@ -431,7 +447,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
 
     <div class="mp-bottom rv">
       <div class="mp-bs"><div class="mp-bs-n">ES<em>·EU</em></div><div class="mp-bs-l">Mercado piloto</div></div>
-      <div class="mp-bs"><div class="mp-bs-n">Q4<em> 26</em></div><div class="mp-bs-l">Lanzamiento previsto</div></div>
+      <div class="mp-bs"><div class="mp-bs-n">9–15<em> m</em></div><div class="mp-bs-l">Mainnet tras auditoría y fondos</div></div>
       <div class="mp-bs"><div class="mp-bs-n">Art<em>·1.4</em></div><div class="mp-bs-l">Vía regulatoria UE</div></div>
       <div class="mp-bs"><div class="mp-bs-n">Solana</div><div class="mp-bs-l">Blockchain base</div></div>
     </div>
@@ -453,6 +469,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
     </div>
   </div>
 </div>
+</main>
 
 <!-- FOOTER -->
 <footer>
@@ -469,13 +486,13 @@ footer{background:var(--bg2);border-top:1px solid var(--bd);padding:56px 40px 28
       </div>
     </div>
     <div class="fc-col"><div class="fc-title">Plataforma</div><a href="marketplace.html">Marketplace</a><a href="marketplace.html#features">Cómo funciona</a><a href="marketplace.html">Países</a><a href="marketplace.html">Empresas</a></div>
-    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="https://blog.agroglobaldex.io" target="_blank" rel="noopener">Blog</a></div>
-    <div class="fc-col"><div class="fc-title">Soporte</div><a href="#">Centro de ayuda</a><a href="#">Documentación</a><a href="#">Estado del sistema</a></div>
-    <div class="fc-col"><div class="fc-title">Legal</div><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a><a href="#">Regulación MiCA</a></div>
+    <div class="fc-col"><div class="fc-title">Empresa</div><a href="about.html">Nosotros</a><a href="team.html">Equipo</a><a href="contact.html">Contacto</a><a href="investors.html">Inversores</a></div>
+    <div class="fc-col"><div class="fc-title">Soporte</div><a href="contact.html#faq">Centro de ayuda</a><a href="investors.html">Documentación</a><a href="receipts.html">Estado on-chain</a></div>
+    <div class="fc-col"><div class="fc-title">Legal</div><a href="legal.html#terminos">Términos</a><a href="legal.html#privacidad">Privacidad</a><a href="legal.html#cookies">Cookies</a><a href="legal.html#mica">Regulación MiCA</a></div>
   </div>
   <div class="fb2">
     <div>© 2026 AgroGlobalDex · Madrid, España · Proyecto en desarrollo. NO autorizado actualmente como CASP MiCA. Aviso: este sitio es un prototipo (Demo/PoC) y no constituye oferta de valores ni servicios de inversión.</div>
-    <div class="fb2-legal"><a href="#">Términos</a><a href="#">Privacidad</a><a href="#">Cookies</a></div>
+    <div class="fb2-legal"><a href="legal.html#terminos">Términos</a><a href="legal.html#privacidad">Privacidad</a><a href="legal.html#cookies">Cookies</a></div>
   </div>
 </footer>
 
@@ -681,7 +698,7 @@ const Wallet = {
     document.querySelectorAll('.wallet-btn, .nwb').forEach(btn => {
       if (this.address) {
         btn.classList.add('connected');
-        btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>${this.short()}</span>`;
+        btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>${escHtml(this.short())}</span>`;
       } else {
         btn.classList.remove('connected');
         btn.innerHTML = `<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>Conectar Wallet</span>`;
@@ -746,19 +763,19 @@ function _wmHConn() {
   return '<button class="modal-close">✕</button>' +
     '<h3 style="margin-bottom:18px">Tu cuenta</h3>' +
     (u ? '<div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r2);margin-bottom:16px">' +
-      '<div style="width:44px;height:44px;border-radius:50%;background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:16px;font-weight:700;flex-shrink:0">' + ini + '</div>' +
-      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--txt)">' + name + '</div>' +
-      '<div style="font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (u.email||'') + '</div>' +
+      '<div style="width:44px;height:44px;border-radius:50%;background:var(--nd);border:1px solid var(--nm);color:var(--neon);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:16px;font-weight:700;flex-shrink:0">' + escHtml(ini) + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--txt)">' + escHtml(name) + '</div>' +
+      '<div style="font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(u.email||'') + '</div>' +
       '<span style="font-size:9px;font-weight:700;background:' + (u.demo?'rgba(240,160,32,.12)':'var(--nd)') + ';color:' + (u.demo?'var(--amb)':'var(--neon)') + ';border:1px solid ' + (u.demo?'rgba(240,160,32,.25)':'var(--nm)') + ';border-radius:20px;padding:2px 8px;display:inline-block;margin-top:4px">' + (u.demo?'⚡ Demo':'✓ Verificado') + '</span></div></div>' : '') +
     (w ? '<div class="wp-balance"><div class="wp-balance-label">Wallet ' + (Wallet.type||'') + '</div>' +
-      '<div class="wp-balance-val">' + (Wallet.balance||'—') + '</div>' +
-      '<div class="wp-balance-sub" style="font-size:11px;word-break:break-all">' + w + '</div></div>' +
+      '<div class="wp-balance-val">' + escHtml(Wallet.balance||'—') + '</div>' +
+      '<div class="wp-balance-sub" style="font-size:11px;word-break:break-all">' + escHtml(w) + '</div></div>' +
       '<div class="wp-actions"><button class="wp-act" id="wm-copy">Copiar dirección</button><button class="wp-act" id="wm-exp">Ver en Explorer</button></div>'
     : '<div id="wm-addw" style="display:flex;align-items:center;gap:10px;padding:13px;background:var(--bg3);border:1px dashed var(--bd2);border-radius:var(--r2);cursor:pointer;margin-bottom:16px">' +
       '<span style="font-size:20px">◎</span><div><div style="font-size:13px;font-weight:600;color:var(--t2)">Conectar wallet Web3</div>' +
       '<div style="font-size:11px;color:var(--t3)">MetaMask · Phantom · Coinbase</div></div>' +
       '<span style="margin-left:auto;color:var(--neon);font-weight:700">+</span></div>') +
-    '<a href="app.html" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;background:linear-gradient(135deg,#166534,var(--neon));border-radius:var(--r);font-size:13px;font-weight:700;color:#000;margin-bottom:8px;text-decoration:none">Abrir App →</a>' +
+    '<a href="marketplace.html" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;background:linear-gradient(135deg,#166534,var(--neon));border-radius:var(--r);font-size:13px;font-weight:700;color:#000;margin-bottom:8px;text-decoration:none">Abrir Marketplace →</a>' +
     '<button id="wm-out" class="wp-disconnect">Cerrar sesión</button>';
 }
 
@@ -896,6 +913,11 @@ function _wmE(el, msg, isOk) {
 
 
 
+/* ═══════ HTML ESCAPE (anti-XSS para datos dinámicos) ═══════ */
+function escHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 /* ═══════ TOAST ═══════ */
 function showToast(msg, type = 'success') {
   let toast = document.getElementById('toast');
@@ -906,7 +928,8 @@ function showToast(msg, type = 'success') {
     document.body.appendChild(toast);
   }
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<div class="toast-ico">${type==='success'?'✓':'!'}</div><div class="toast-txt">${msg}</div>`;
+  toast.innerHTML = `<div class="toast-ico">${type==='success'?'✓':'!'}</div><div class="toast-txt"></div>`;
+  toast.querySelector('.toast-txt').textContent = msg;
   requestAnimationFrame(() => toast.classList.add('show'));
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
@@ -1025,7 +1048,7 @@ const Auth = {
       const lbl = this.name().slice(0,14);
       document.querySelectorAll('.wallet-btn,.nwb').forEach(b => {
         b.classList.add('connected');
-        b.innerHTML = '<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>' + lbl + '</span>';
+        b.innerHTML = '<div class="wdot"></div><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>' + escHtml(lbl) + '</span>';
       });
     }
   },
@@ -1111,10 +1134,14 @@ const FEED=[
   {u:"Café Sierra Nevada",f:"🇨🇴",a:"tokenizó 8T Café",amt:"$63K"},
 ];
 
-const map=L.map('map',{center:[30,0],zoom:2,zoomControl:true,scrollWheelZoom:false,attributionControl:false,minZoom:2,maxZoom:6});
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(map);
+// tap:false evita doble-disparo de popups en iOS Safari al tocar un marker.
+const map=L.map('map',{center:[30,0],zoom:2,zoomControl:true,scrollWheelZoom:false,tap:false,attributionControl:false,minZoom:2,maxZoom:6,worldCopyJump:true});
+// Capa base: Esri World Imagery (satelite real, sin cuenta) — muestra campos, oceanos, terreno reales.
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'© Esri'}).addTo(map);
+// Overlay transparente con nombres de paises/oceanos en blanco — clean & readable sobre el satelite.
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,opacity:.9}).addTo(map);
 COUNTRIES.forEach(c=>{
-  const icon=L.divIcon({className:'',html:`<div class="mk"><div class="mk-ring ${c.g?'gold':''}"></div><div class="mk-dot ${c.g?'gold':''}"></div></div>`,iconSize:[28,28],iconAnchor:[14,14]});
+  const icon=L.divIcon({className:'',html:`<div class="mk"><div class="mk-ring ${c.g?'gold':''}"></div><div class="mk-dot ${c.g?'gold':''}"></div></div>`,iconSize:[32,32],iconAnchor:[16,16]});
   const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
   m.bindPopup(`<div class="pop-t">${c.flag} ${c.name}</div><div class="pop-i">${c.prod}</div><div class="pop-v">${c.comp} empresas · ${c.vol}</div>`);
 });
@@ -1140,5 +1167,8 @@ rFeed();
 setInterval(()=>{FEED.unshift(FEED.pop());rFeed()},4500);
 </script>
 <script type="module" src="js/pwa-install.js"></script>
+<script src="js/ux.js" defer></script>
+<script src="js/immersive.js" defer></script>
+<script src="js/alive.js" defer></script>
 </body>
 </html>

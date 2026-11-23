@@ -16,6 +16,9 @@ export const RPC_ENDPOINTS = {
 /** Program ID — placeholder hasta el primer `anchor deploy`. */
 export const PROGRAM_ID = 'G2n9JXE5FLRRprM1R4gga1uF3yT6jneHDzSX913xLR2a';
 
+/** Compliance Hook program ID — second Anchor program in the workspace. */
+export const COMPLIANCE_HOOK_PROGRAM_ID = 'GFFp2bThyR33mxbVQiohGL22eEs12eJhvKyEnUoCL8tL';
+
 /** Ruta al IDL generado por Anchor. El integrador puede copiarlo a /web 2.0/js/idl/ */
 export const IDL_URL = '../js/idl/agroglobaldex.json';
 

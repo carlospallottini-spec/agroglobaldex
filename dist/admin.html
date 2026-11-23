@@ -137,7 +137,7 @@ h1{font-family:var(--fd);font-size:36px;margin-bottom:6px}
     </div>
     <div class="field"><label>Attestation file (SWIFT confirmation, notario, etc.)</label>
       <input type="file" id="se-file" accept=".pdf,.png,.jpg,.txt">
-      <div class="note">Se sube el SHA-256 (no el archivo). Guardá el original off-chain.</div>
+      <div class="note">Se sube el SHA-256 (no el archivo). Guarda el original off-chain.</div>
     </div>
     <button class="btn-p" id="se-btn">Registrar yield epoch</button>
   </div>
@@ -145,7 +145,7 @@ h1{font-family:var(--fd);font-size:36px;margin-bottom:6px}
   <!-- 3. UPDATE METADATA -->
   <div class="card">
     <h3>3. Update metadata (pre-mint) <span class="role iss">issuer</span></h3>
-    <div class="desc">Actualizá nombre, metadata_uri y white_paper_uri antes de hacer el primer <code>mint_token</code>. Después del primer mint queda inmutable (revertirá con MetadataFrozen).</div>
+    <div class="desc">Actualiza nombre, metadata_uri y white_paper_uri antes de hacer el primer <code>mint_token</code>. Después del primer mint queda inmutable (revertirá con MetadataFrozen).</div>
     <div class="field"><label>Asset Registry pubkey</label>
       <input type="text" id="um-reg" placeholder="Pubkey del registry…">
     </div>
@@ -166,7 +166,7 @@ h1{font-family:var(--fd);font-size:36px;margin-bottom:6px}
   <!-- 4. TRANSFER ISSUER -->
   <div class="card">
     <h3>4. Transfer issuer <span class="role iss">current issuer</span></h3>
-    <div class="desc">Cedé el rol issuer del registry a otra wallet. La nueva wallet DEBE tener ComplianceRecord KYC-verified (sin esto la ix revierte). Útil cuando vendés el SPV o rotás keypair operativo.</div>
+    <div class="desc">Cede el rol issuer del registry a otra wallet. La nueva wallet DEBE tener ComplianceRecord KYC-verified (sin esto la ix revierte). Útil cuando vendés el SPV o rotás keypair operativo.</div>
     <div class="field"><label>Asset Registry pubkey</label>
       <input type="text" id="ti-reg" placeholder="Pubkey del registry…">
     </div>

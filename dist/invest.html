@@ -135,7 +135,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
 <section class="page-hero">
   <div class="page-hero-content">
     <div class="page-tag"><div class="dot"></div>Inversor · Yield Offerings</div>
-    <h1 class="page-title">Invertí en <em>producción agro real</em></h1>
+    <h1 class="page-title">Invierte en <em>producción agro real</em></h1>
     <p class="page-subtitle">Tokens que representan una participación en un producto agropecuario tangible — viñedos, olivares, ganado, cultivos. El productor declara un retorno esperado y un plazo. La liquidación del principal + yield ocurre off-chain por contrato legal al vencimiento.</p>
     <div class="warn-mica"><strong>Aviso regulatorio.</strong> Las yield offerings son <strong>instrumentos financieros</strong> bajo MiCA/MiFID II. Sólo accesibles a inversores acreditados / profesionales con KYC verificado. Los retornos NO están garantizados — dependen de la performance del activo subyacente. Esto es un PoC; no constituye oferta de inversión.</div>
   </div>
@@ -155,7 +155,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" style="display:none">
     <h3>Sin ofertas activas todavía</h3>
-    <p>Los productores están preparando las primeras tokenizaciones. Volvé pronto.<br><br>¿Sos productor? <a href="tokenize.html" style="color:var(--gold)">Tokenizá tu activo →</a></p>
+    <p>Los productores están preparando las primeras tokenizaciones. Vuelve pronto.<br><br>¿Eres productor? <a href="tokenize.html" style="color:var(--gold)">Tokeniza tu activo →</a></p>
   </div>
 </main>
 
@@ -336,7 +336,7 @@ $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') $('#mo
 async function handleInvest(listingPk, offerPk, amount = 1) {
   if (!isConnected()) {
     await connectWallet(); // abre el picker de wallets
-    if (!isConnected()) return toast('Conectá tu wallet y volvé a tocar Invertir', 'error');
+    if (!isConnected()) return toast('Conecta tu wallet y vuelve a pulsar Invertir', 'error');
   }
   // KYC gate
   const k = await checkKyc(getPublicKey());

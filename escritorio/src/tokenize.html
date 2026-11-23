@@ -5,20 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tokenizar activo — AgroGlobalDex</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00FF6A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="AgroGlobalDex"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<meta name="description" content="AgroGlobalDex (Demo/PoC) — Tokenizá granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<meta name="description" content="AgroGlobalDex (Demo/PoC) — Tokeniza granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<link rel="canonical" href="https://agroglobaldex.com/tokenize.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AgroGlobalDex">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Tokenizar activo — AgroGlobalDex">
+<meta property="og:description" content="AgroGlobalDex (Demo/PoC) — Tokeniza granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<meta property="og:url" content="https://agroglobaldex.com/tokenize.html">
+<meta property="og:image" content="https://agroglobaldex.com/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Logo de AgroGlobalDex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Tokenizar activo — AgroGlobalDex">
+<meta name="twitter:description" content="AgroGlobalDex (Demo/PoC) — Tokeniza granos, créditos de carbono o fracciones de cosechas sobre Solana. Wizard de 4 pasos.">
+<meta name="twitter:image" content="https://agroglobaldex.com/icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#05080A;--bg2:#0A0F0C;--bg3:#101610;--bg4:#171F18;--bg5:#1E2820;
-  --neon:#00FF6A;--nd:#00FF6A0D;--nm:#00FF6A28;--nb:#00FF6A55;
-  --gold:#C8A84B;--gd:#C8A84B0D;--gm:#C8A84B28;
-  --txt:#ECF0EC;--t2:#7A9080;--t3:#3D5240;--t4:#202E22;
-  --red:#FF3D4A;--amb:#F0A020;--blu:#3A9EF5;--pur:#8A78F0;
-  --bd:#131D14;--bd2:#1E2D20;--bd3:#2A3D2C;
-  --r:8px;--r2:14px;--r3:20px;--r4:28px;
-  --fd:'DM Serif Display',serif;--fb:'Outfit',sans-serif;
-}
 html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh;position:relative;font-weight:400}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.4;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")}
@@ -132,6 +138,10 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
 .toast-txt{font-size:13px;color:var(--txt)}
 @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
 </style>
+  <link rel="stylesheet" href="css/enhance.css">
+  <link rel="stylesheet" href="css/immersive.css">
+  <link rel="stylesheet" href="css/elevate.css">
+  <link rel="stylesheet" href="css/alive.css">
 </head>
 <body>
 
@@ -147,8 +157,8 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
     <a href="about.html">Nosotros</a>
     <a href="marketplace.html">Marketplace</a>
     <a href="tokenize.html" class="active">Tokenizar</a>
-    <a href="invest.html">Invertir</a>
-    <a href="investors.html">Inversores</a>
+    <a href="borrow.html">Crédito</a><a href="invest.html">Invertir</a>
+    <a href="receipts.html">Comprobantes</a><a href="investors.html">Inversores</a>
     <a href="team.html">Equipo</a>
     <a href="contact.html">Contacto</a>
   </div>
@@ -164,8 +174,8 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
 <section class="page-hero">
   <div class="page-hero-content">
     <div class="page-tag"><div class="dot"></div>Productor · Tokenizar</div>
-    <h1 class="page-title">Tokenizá tu <em>cosecha</em>, crédito de <em>carbono</em> o fracción de campo.</h1>
-    <p class="page-subtitle">Cuatro pasos: elegís el tipo de activo, completás los datos, subís el certificado off-chain, firmás con tu wallet. Tras la transacción, el token vive en Solana y puede listarse en el marketplace.</p>
+    <h1 class="page-title">Tokeniza tu <em>cosecha</em>, crédito de <em>carbono</em> o fracción de campo.</h1>
+    <p class="page-subtitle">Cuatro pasos: eliges el tipo de activo, completas los datos, subís el certificado off-chain, firmás con tu wallet. Tras la transacción, el token vive en Solana y puede listarse en el marketplace.</p>
   </div>
 </section>
 
@@ -185,7 +195,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
   <section class="step-panel" data-panel="1">
     <div class="form-card">
       <h3>¿Qué querés tokenizar?</h3>
-      <p class="help">Elegí la categoría que mejor describe el activo. Cada clase tiene reglas de compliance y redención específicas.</p>
+      <p class="help">Elige la categoría que mejor describe el activo. Cada clase tiene reglas de compliance y redención específicas.</p>
       <div class="opts">
         <button class="opt" data-kind="grain">
           <span class="opt-ico">🌾</span>
@@ -233,7 +243,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
             </select>
           </div>
           <div class="field"><label>Toneladas</label>
-            <input type="number" id="f-tons" min="1" step="1" placeholder="100">
+            <input type="number" inputmode="decimal" id="f-tons" min="1" step="1" placeholder="100">
             <div class="hint">1 token = 1 kg. Total supply = toneladas × 1000.</div>
           </div>
         </div>
@@ -251,10 +261,10 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
             </select>
           </div>
           <div class="field"><label>Vintage year</label>
-            <input type="number" id="f-vintageYear" min="2000" max="2100" placeholder="2024">
+            <input type="number" inputmode="decimal" id="f-vintageYear" min="2000" max="2100" placeholder="2024">
           </div>
           <div class="field"><label>kg CO₂eq totales</label>
-            <input type="number" id="f-kgCo2eq" min="1" step="1" placeholder="50000">
+            <input type="number" inputmode="decimal" id="f-kgCo2eq" min="1" step="1" placeholder="50000">
             <div class="hint">1 token = 1 kg CO₂eq.</div>
           </div>
         </div>
@@ -272,10 +282,10 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
             </select>
           </div>
           <div class="field"><label>Hectáreas</label>
-            <input type="number" id="f-hectares" min="1" placeholder="50">
+            <input type="number" inputmode="decimal" id="f-hectares" min="1" placeholder="50">
           </div>
           <div class="field"><label>Año de cosecha</label>
-            <input type="number" id="f-harvestYear" min="2024" max="2100" placeholder="2027">
+            <input type="number" inputmode="decimal" id="f-harvestYear" min="2024" max="2100" placeholder="2027">
           </div>
         </div>
         <div class="warn"><strong>Atención.</strong> Las fracciones de cosecha son instrumentos de yield: bajo MiCA/MiFID II pueden calificar como security tokens. Sólo se pueden vender a inversores acreditados.</div>
@@ -299,11 +309,11 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
             </select>
           </div>
           <div class="field"><label>Duración (meses)</label>
-            <input type="number" id="f-durationMonths" min="1" max="120" placeholder="12">
+            <input type="number" inputmode="decimal" id="f-durationMonths" min="1" max="120" placeholder="12">
             <div class="hint">1 a 120 meses.</div>
           </div>
           <div class="field"><label>ROI esperado (%)</label>
-            <input type="number" id="f-expectedYieldPct" min="0" max="50" step="0.1" placeholder="9">
+            <input type="number" inputmode="decimal" id="f-expectedYieldPct" min="0" max="50" step="0.1" placeholder="9">
             <div class="hint">Cap 50%. Ejemplo: 9 = 9.00%.</div>
           </div>
         </div>
@@ -311,11 +321,11 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
           <input type="date" id="f-maturityDate">
           <div class="hint">Cuándo se settlea el principal + yield (off-chain).</div>
         </div>
-        <div class="warn"><strong>Aviso regulatorio.</strong> Este activo es un <strong>instrumento financiero</strong> bajo MiCA y MiFID II. Para ofertarlo al público en la UE necesitás autorización de investment firm + folleto aprobado por la NCA (e.g. AMF en Francia). Consultá tu abogado antes de mintear. Sólo accredited investors podrán comprarlo on-chain.</div>
+        <div class="warn"><strong>Aviso regulatorio.</strong> Este activo es un <strong>instrumento financiero</strong> bajo MiCA y MiFID II. Para ofertarlo al público en la UE necesitas autorización de investment firm + folleto aprobado por la NCA (e.g. AMF en Francia). Consulta con tu abogado antes de mintear. Sólo accredited investors podrán comprarlo on-chain.</div>
       </div>
 
       <div class="field"><label>Total supply (tokens)</label>
-        <input type="number" id="f-totalSupply" min="1" placeholder="100000">
+        <input type="number" inputmode="decimal" id="f-totalSupply" min="1" placeholder="100000">
         <div class="hint">Cantidad máxima de tokens que se podrán mintear contra este lote.</div>
       </div>
     </div>
@@ -338,7 +348,7 @@ footer.f{padding:40px 32px;border-top:1px solid var(--bd);text-align:center;colo
 
       <div class="field"><label>White paper URI (MiCA Art. 6)</label>
         <input type="text" id="f-whitePaper" placeholder="ipfs://… o https://…">
-        <div class="hint">Obligatorio bajo MiCA. Si todavía no tenés uno, usá un template en <a href="../legal/08-white-paper-template.md" target="_blank" style="color:var(--neon)">/legal/08-white-paper-template.md</a> y subilo a IPFS/Arweave.</div>
+        <div class="hint">Obligatorio bajo MiCA. Si todavía no tienes uno, usa una plantilla en <a href="https://github.com/carlospallottini-spec/agroglobaldex/blob/main/legal/08-white-paper-template.md" target="_blank" rel="noopener" style="color:var(--neon)">legal/08-white-paper-template.md (GitHub)</a> y subilo a IPFS/Arweave.</div>
       </div>
 
       <div class="field"><label>Metadata URI (JSON con imagen y descripción)</label>
@@ -389,13 +399,15 @@ import { checkKyc, reasonToMessage } from './js/kyc-gate.js';
 
 const state = { kind: null, file: null, hash: null };
 const $ = (sel) => document.querySelector(sel);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 function showToast(msg, kind = 'success') {
   const stack = $('#toast-stack');
   const t = document.createElement('div');
   t.className = 'toast ' + kind;
-  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt">${msg}</div>`;
+  t.innerHTML = `<div class="toast-ico">${kind === 'error' ? '!' : '✓'}</div><div class="toast-txt"></div>`;
+  t.querySelector('.toast-txt').textContent = msg;
   stack.appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 350); }, 4200);
 }
@@ -502,7 +514,7 @@ async function renderReview() {
     ['Cert. SHA-256', state.hash ? Array.from(state.hash).slice(0,4).map(b => b.toString(16).padStart(2,'0')).join('') + '…' : '—'],
     ['Red', NETWORK],
   );
-  r.innerHTML = rows.map(([k, v]) => `<div class="review-row"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  r.innerHTML = rows.map(([k, v]) => `<div class="review-row"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('');
 
   await renderKycBanner();
 }
@@ -510,17 +522,17 @@ async function renderReview() {
 async function renderKycBanner() {
   const b = $('#kyc-banner');
   if (!isConnected()) {
-    b.innerHTML = `<div class="warn"><strong>Wallet no conectada.</strong> Conectá Phantom antes de firmar.</div>`;
+    b.innerHTML = `<div class="warn"><strong>Wallet no conectada.</strong> Conecta Phantom antes de firmar.</div>`;
     $('#submit-tx').disabled = false;
     return;
   }
   b.innerHTML = `<div class="warn">Verificando KYC on-chain…</div>`;
   const kyc = await checkKyc(getPublicKey());
   if (kyc.ok) {
-    b.innerHTML = `<div class="ok">✓ KYC verificado · Jurisdicción ${kyc.jurisdiction}</div>`;
+    b.innerHTML = `<div class="ok">✓ KYC verificado · Jurisdicción ${esc(kyc.jurisdiction)}</div>`;
     $('#submit-tx').disabled = false;
   } else {
-    b.innerHTML = `<div class="warn"><strong>KYC requerido.</strong> ${reasonToMessage(kyc.reason, kyc.jurisdiction)} <a href="contact.html?kyc=1" style="color:var(--neon)">Solicitar KYC</a></div>`;
+    b.innerHTML = `<div class="warn"><strong>KYC requerido.</strong> ${esc(reasonToMessage(kyc.reason, kyc.jurisdiction))} <a href="contact.html?kyc=1" style="color:var(--neon)">Solicitar KYC</a></div>`;
     $('#submit-tx').disabled = false; // permitimos intentar; el programa rechazará
   }
 }
@@ -558,8 +570,8 @@ function collectForm() {
 
 $('#submit-tx').addEventListener('click', async () => {
   if (!isConnected()) {
-    const pk = await connectWallet();
-    if (!pk) return;
+    const pk = await connectWallet(); // abre el picker de wallets
+    if (!pk) return showToast('Conecta tu wallet y vuelve a pulsar "Firmar y tokenizar"', 'error');
   }
   const btn = $('#submit-tx');
   btn.disabled = true;
@@ -588,5 +600,8 @@ $('#submit-tx').addEventListener('click', async () => {
 });
 </script>
 <script type="module" src="js/pwa-install.js"></script>
+<script src="js/ux.js" defer></script>
+<script src="js/immersive.js" defer></script>
+<script src="js/alive.js" defer></script>
 </body>
 </html>

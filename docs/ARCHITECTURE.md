@@ -19,7 +19,7 @@ flowchart TD
     WALLET["Wallet del usuario<br/>Phantom · Solflare · Backpack<br/>+ Mobile Wallet Adapter"]
 
     subgraph Solana["Blockchain Solana (2 programas Anchor)"]
-        PROG["Programa agroglobaldex<br/>30 instrucciones:<br/>tokenización · marketplace ·<br/>lending · settlement · tesorería"]
+        PROG["Programa agroglobaldex<br/>31 instrucciones:<br/>tokenización · marketplace ·<br/>lending · settlement · tesorería"]
         HOOK["Programa compliance_hook<br/>(Token-2022 Transfer Hook)<br/>KYC · jurisdicción · acreditación"]
         MINT["Tokens de activo<br/>(Token-2022 con metadata<br/>y hook adjunto)"]
         RECEIPT["TradeReceipt PDAs<br/>(ledger inmutable de trades)"]
@@ -55,7 +55,7 @@ El usuario custodia sus propias llaves (Phantom, Solflare, Backpack; Mobile Wall
 
 ### 2.3 Programa principal `agroglobaldex` (Anchor)
 
-Los "smart contracts" del negocio. 30 instrucciones agrupadas en cinco módulos:
+Los "smart contracts" del negocio. 31 instrucciones agrupadas en cinco módulos:
 
 - **Tokenización:** `register_asset` crea el activo como token Token-2022 con metadata on-chain (nombre, URI, white paper) y le adjunta el hook de compliance; `mint_token` emite la oferta (exige KYC vigente del emisor y mercado no pausado); `redeem` quema tokens al entregar el activo físico.
 - **Marketplace:** listar (`list_asset`), comprar (`buy_asset`), cancelar; escrows en PDAs; comisión (`fee_bps`) con techo re-validado en cada compra. Soporta también activos externos agregados de otras plataformas.

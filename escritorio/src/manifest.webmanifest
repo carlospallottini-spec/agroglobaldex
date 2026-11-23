@@ -1,7 +1,7 @@
 {
   "name": "AgroGlobalDex",
   "short_name": "AgroGlobal",
-  "description": "Marketplace de RWA agropecuarios tokenizados sobre Solana — granos, carbono, cosechas y yield offerings.",
+  "description": "Marketplace global de RWA agropecuarios tokenizados sobre Solana — granos, carnes, vinos, aceites, lácteos, frutas, yield offerings y crédito al productor.",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
@@ -19,6 +19,8 @@
   "shortcuts": [
     { "name": "Marketplace", "short_name": "Market", "url": "/marketplace.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] },
     { "name": "Tokenizar", "short_name": "Tokenizar", "url": "/tokenize.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] },
-    { "name": "Invertir", "short_name": "Invertir", "url": "/invest.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] }
+    { "name": "Crédito", "short_name": "Crédito", "url": "/borrow.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] },
+    { "name": "Invertir", "short_name": "Invertir", "url": "/invest.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] },
+    { "name": "Comprobantes", "short_name": "Receipts", "url": "/receipts.html", "icons": [{"src":"icons/icon-192.png","sizes":"192x192"}] }
   ]
 }

@@ -32,7 +32,7 @@
 
 | Qué | Estado |
 |---|---|
-| Smart contracts (2 programas Anchor, 30 instrucciones) | ✅ Feature-complete, desplegable en devnet |
+| Smart contracts (2 programas Anchor, 31 instrucciones) | ✅ Feature-complete, desplegable en devnet |
 | Tests | ✅ 47 tests de integración mocha en CI verde (`anchor test`), + gates de clippy, fmt, cargo-audit y control de deriva del IDL |
 | Hardening de seguridad | ✅ Auditoría interna documentada (`AUDIT_READINESS.md`): hallazgos críticos y altos de código remediados y verificados en CI |
 | Web (PWA, 11+ páginas) | ✅ Publicada en agroglobaldex.com con deploy automático |

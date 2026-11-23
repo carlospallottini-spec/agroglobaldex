@@ -101,13 +101,13 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
 
 <main>
   <h1>Crédito contra tu cosecha</h1>
-  <div class="sub">El problema #1 del productor no es vender — es acceder a <strong>financiamiento</strong>. Tenés grano en silo o cosecha tokenizada, pero el banco no presta. Acá depositás tus tokens RWA-agro como colateral y tomás <strong>USDC al instante</strong>, sin banco, sin papeleo, settlement en segundos sobre Solana.</div>
+  <div class="sub">El problema #1 del productor no es vender — es acceder a <strong>financiamiento</strong>. Tienes grano en silo o cosecha tokenizada, pero el banco no presta. Aquí depositas tus tokens RWA-agro como colateral y tomas <strong>USDC al instante</strong>, sin banco, sin papeleo, settlement en segundos sobre Solana.</div>
 
   <div class="steps">
-    <div class="step"><div class="n">1</div><div class="t">Tokenizás tu producto (grano, vino, carne…)</div></div>
-    <div class="step"><div class="n">2</div><div class="t">Lo depositás como colateral</div></div>
-    <div class="step"><div class="n">3</div><div class="t">Recibís USDC hasta el LTV máximo</div></div>
-    <div class="step"><div class="n">4</div><div class="t">Repagás capital + interés, recuperás colateral</div></div>
+    <div class="step"><div class="n">1</div><div class="t">Tokenizas tu producto (grano, vino, carne…)</div></div>
+    <div class="step"><div class="n">2</div><div class="t">Lo depositas como colateral</div></div>
+    <div class="step"><div class="n">3</div><div class="t">Recibes USDC hasta el LTV máximo</div></div>
+    <div class="step"><div class="n">4</div><div class="t">Repagas capital + interés, recuperas colateral</div></div>
   </div>
 
   <div class="pool-stats">
@@ -121,9 +121,9 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
     <div>
       <div class="card">
         <h3>Pedir préstamo</h3>
-        <div class="desc">Elegí un asset que tengas en tu wallet y esté habilitado como colateral.</div>
+        <div class="desc">Elige un asset que tengas en tu wallet y esté habilitado como colateral.</div>
         <div class="field"><label>Asset colateral</label>
-          <select id="b-asset"><option value="">Cargá tu wallet…</option></select>
+          <select id="b-asset"><option value="">Carga tu wallet…</option></select>
         </div>
         <div class="field"><label>Cantidad de colateral (tokens)</label>
           <input type="number" inputmode="decimal" id="b-collateral" placeholder="ej. 50000" min="1">
@@ -143,12 +143,12 @@ h1{font-family:var(--fd);font-size:38px;margin-bottom:6px}
     <div>
       <div class="card">
         <h3>Mis préstamos</h3>
-        <div class="desc">Préstamos activos. Repagá para liberar tu colateral.</div>
-        <div id="loans-wrap"><div class="empty">Conectá tu wallet para ver tus préstamos.</div></div>
+        <div class="desc">Préstamos activos. Repaga para liberar tu colateral.</div>
+        <div id="loans-wrap"><div class="empty">Conecta tu wallet para ver tus préstamos.</div></div>
       </div>
       <div class="card">
         <h3>Proveer liquidez</h3>
-        <div class="desc">Aportá USDC al pool y financiá a productores. (En MVP el interés acumulado vuelve al pool.)</div>
+        <div class="desc">Aporta USDC al pool y financia a productores. (En MVP el interés acumulado vuelve al pool.)</div>
         <div class="calc" id="l-pos" style="display:none">
           <div class="row"><div>Tus shares del pool</div><div class="v" id="l-deposited">—</div></div>
         </div>
@@ -206,7 +206,7 @@ async function loadPool() {
 async function loadAssets() {
   _assets = await fetchAllAssets();
   const sel = $('#b-asset');
-  sel.innerHTML = '<option value="">Elegí un asset…</option>' +
+  sel.innerHTML = '<option value="">Elige un asset…</option>' +
     _assets.map(a => `<option value="${esc(a.publicKey)}">${esc(a.productName || a.account?.productName || a.publicKey.slice(0,8))}</option>`).join('');
 }
 
@@ -224,7 +224,7 @@ async function loadMyPosition() {
 }
 
 async function loadLoans() {
-  if (!isConnected()) { $('#loans-wrap').innerHTML = '<div class="empty">Conectá tu wallet.</div>'; return; }
+  if (!isConnected()) { $('#loans-wrap').innerHTML = '<div class="empty">Conecta tu wallet.</div>'; return; }
   const loans = await fetchAllLoans({ borrower: getPublicKey() });
   const active = loans.filter(l => l.active);
   if (!active.length) { $('#loans-wrap').innerHTML = '<div class="empty">Sin préstamos activos.</div>'; return; }
@@ -283,7 +283,7 @@ $('#b-btn').addEventListener('click', async () => {
   const coll = $('#b-collateral').value;
   const borrow = $('#b-borrow').value;
   if (!reg || !coll || !borrow) return toast('Completá todos los campos', 'error');
-  if (!isConnected()) { await connectWallet(); if (!isConnected()) return toast('Conectá tu wallet para pedir el préstamo', 'error'); }
+  if (!isConnected()) { await connectWallet(); if (!isConnected()) return toast('Conecta tu wallet para pedir el préstamo', 'error'); }
   try {
     $('#b-btn').disabled = true;
     const { tx } = await openLoan({ assetRegistryPubkey: reg, collateralAmount: coll, borrowAmount: borrow });
@@ -291,18 +291,18 @@ $('#b-btn').addEventListener('click', async () => {
   } catch (e) {
     const m = String(e.message||e);
     let hint = '';
-    if (m.includes('ExceedsMaxLtv')) hint = '<br>Pedís más del LTV máximo. Bajá el monto.';
+    if (m.includes('ExceedsMaxLtv')) hint = '<br>Pides más del LTV máximo. Baja el importe.';
     else if (m.includes('CollateralNotEnabled')) hint = '<br>Este asset no está habilitado como colateral.';
     else if (m.includes('InsufficientLiquidity')) hint = '<br>El pool no tiene suficiente USDC.';
-    else if (m.includes('KycNotVerified')) hint = '<br>Necesitás KYC aprobado.';
+    else if (m.includes('KycNotVerified')) hint = '<br>Necesitas KYC aprobado.';
     toast('Error: ' + esc(m) + hint, 'error');
   } finally { $('#b-btn').disabled = false; }
 });
 
 $('#l-btn').addEventListener('click', async () => {
   const amt = $('#l-amount').value;
-  if (!amt) return toast('Ingresá un monto', 'error');
-  if (!isConnected()) return toast('Conectá tu wallet primero', 'error');
+  if (!amt) return toast('Introduce un importe', 'error');
+  if (!isConnected()) return toast('Conecta tu wallet primero', 'error');
   try {
     $('#l-btn').disabled = true;
     const { tx } = await depositLiquidity({ amount: amt });
@@ -313,8 +313,8 @@ $('#l-btn').addEventListener('click', async () => {
 
 $('#w-btn').addEventListener('click', async () => {
   const amt = $('#w-amount').value;
-  if (!amt) return toast('Ingresá un monto', 'error');
-  if (!isConnected()) return toast('Conectá tu wallet primero', 'error');
+  if (!amt) return toast('Introduce un importe', 'error');
+  if (!isConnected()) return toast('Conecta tu wallet primero', 'error');
   try {
     $('#w-btn').disabled = true;
     const { tx } = await withdrawLiquidity({ amount: amt });
@@ -322,8 +322,8 @@ $('#w-btn').addEventListener('click', async () => {
   } catch (e) {
     const m = String(e.message||e);
     let hint = '';
-    if (m.includes('ExceedsDeposit')) hint = '<br>Pedís más de lo que aportaste al pool.';
-    else if (m.includes('InsufficientLiquidity')) hint = '<br>El pool no tiene suficiente USDC ocioso (parte está prestada). Probá un monto menor o esperá repagos.';
+    if (m.includes('ExceedsDeposit')) hint = '<br>Pides más de lo que aportaste al pool.';
+    else if (m.includes('InsufficientLiquidity')) hint = '<br>El pool no tiene suficiente USDC ocioso (parte está prestada). Prueba con un importe menor o espera a que haya repagos.';
     toast('Error: ' + esc(m) + hint, 'error');
   } finally { $('#w-btn').disabled = false; }
 });

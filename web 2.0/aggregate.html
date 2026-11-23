@@ -101,7 +101,7 @@ td{padding:14px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}
   <h1>Agregador</h1>
   <div class="sub">Cura tokens RWA-agro de terceras plataformas (Agrotoken, Topaz, RIPE, Centrifuge…) para que aparezcan en el marketplace de AgroGlobalDex.</div>
 
-  <div id="auth-warn" class="warn" style="display:none">No tenés permisos. Sólo la <strong>authority del marketplace</strong> puede agregar/curar activos. Conectá la wallet correcta.</div>
+  <div id="auth-warn" class="warn" style="display:none">No tienes permisos. Sólo la <strong>authority del marketplace</strong> puede agregar/curar activos. Conecta la wallet correcta.</div>
 
   <div class="card">
     <h3 style="font-family:var(--fd);font-size:20px;margin-bottom:14px">Agregar nuevo</h3>
@@ -239,7 +239,7 @@ async function refresh() {
 $('#btn-add').addEventListener('click', async () => {
   if (!isConnected()) {
     await connectWallet(); // abre el picker; el usuario reintenta tras conectar
-    if (!isConnected()) return toast('Conectá tu wallet (authority) y volvé a tocar Agregar', 'error');
+    if (!isConnected()) return toast('Conecta tu wallet (authority) y vuelve a pulsar Agregar', 'error');
   }
   const tab = document.querySelector('.tab.active').dataset.tab;
   const form = {
